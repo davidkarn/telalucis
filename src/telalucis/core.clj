@@ -3,10 +3,11 @@
   (:require [clojure.string :as str])
   (:require [taoensso.nippy :as nippy])
   (:require [clojure.xml :as xml])
+  (:require [clojure.data.json :as json])
   (:gen-class))
 
 (def cf-1 "/home/david/Downloads/npnf101.xml")
-
+(def path "/home/david/projects/telalucis/public/data/")
 ;; ;; document-format
 ;; {:title "string"
 ;;  :id "string"
@@ -33,7 +34,34 @@
 
 ;; ;;textblock-format
 ;; ["string"|{:dec "i"|"u"|"b" :text "string"}|{:note <number>}]
- 
+
+(defn sanitize-str
+  [string]
+  (subs (str/lower-case (str/replace string #"[^\w]" "-"))
+        0
+        (min (count string) 10)))
+
+(defn get-book
+  [title id book-data]
+  (seek (fn [book] (and (= (:title book) title)
+                        (= (:id book) id)))
+        book-data))
+
+(defn save-books-to-disk
+  [book-data author]
+  (map (fn [item]
+         (let [bookpath (str path "books/" author "/"
+                             (sanitize-str (:title item)) "-"
+                             (sanitize-str (:id item)) "/")
+               book (get-book (:title item) (:id item) book-data)]
+           (.mkdir (java.io.File. bookpath))
+           (map (fn [chapter]
+                  (with-open [wrtr (io/writer (str bookpath
+                                                   (sanitize-str (:title chapter)) "-"
+                                                   (sanitize-str (:id chapter)) ".json"))]
+                    (.write wrtr (json/write-str chapter))))
+                (:children book))))
+       (toc book-data)))
 
 (defn seek
   "Returns first item from coll for which (pred item) returns true.
@@ -62,6 +90,15 @@
 (defn get-attr
   [element attr-name]
   (attr-name (:attrs element)))
+
+(defn toc
+  [contents]
+  (->> contents 
+       (filter (fn [x] (and (= :section (:node-type x))
+                            (not (#{"Title Page" "Preface" "Contents"} (:title x))))))
+       (map (fn [x] (assoc x :children (toc (:children x)))))))
+
+  
 
 (defn get-sections
   [tag]
