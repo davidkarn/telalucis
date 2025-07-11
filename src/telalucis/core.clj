@@ -6,8 +6,14 @@
   (:require [clojure.data.json :as json])
   (:gen-class))
 
+(def douay "/home/david/Downloads/douayr.xml")
+(def vulgate "/home/david/Downloads/vulgate.xml")
+
 (def cf-1 "/home/david/Downloads/npnf101.xml")
 (def path "/home/david/projects/telalucis/public/data/")
+
+
+
 ;; ;; document-format
 ;; {:title "string"
 ;;  :id "string"
@@ -56,10 +62,12 @@
                book (get-book (:title item) (:id item) book-data)]
            (.mkdir (java.io.File. bookpath))
            (map (fn [chapter]
-                  (with-open [wrtr (io/writer (str bookpath
+                  (if (not (and (:title chapter) (:id chapter)))
+                    (pprint ["error" chapter])
+                    (with-open [wrtr (io/writer (str bookpath
                                                    (sanitize-str (:title chapter)) "-"
                                                    (sanitize-str (:id chapter)) ".json"))]
-                    (.write wrtr (json/write-str chapter))))
+                      (.write wrtr (json/write-str chapter)))))
                 (:children book))))
        (toc book-data)))
 
@@ -98,21 +106,50 @@
                             (not (#{"Title Page" "Preface" "Contents"} (:title x))))))
        (map (fn [x] (assoc x :children (toc (:children x)))))))
 
-  
+(defn parse-bible
+  [contents]
+  (parse-bible-node (get-tag contents :ThML.body)))
+    
+(defn parse-bible-node
+  [tag]
+  (map (fn [node]
+         (cond
+           (= :div2 (:tag node))
+           {:type :book
+            :title (get-attr node :title)
+            :id (get-attr node :id),
+            :chapters (parse-bible-node (:content node))}
+
+           (= :div3 (:tag node))
+           {:type :chapter
+            :title (get-attr node :title)
+            :id (get-attr node :id)
+            :verses (let [verses (filter #(string? %) (:content node))]
+                      (map
+                       (fn [str, i] {:num i, :verse str})
+                       verses
+                       (range 1 (+ 1 (count verses)))))}
+
+           (= :div1 (:tag node))
+           (parse-bible-node (:content node))))
+       (filter
+        (fn [node] (#{:div1 :div2 :div3 :div4 :div5 :div6 :p} (:tag node)))
+        (:content tag))))
+
 
 (defn get-sections
   [tag]
   (map (fn [node]
          (cond
            (#{:div1 :div2 :div3 :div4 :div5 :div6} (:tag node))
-           {:title (get-attr node :title)
-            :node-type :section
-            :sub-title (get-attr node :shorttitle)
-            :id (get-attr node :id)
-            :type (get-attr node :type)
-            :shorttitle (get-attr node :shorttitle)
-            :number (get-attr node :n)
-            :children (get-sections node)}
+           {:title       (get-attr node :title)
+            :node-type   :section
+            :sub-title   (get-attr node :shorttitle)
+            :id          (get-attr node :id)
+            :type        (get-attr node :type)
+            :shorttitle  (get-attr node :shorttitle)
+            :number      (get-attr node :n)
+            :children    (get-sections node)}
            (= :p (:tag node))
            (process-paragraph node)))
        (filter
@@ -127,19 +164,19 @@
 (defn extract-references
   [para]
   (case (:tag para)
-    :pb nil
-    :note {:notes [] :contents {:tag :note :id (get-attr para :id)}}
+    :pb       nil
+    :note     {:notes [] :contents {:tag :note :id (get-attr para :id)}}
     :scripRef {:notes [] :contents {:tag :note :id (get-attr para :id)}}
-    :i {:tag :i
-        :contents (filter identity (map extract-references (:content para)))
-        :notes (get-notes para)}
-    nil (if (string? para)
-          {:notes []
-           :contents para}
-          nil)
-    (let [notes (get-notes para)
+    :i        {:tag :i
+               :contents (filter identity (map extract-references (:content para)))
+               :notes (get-notes para)}
+    nil       (if (string? para)
+                {:notes    []
+                 :contents para}
+                nil)
+    (let [notes    (get-notes para)
           contents (filter identity (map extract-references (:content para)))]
-      {:notes (into notes (filter identity (flatten (map :notes contents))))
+      {:notes    (into notes (filter identity (flatten (map :notes contents))))
        :contents (filter identity (map :contents contents))})))
 
 (defn process-paragraph
@@ -153,12 +190,12 @@
 (defn char-to-int
   [c]
   (case c
-    \I 1 \i 1
-    \V 5 \v 5
-    \X 10 \x 10
-    \L 50 \l 50
-    \C 100 \c 100
-    \D 500 \d 500
+    \I 1    \i 1
+    \V 5    \v 5
+    \X 10   \x 10
+    \L 50   \l 50
+    \C 100  \c 100
+    \D 500  \d 500
     \M 1000 \m 1000
     0))
 
