@@ -12,7 +12,40 @@
 (def cf-1 "/home/david/Downloads/npnf101.xml")
 (def path "/home/david/projects/telalucis/public/data/")
 
+(def conf1-path "/home/david/projects/telalucis/public/data/books/augustine/the-confes-vi/he-continu-vi-xii.json")
 
+(defn read-chaptre-from-disk
+  [author book chapter]
+  (json/read-str
+   (slurp (str "/home/david/projects/telalucis/public/data/books/"
+               author
+               "/" book
+               "/" chapter ".json"))
+   :key-fn keyword))
+
+(defn note-has-scripture-ref
+  [note]
+  (if (= (:tag note "scripRef"))
+    note
+    (if (:content note)
+      (first (filter identity (map note-has-scripture-ref (:content note)))))))
+                                  
+
+(defn chapter-notes
+  [chapter author book chapter]
+  (flatten
+   (map (fn [para]
+          (map (fn [scripRef]
+                 {:ref scripRef
+                  :author author
+                  :book book
+                  :chapter chapter
+                  :para (flatten (filter #(not (:tag %))
+                                         (:contents para)))})
+               (filter note-has-scripture-ref
+                       (:notes para))))
+        (flatten (map :children (:children chapter))))))
+  
 
 ;; ;; document-format
 ;; {:title "string"
@@ -71,6 +104,15 @@
                 (:children book))))
        (toc book-data)))
 
+(defn save-bible-to-disk
+  [book-data translation]
+  (map (fn [book]
+         (.mkdir (java.io.File. (str path "bible/" translation)))
+         (with-open [wrtr (io/writer (str path "bible/" translation "/"
+                                          (sanitize-str (:title book)) ".json"))]
+           (.write wrtr (json/write-str book))))
+       (flatten (filter #(not (empty? %)) book-data))))
+
 (defn seek
   "Returns first item from coll for which (pred item) returns true.
    Returns nil if no such item is present, or the not-found value if supplied."
@@ -118,20 +160,21 @@
            {:type :book
             :title (get-attr node :title)
             :id (get-attr node :id),
-            :chapters (parse-bible-node (:content node))}
+            :chapters (parse-bible-node node)}
 
            (= :div3 (:tag node))
            {:type :chapter
             :title (get-attr node :title)
             :id (get-attr node :id)
-            :verses (let [verses (filter #(string? %) (:content node))]
+            :verses (let [verses (filter #(string? %)
+                                         (flatten (map :content (:content node))))]
                       (map
-                       (fn [str, i] {:num i, :verse str})
+                       (fn [str, i] {:num i, :verse (str/trim str)})
                        verses
                        (range 1 (+ 1 (count verses)))))}
 
            (= :div1 (:tag node))
-           (parse-bible-node (:content node))))
+           (parse-bible-node node)))
        (filter
         (fn [node] (#{:div1 :div2 :div3 :div4 :div5 :div6 :p} (:tag node)))
         (:content tag))))
