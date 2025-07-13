@@ -25,27 +25,113 @@
 
 (defn note-has-scripture-ref
   [note]
-  (if (= (:tag note "scripRef"))
+  (if (= (:tag note) "scripRef")
     note
     (if (:content note)
-      (first (filter identity (map note-has-scripture-ref (:content note)))))))
+      (first (filter identity (map note-has-scripture-ref (:content note))))
+      nil)))
                                   
 
 (defn chapter-notes
-  [chapter author book chapter]
-  (flatten
-   (map (fn [para]
-          (map (fn [scripRef]
-                 {:ref scripRef
-                  :author author
-                  :book book
-                  :chapter chapter
-                  :para (flatten (filter #(not (:tag %))
-                                         (:contents para)))})
-               (filter note-has-scripture-ref
-                       (:notes para))))
-        (flatten (map :children (:children chapter))))))
-  
+  [chapter-data author book chapter-name]
+  (filter identity
+          (map (fn [para]
+                 (let [scrip-ref (first (filter identity (map note-has-scripture-ref (:notes para))))]
+                   (if scrip-ref
+                     {:ref     scrip-ref
+                      :author  author
+                      :book    book
+                      :chapter chapter-name
+                      :para    (flatten (filter #(not (:tag %))
+                                             (:contents para)))}
+                     nil)))
+               (flatten (map :children (:children chapter-data))))))
+
+(defn translate-book
+  [book]
+  (case book
+    "Ps" "psalms"
+    "1Cor" "1-corinthi"
+    "Ezra" "1-esdras"
+    "1John" "1-john"
+    "1Sam" "1-kings--a"
+    "1Macc" "1-machabee"
+    "1Chr" "1-paralipo"
+    "1Pet" "1-peter"
+    "1Thess" "1-thessalo"
+    "1Tim" "1-timothy"
+    "2Cor" "2-corinthi"
+    "Neh" "2-esdras--"
+    "2John" "2-john"
+    "2Sam" "2-kings--a"
+    "2Macc" "2-machabee"
+    "2Chr" "2-paralipo"
+    "2Pet" "2-peter"
+    "2Thess" "2-thessalo"
+    "2Tim" "2-timothy"
+    "3John" "3-john"
+    "1Kgs" "3-kings"
+    "2Kgs" "4-kings"
+    "Obad" "abdias"
+    "Acts" "acts"
+    "Sir" "sirach"
+    "Hag" "aggeus"
+    "Amos" "amos"
+    "Rev" "apocalypse"
+    "Bar" "baruch"
+    "Song" "canticle-o"
+    "Col" "colossians"
+    "Dan" "daniel"
+    "Deut" "deuteronom"
+    "Eccl" "ecclesiast"
+    "Eph" "ephesians"
+    "Esth" "esther"
+    "Exod" "exodus"
+    "Ezek" "ezechiel"
+    "Gal" "galatians"
+    "Gen" "genesis"
+    "Hab" "habacuc"
+    "Heb" "hebrews"
+    "Isa" "isaias"
+    "Jas" "james"
+    "Jer" "jeremias"
+    "Job" "job"
+    "Joel" "joel"
+    "John" "john"
+    "Jonah" "jonas"
+    "Josh" "josue"
+    "Jude" "jude"
+    "Judg" "judges"
+    "Jdt" "judith"
+    "Lam" "lamentatio"
+    "Lev" "leviticus"
+    "Luke" "luke"
+    "Mal" "malachias"
+    "Mark" "mark"
+    "Matt" "matthew"
+    "Mic" "micheas"
+    "Nah" "nahum"
+    "Num" "numbers"
+    "Hos" "osee"
+    "Phlm" "philemon"
+    "Phil" "philippian"
+    "PrAzar" "prayer-of-"
+    "Prov" "proverbs"
+    "Rom" "romans"
+    "Ruth" "ruth"
+    "Zeph" "sophonias"
+    "Titus" "titus"
+    "Tob" "tobias"
+    "Wis" "wisdom"
+    "Zach" "zacharias"))
+
+(defn scripture-ref-to-path
+  [ref]
+  (let [[book chapter verse] (str/split (:parsed (:attrs ref)) #"\|")]
+    {:book    (translate-book book)
+     :chapter chapter
+     :verse   verse}))
+
 
 ;; ;; document-format
 ;; {:title "string"
@@ -76,9 +162,13 @@
 
 (defn sanitize-str
   [string]
-  (subs (str/lower-case (str/replace string #"[^\w]" "-"))
-        0
-        (min (count string) 10)))
+  (cond (= string "Ecclesiasticus") ; prevent collision between Ecelesiastes and Ecclesiasticus
+        "Sirach"
+
+        true
+        (subs (str/lower-case (str/replace string #"[^\w]" "-"))
+              0
+              (min (count string) 10))))
 
 (defn get-book
   [title id book-data]
@@ -92,14 +182,14 @@
          (let [bookpath (str path "books/" author "/"
                              (sanitize-str (:title item)) "-"
                              (sanitize-str (:id item)) "/")
-               book (get-book (:title item) (:id item) book-data)]
+               book     (get-book (:title item) (:id item) book-data)]
            (.mkdir (java.io.File. bookpath))
            (map (fn [chapter]
                   (if (not (and (:title chapter) (:id chapter)))
                     (pprint ["error" chapter])
                     (with-open [wrtr (io/writer (str bookpath
-                                                   (sanitize-str (:title chapter)) "-"
-                                                   (sanitize-str (:id chapter)) ".json"))]
+                                                     (sanitize-str (:title chapter)) "-"
+                                                     (sanitize-str (:id chapter)) ".json"))]
                       (.write wrtr (json/write-str chapter)))))
                 (:children book))))
        (toc book-data)))
@@ -157,15 +247,15 @@
   (map (fn [node]
          (cond
            (= :div2 (:tag node))
-           {:type :book
-            :title (get-attr node :title)
-            :id (get-attr node :id),
+           {:type     :book
+            :title    (get-attr node :title)
+            :id       (get-attr node :id),
             :chapters (parse-bible-node node)}
 
            (= :div3 (:tag node))
-           {:type :chapter
-            :title (get-attr node :title)
-            :id (get-attr node :id)
+           {:type   :chapter
+            :title  (get-attr node :title)
+            :id     (get-attr node :id)
             :verses (let [verses (filter #(string? %)
                                          (flatten (map :content (:content node))))]
                       (map
@@ -185,14 +275,14 @@
   (map (fn [node]
          (cond
            (#{:div1 :div2 :div3 :div4 :div5 :div6} (:tag node))
-           {:title       (get-attr node :title)
-            :node-type   :section
-            :sub-title   (get-attr node :shorttitle)
-            :id          (get-attr node :id)
-            :type        (get-attr node :type)
-            :shorttitle  (get-attr node :shorttitle)
-            :number      (get-attr node :n)
-            :children    (get-sections node)}
+           {:title      (get-attr node :title)
+            :node-type  :section
+            :sub-title  (get-attr node :shorttitle)
+            :id         (get-attr node :id)
+            :type       (get-attr node :type)
+            :shorttitle (get-attr node :shorttitle)
+            :number     (get-attr node :n)
+            :children   (get-sections node)}
            (= :p (:tag node))
            (process-paragraph node)))
        (filter
@@ -210,9 +300,9 @@
     :pb       nil
     :note     {:notes [] :contents {:tag :note :id (get-attr para :id)}}
     :scripRef {:notes [] :contents {:tag :note :id (get-attr para :id)}}
-    :i        {:tag :i
+    :i        {:tag      :i
                :contents (filter identity (map extract-references (:content para)))
-               :notes (get-notes para)}
+               :notes    (get-notes para)}
     nil       (if (string? para)
                 {:notes    []
                  :contents para}
@@ -244,7 +334,7 @@
 
 (defn parse-roman-numeral
   [str]
-  (loop [i 1
+  (loop [i   1
          num (char-to-int (get str 0))]
     (if (>= i (count str))
       num
