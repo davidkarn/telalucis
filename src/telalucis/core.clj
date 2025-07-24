@@ -6,19 +6,21 @@
   (:require [clojure.data.json :as json])
   (:gen-class))
 
-(def douay "/home/david/Downloads/douayr.xml")
-(def vulgate "/home/david/Downloads/vulgate.xml")
+(def docs-root "/Users/davidkarn/Downloads/")
+(def app-root "/Users/davidkarn/Projects/telalucis/")
 
-(def cf-1 "/home/david/Downloads/npnf101.xml")
-(def path "/home/david/projects/telalucis/public/data/")
+(def douay (str docs-root "douay.xml"))
+(def vulgate (str docs-root "vulgate.xml"))
 
-(def conf1-path "/home/david/projects/telalucis/public/data/books/augustine/the-confes-vi/he-continu-vi-xii.json")
+(def cf-1 (str docs-root "npnf101.xml"))
+(def path (str app-root "public/data/"))
+
+(def conf1-path (str app-root "public/data/books/augustine/the-confes-vi/he-continu-vi-xii.json"))
 
 (defn read-chapter-from-disk
   [author book chapter]
   (json/read-str
-   (slurp (str "/home/david/projects/telalucis/public/data/books/"
-               author
+   (slurp (str path "books/" author
                "/" book
                "/" chapter ".json"))
    :key-fn keyword))
@@ -34,18 +36,27 @@
 
 (defn chapter-notes
   [chapter-data author book chapter-name]
-  (filter identity
-          (map (fn [para]
-                 (let [scrip-ref (first (filter identity (map note-has-scripture-ref (:notes para))))]
-                   (if scrip-ref
-                     {:ref     scrip-ref
-                      :author  author
-                      :book    book
-                      :chapter chapter-name
-                      :para    (flatten (filter #(not (:tag %))
-                                             (:contents para)))}
-                     nil)))
-               (flatten (map :children (:children chapter-data))))))
+  (filter
+   identity
+   (flatten 
+   (map (fn [para]
+          (let [notes-with-ref (filter note-has-scripture-ref (:notes para))]
+            (map (fn [root-ref]
+                   (let [scrip-ref (note-has-scripture-ref root-ref)]
+                     (if scrip-ref
+                       {:ref     scrip-ref
+                        :fn-id   (:id (:attrs root-ref))
+                        :author  author
+                        :book    book
+                        :chapter chapter-name
+                        :para    (flatten
+                                  (filter #(not (and (= (:tag %) "note")
+                                                     (not (= (:id %) (:id (:attrs root-ref))))))
+                                          (:contents para)))}
+                       nil))))
+                   notes-with-ref)))
+        (flatten (map :children (:children chapter-data))))))
+
 
 (defn translate-book
   [book]
@@ -127,7 +138,7 @@
 
 (defn path-for-scripture-ref
   [script-path]
-  (str "/home/david/projects/telalucis/public/data/bible/refs/"
+  (str app-root "public/data/bible/refs/"
        (:book script-path)
        "-"
        (:chapter script-path)
@@ -191,6 +202,20 @@
 ;; ;;textblock-format
 ;; ["string"|{:dec "i"|"u"|"b" :text "string"}|{:note <number>}]
 
+
+(defn seek
+  "Returns first item from coll for which (pred item) returns true.
+   Returns nil if no such item is present, or the not-found value if supplied."
+  {:added  "1.9" ; note, this was never accepted into clojure core
+   :static true}
+  ([pred coll] (seek pred coll nil))
+  ([pred coll not-found]
+   (reduce (fn [_ x]
+             (if (pred x)
+               (reduced x)
+               not-found))
+           not-found coll)))
+
 (defn sanitize-str
   [string]
   (cond (= string "Ecclesiasticus") ; prevent collision between Ecelesiastes and Ecclesiasticus
@@ -207,6 +232,13 @@
                         (= (:id book) id)))
         book-data))
 
+(defn toc
+  [contents]
+  (->> contents 
+       (filter (fn [x] (and (= :section (:node-type x))
+                            (not (#{"Title Page" "Preface" "Contents"} (:title x))))))
+       (map (fn [x] (assoc x :children (toc (:children x)))))))
+
 (defn save-books-to-disk
   [book-data author]
   (map (fn [item]
@@ -214,6 +246,7 @@
                              (sanitize-str (:title item)) "-"
                              (sanitize-str (:id item)) "/")
                book     (get-book (:title item) (:id item) book-data)]
+           (.mkdir (java.io.File. (str path "books/" author)))
            (.mkdir (java.io.File. bookpath))
            (map (fn [chapter]
                   (if (not (and (:title chapter) (:id chapter)))
@@ -234,19 +267,6 @@
            (.write wrtr (json/write-str book))))
        (flatten (filter #(not (empty? %)) book-data))))
 
-(defn seek
-  "Returns first item from coll for which (pred item) returns true.
-   Returns nil if no such item is present, or the not-found value if supplied."
-  {:added  "1.9" ; note, this was never accepted into clojure core
-   :static true}
-  ([pred coll] (seek pred coll nil))
-  ([pred coll not-found]
-   (reduce (fn [_ x]
-             (if (pred x)
-               (reduced x)
-               not-found))
-           not-found coll)))
-
 (defn parse-theology
   [file-path]
   (with-open [file (io/input-stream file-path)]
@@ -262,16 +282,6 @@
   [element attr-name]
   (attr-name (:attrs element)))
 
-(defn toc
-  [contents]
-  (->> contents 
-       (filter (fn [x] (and (= :section (:node-type x))
-                            (not (#{"Title Page" "Preface" "Contents"} (:title x))))))
-       (map (fn [x] (assoc x :children (toc (:children x)))))))
-
-(defn parse-bible
-  [contents]
-  (parse-bible-node (get-tag contents :ThML.body)))
     
 (defn parse-bible-node
   [tag]
@@ -301,29 +311,10 @@
         (:content tag))))
 
 
-(defn get-sections
-  [tag]
-  (map (fn [node]
-         (cond
-           (#{:div1 :div2 :div3 :div4 :div5 :div6} (:tag node))
-           {:title      (get-attr node :title)
-            :node-type  :section
-            :sub-title  (get-attr node :shorttitle)
-            :id         (get-attr node :id)
-            :type       (get-attr node :type)
-            :shorttitle (get-attr node :shorttitle)
-            :number     (get-attr node :n)
-            :children   (get-sections node)}
-           (= :p (:tag node))
-           (process-paragraph node)))
-       (filter
-        (fn [node] (#{:div1 :div2 :div3 :div4 :div5 :div6 :p} (:tag node)))
-        (:content tag))))
-
 (defn get-notes
   [para]
   (filter (fn [node] (#{:scripRef :note} (:tag node)))
-                        (:content para)))
+          (:content para)))
 
 (defn extract-references
   [para]
@@ -346,6 +337,30 @@
 (defn process-paragraph
   [node]
   (extract-references node))
+
+(defn parse-bible
+  [contents]
+  (parse-bible-node (get-tag contents :ThML.body)))
+
+
+(defn get-sections
+  [tag]
+  (map (fn [node]
+         (cond
+           (#{:div1 :div2 :div3 :div4 :div5 :div6} (:tag node))
+           {:title      (get-attr node :title)
+            :node-type  :section
+            :sub-title  (get-attr node :shorttitle)
+            :id         (get-attr node :id)
+            :type       (get-attr node :type)
+            :shorttitle (get-attr node :shorttitle)
+            :number     (get-attr node :n)
+            :children   (get-sections node)}
+           (= :p (:tag node))
+           (process-paragraph node)))
+       (filter
+        (fn [node] (#{:div1 :div2 :div3 :div4 :div5 :div6 :p} (:tag node)))
+        (:content tag))))
 
 (defn get-pages
   [contents]
@@ -378,6 +393,8 @@
                     cur)))))))
            
 (get-pages contents)
-(def chapt (read-book-from-disk "augustine" "the-confes-vi" "he-continu-vi-xii"))
-(chapter-notes chapt "asdf" "confess" "confess-vi")
-(write-refs-to-disk (chapter-notes chapt "asdf" "confess" "confess-vi"))
+(save-bible-to-disk (parse-bible (parse-theology douay)) "douay")
+(save-books-to-disk (get-pages contents) "augustine")
+(def chapt (read-chapter-from-disk "augustine" "the-confes-vi" "he-continu-vi-xii"))
+(chapter-notes chapt "augustine" "confess" "confess-vi")
+(write-refs-to-disk (chapter-notes chapt "augustine" "confess" "confess-vi"))
