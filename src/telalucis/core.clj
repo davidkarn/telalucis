@@ -1213,4 +1213,743 @@
               :volume 203}
              {:title  "Preface to Origen's Homilies on Numbers.",
               :id     "vi.xx",
-              :volume 203}]}])
+              :volume 203}]}
+
+   {:author "Augustine",
+  :books    [{:title "The Confessions",
+          :id        "vi",
+          :volume    101}
+          {:title  "Letters of St. Augustin",
+           :id     "vii",
+           :volume 101}
+          {:title  "City of God"
+           :volume 102
+           :id     "iv"}
+          {:title  "On Christian Doctrine",
+           :id     "v",
+           :volume 102}
+          {:title "On the Holy Trinity.", :id "iv.i", :volume 103}
+          {:title "The Enchiridion.", :id "iv.ii", :volume 103}
+          {:title  "On the Catechising of the Uninstructed.",
+           :id     "iv.iii",
+           :volume 103}
+          {:title  "A Treatise on Faith and the Creed.",
+           :id     "iv.iv",
+           :volume 103}
+          {:title  "Concerning Faith of Things Not Seen.",
+           :id     "iv.v",
+           :volume 103}
+          {:title "On the Profit of Believing.", :id "iv.vi", :volume 103}
+          {:title "On the Creed.", :id "iv.vii", :volume 103}
+          {:title "On Continence.", :id "v.i", :volume 103}
+          {:title "On the Good of Marriage.", :id "v.ii", :volume 103}
+          {:title "Of Holy Virginity.", :id "v.iii", :volume 103}
+          {:title "On the Good of Widowhood.", :id "v.iv", :volume 103}
+          {:title "On Lying.", :id "v.v", :volume 103}
+          {:title "Against Lying.", :id "v.vi", :volume 103}
+          {:title "Of the Work of Monks.", :id "v.vii", :volume 103}
+          {:title "On Patience.", :id "v.viii", :volume 103}
+          {:title "On Care to Be Had for the Dead.",
+           :id "v.ix",
+           :volume 103}
+          {:title "Introductory Essay on the Manichæan Heresy.",
+           :id "iv.ii",
+           :volume 104}
+          {:title "Preface to the Anti-Manichæan Writings.",
+           :id "iv.iii",
+           :volume 104}
+          {:title "On the Morals of the Catholic Church.",
+           :id "iv.iv",
+           :volume 104}
+          {:title "On the Morals of the Manichæans.",
+           :id "iv.v",
+           :volume 104}
+          {:title "On Two Souls, Against the Manichæans.",
+           :id "iv.vi",
+           :volume 104}
+          {:title "Acts or Disputation Against Fortunatus the Manichæan.",
+           :id "iv.vii",
+           :volume 104}
+          {:title " Against the Epistle of Manichæus, Called Fundamental.",
+           :id "iv.viii",
+           :volume 104}
+          {:title "Reply to Faustus the Manichæan.",
+           :id "iv.ix",
+           :volume 104}
+          {:title "Concerning the Nature of Good, Against the Manichæans.",
+           :id "iv.x",
+           :volume 104}
+          {:title "On Baptism, Against the Donatists.",
+           :id "v.iv",
+           :volume 104}
+          {:title "Answer to the Letters of Petilian, the Donatist.",
+           :id "v.v",
+           :volume 104}
+          {:title "The Correction of the Donatists.",
+           :id "v.vi",
+           :volume 104}
+          {:title
+           "A Treatise on the Merits and Forgiveness of Sins, and on the Baptism of Infants.",
+           :id "x",
+           :volume 105},
+          {:title "A Treatise on the Spirit and the Letter.",
+           :id "xi",
+           :volume 105}
+          {:title "A Treatise on Nature and Grace.",
+           :id "xii",
+           :volume 105}
+          {:title "A Treatise Concerning Man’s Perfection in Righteousness.",
+           :id "xiii",
+           :volume 105}
+          {:title "A Work on the Proceedings of Pelagius.",
+           :id "xiv",
+           :volume 105}
+          {:title "A Treatise on the Grace of Christ, and on Original Sin.",
+           :id "xv",
+           :volume 105}
+          {:title "On Marriage and Concupiscence.",
+           :id "xvi",
+           :volume 105}
+          {:title "A Treatise on the Soul and its Origin.",
+           :id "xvii",
+           :volume 105}
+          {:title "A Treatise Against Two Letters of the Pelagians.",
+           :id "xviii",
+           :volume 105}
+          {:title "A Treatise on Grace and Free Will.",
+           :id "xix",
+           :volume 105}
+          {:title "A Treatise on Rebuke and Grace.",
+           :id "xx",
+           :volume 105}
+          {:title "A Treatise on the Predestination of the Saints.",
+           :id "xxi",
+           :volume 105}
+          {:title "Our Lord’s Sermon on the Mount.",
+           :id "v",
+           :volume 106}
+          {:title "The Harmony of the Gospels.",
+           :id "vi",
+           :volume 106}
+          {:title "Sermons on Selected Lessons of the New Testament.",
+           :id "vii",
+           :volume 106}
+          {:title
+           "Lectures or Tractates on the Gospel According to St. John.",
+           :id "iii",
+           :volume 107}
+          {:title "Ten Homilies on the First Epistle of John.",
+           :id "iv",
+           :volume 107}
+          {:title "Two Books of Soliloquies.",
+           :id "v",
+           :volume 107}
+          {:title "Expositions on the Book of Psalms.",
+           :id "ii",
+           :volume 108}]}
+ {:author "St. John Crysostom",
+  :books [{:title "Prolegomena.",
+           :id "iii",
+           :volume 109}
+          {:title "Treatise Concerning the Christian Priesthood.",
+           :id "iv",
+           :volume 109}
+          {:title "An Exhortation to Theodore After His Fall."
+           :id "v"
+           :volume 109}
+          {:title "Letter to a Young Widow.",
+           :id "vi",
+           :volume 109}
+          {:title "Homilies on S. Ignatius and S. Babylas.",
+           :id "vii",
+           :volume 109}
+          {:title "Homily Concerning Lowliness of Mind.",
+           :id "viii",
+           :volume 109}
+          {:title "Instructions to Catechumens.",
+           :id "ix",
+           :volume 109}
+          {:title "Three Homilies Concerning the Power of Demons.",
+           :id "x",
+           :volume 109}
+          {:title
+           "Homily on the Passage (Matt. xxvi. 19), 'Father If It Be Possible Let This Cup Pass from Me,' Etc., and Against Marcionists and Manichæans.",
+           :id "xi",
+           :volume 109}
+          {:title
+           "Homily on the Paralytic Let Down Through the Roof: and Concerning the Equality of the Divine Father and the Son.",
+           :id "xii",
+           :volume 109}
+          {:title
+           "Homily to Those Who Had Not Attended the Assembly: and on the Apostolic Saying, 'If Thine Enemy Hunger, Feed Him, Etc. (Rom. xii. 20), and Concerning Resentment of Injuries.'",
+           :id "xiii",
+           :volume 109}
+          {:title
+           "Homily Against Publishing the Errors of the Brethren, and Uttering Imprecations upon Enemies.",
+           :id "xiv",
+           :volume 109}
+          {:title "Two Homilies on Eutropius.",
+           :id "xv",
+           :volume 109}
+          {:title
+           "A Treatise to Prove that No One Can Harm the Man Who Does Not Injure Himself.",
+           :id "xvi",
+           :volume 109}
+          {:title "Letters of St. Chrysostom to Olympias.",
+           :id "xvii",
+           :volume 109}
+          {:title
+           "Correspondence of St. Chrysostom with the Bishop of Rome.",
+           :id "xviii",
+           :volume 109}
+          {:title "The Homilies on the Statues to the People of Antioch.",
+           :id "xix",
+           :volume 109}
+          {:title "The Homilies of St. John Chrysostom.",
+           :id "iii",
+           :volume 110}
+          {:title "A Commentary on the Acts of the Apostles",
+           :id "vi",
+           :volume 111}
+          {:title
+           "The Homilies of St. John Chrysostom on Paul's Epistle to the Romans",
+           :id "vii",
+           :volume 111}
+          {:title "Homilies on First Corinthians.",
+           :id "iv",
+           :volume 112}
+          {:title "Homilies on Second Corinthians.",
+           :id "v",
+           :volume 112}
+          {:title
+           "The Commentary and Homilies of St. John Chrysostom on Galatians and Ephesians.",
+           :id "iii",
+           :volume 113}
+          {:title
+           "The Homilies of St. John Chrysostom on Philippians, Colossians, and Thessalonians.",
+           :id "iv",
+           :volume 113}
+          {:title
+           "The Homilies of St. John Chrysostom on Timothy, Titus, and Philemon.",
+           :id "v",
+           :volume 113}
+          {:title
+           "The Homilies of St. John Chrysostom on the Gospel of St. John.",
+           :id "iv",
+           :volume 114}
+          {:title
+           "The Homilies of St. John Chrysostom on the Epistle to the Hebrews.",
+           :id "v",
+           :volume 114}]}
+ {:author "Eusebius"
+  :books [{:title "The Church History of Eusebius.",
+           :id "iii",
+           :volume 201}
+          {:title
+           "The Life of Constantine with Orations of Constantine and Eusebius.",
+           :id "iv",
+           :volume 201}]}
+ {:author "Socrates Scholasticus"
+  :books [{:title "The Ecclesiastical History of Socrates Scholasticus.",
+           :id "ii",
+           :volume 202}]}
+ {:author "Sozomen"
+  :books [{:title "The Ecclesiastical History of Sozomen.",
+           :id "iii",
+           :volume 202}]}
+ {:author "Theodoret"
+  :books [{:title
+           "The Ecclesiastical History, Dialogues, and Letters of Theodoret.",
+           :id "iv",
+           :volume 203}]}
+ {:author "Gennadius"
+  :books [{:title "Lives of Illustrius Men"
+           :volume 203
+           :id "v.iv"}]}
+ {:author "Jerome",
+  :books [{:title "Lives of Illustrious Men.",
+           :id "v.iii",
+           :volume 203}]}
+ {:author "Rufinus"
+  :books [{:title
+           "Preface to the Commentary on the Benedictions of the Twelve Patriarchs.",
+           :id "vi.iii",
+           :volume 203}
+          {:title "Preface to Book II.", :id "vi.iv", :volume 203}
+          {:title "Translation of Pamphilus' Defence of Origen.",
+           :id "vi.v",
+           :volume 203}
+          {:title
+           "Rufinus's Epilogue to Pamphilus the Martyr's Apology for Origen; otherwise The Book Concerning the Adulteration of the Works of Origen.",
+           :id "vi.vi",
+           :volume 203}
+          {:title
+           "Preface to the Translations of Origen's Books Περὶ ᾽Αρχῶν.",
+           :id "vi.vii",
+           :volume 203}
+          {:title "Preface to Book III. of the Περὶ ᾽Αρχῶν.",
+           :id "vi.viii",
+           :volume 203}
+          {:title "Rufinus' Apology in Defence of Himself.",
+           :id "vi.ix",
+           :volume 203}
+          {:title
+           "The Letter of Anastasius, Bishop of the Church of Rome to John Bishop of Jerusalem Concerning the Character of Rufinus.",
+           :id "vi.x",
+           :volume 203}
+          {:title
+           "The Apology of Rufinus. Addressed to Apronianus, in Reply to Jerome's Letter to Pammachius.",
+           :id "vi.xi",
+           :volume 203}
+          {:title
+           "Jerome's Apology for Himself Against the Books of Rufinus.",
+           :id "vi.xii",
+           :volume 203}
+          {:title "A Commentary on the Apostles' Creed.",
+           :id "vi.xiii",
+           :volume 203}
+          {:title
+           "The Preface to the Books of Recognitions of St. Clement.",
+           :id "vi.xiv",
+           :volume 203}
+          {:title "Preface to the Translation of the Sayings of Xystus.",
+           :id "vi.xv",
+           :volume 203}
+          {:title
+           "Preface to the Two Books of Ecclesiastical History, Added by Rufinus to His Translation of Eusebius.",
+           :id "vi.xvi",
+           :volume 203}
+          {:title
+           "Rufinus' Preface to the Translation of Origen's Commentary on Psalms 36, 37, and 38.",
+           :id "vi.xvii",
+           :volume 203}
+          {:title
+           "Rufinus' Preface to the Translation of Origen's Commentary on the Epistle to the Romans.",
+           :id "vi.xviii",
+           :volume 203}
+          {:title
+           "The Peroration of Rufinus Appended to His Translation of Origen's Commentary on the Epistle to the Romans.",
+           :id "vi.xix",
+           :volume 203}
+          {:title "Preface to Origen's Homilies on Numbers.",
+           :id "vi.xx",
+           :volume 203})}
+ {:author "St. Athanasius",
+  :books [{:title "Against the Heathen. (Contra Gentes.)",
+           :id "vi",
+           :volume 204}
+          {:title "The Incarnation of the Word.",
+           :id "vii",
+           :volume 204},
+          {:title "Deposition of Arius. (Depositio Arii.)",
+           :id "viii",
+           :volume 204}
+          {:title "Letter of Eusebius. (Epistola Eusebii.)",
+           :id "ix",
+           :volume 204}
+          {:title "Statement of Faith. (Expositio Fidei.)",
+           :id "x",
+           :volume 204}
+          {:title "On Luke x. 22. (Illud Omnia, &c.)",
+           :id "xi",
+           :volume 204}
+          {:title "Encyclical Letter. (Epistola Encyclica.)",
+           :id "xii",
+           :volume 204}
+          {:title "Defence Against the Arians. (Apologia Contra Arianos.)",
+           :id "xiii",
+           :volume 204},
+          {:title "Defence of the Nicene Definition. (De Decretis.)",
+           :id "xiv",
+           :volume 204}
+          {:title "Defence of Dionysius. (De Sententia Dionysii.)",
+           :id "xv",
+           :volume 204}
+          {:title "Life of Antony. (Vita Antoni.)",
+           :id "xvi",
+           :volume 204}
+          {:title
+           "Circular to Bishops of Egypt and Libya. (Ad Episcopos Ægypti Et Libyæ Epistola Encyclica.)",
+           :id "xvii",
+           :volume 204}
+          {:title "Apology to the Emperor. (Apologia Ad Constantium.)",
+           :id "xviii",
+           :volume 204}
+          {:title "Defence of His Flight. (Apologia de Fuga.)",
+           :id "xix",
+           :volume 204}
+          {:title "Arian History. (Historia Arianorum ad Monachos.)",
+           :id "xx",
+           :volume 204}
+          {:title "Against the Arians. (Orationes contra Arianos IV.)",
+           :id "xxi",
+           :volume 204}
+          {:title "On the Councils of Ariminum and Seleucia. (De Synodis.)",
+           :id "xxii",
+           :volume 204}
+          {:title
+           "Synodal Letter to the People of Antioch. (Tomus ad Antiochenos.)",
+           :id "xxiii",
+           :volume 204}
+          {:title
+           "Synodal Letter to the Bishops of Africa. (Ad Afros Epistola Synodica.)",
+           :id "xxiv",
+           :volume 204}
+          {:title
+           "Letters of Athanasius with Two Ancient Chronicles of His Life.",
+           :id "xxv",
+           :volume 204}]}
+ {:author "St. Gegory of Nyssa"
+  :books [{:title "Against Eunomius.", :id "viii.i", :volume 205}
+          {:title "Answer to Eunomius' Second Book.",
+           :id "viii.ii",
+           :volume 205}
+          {:title "On the Holy Spirit.", :id "viii.iii", :volume 205}
+          {:title
+           "On the Holy Trinity, and of the Godhead of the Holy Spirit.",
+           :id "viii.iv",
+           :volume 205}
+          {:title "On 'Not Three Gods.'", :id "viii.v", :volume 205}
+          {:title "On the Faith.", :id "viii.vi", :volume 205}
+          {:title "Ascetic and Moral Treatises.",
+           :id "ix",
+           :volume 205}
+          {:title "On the Making of Man.", :id "x.ii", :volume 205}
+          {:title " On the Soul and the Resurrection.",
+           :id "x.iii",
+           :volume 205}
+          {:title "The Great Catechism.", :id "xi.ii", :volume 205}
+          {:title "Funeral Oration on Meletius.", :id "xii.ii", :volume 205}
+          {:title "On the Baptism of Christ.", :id "xii.iii", :volume 205}
+          {:title "Letters.",
+           :id "xiii",
+           :volume 205}]}
+ {:author "St. Jerome"
+  :books [{:title "The Letters of St. Jerome.",
+           :id "v",
+           :volume 206}
+          {:title "The Life of Paulus the First Hermit.",
+           :id "vi.i",
+           :volume 206}
+          {:title "The Life of S. Hilarion.", :id "vi.ii", :volume 206}
+          {:title "The Life of Malchus, the Captive Monk.",
+           :id "vi.iii",
+           :volume 206}
+          {:title "The Dialogue Against the Luciferians.",
+           :id "vi.iv",
+           :volume 206}
+          {:title "The Perpetual Virginity of Blessed Mary.",
+           :id "vi.v",
+           :volume 206}
+          {:title "Against Jovinianus.", :id "vi.vi", :volume 206}
+          {:title "Against Vigilantius.", :id "vi.vii", :volume 206}
+          {:title "To Pammachius against John of Jerusalem.",
+           :id "vi.viii",
+           :volume 206}
+          {:title "Against the Pelagians.", :id "vi.ix", :volume}
+          {:title "Prefaces to Jerome's Early Works.",
+           :id "vii.ii",
+           :volume 206}
+          {:title
+           "Prefaces to the Books of the Vulgate Version of the Old Testament.",
+           :id "vii.iii",
+           :volume 206}
+          {:title "Prefaces to the Commentaries.",
+           :id "vii.iv",
+           :volume 206}]}
+ {:author "St. Cyril"
+  :books [{:title "The Catechetical Lectures",
+           :id "ii",
+           :volume 207}]}
+ {:authnor "St. Gregory Nazianzen"
+  :books [{:title "On Easter and His Reluctance.",
+           :id "iii.iii",
+           :volume 207}
+          {:title
+           "In Defence of His Flight to Pontus, and His Return, After His Ordination to the Priesthood, with an Exposition of the Character of the Priestly Office.",
+           :id "iii.iv",
+           :volume 207}
+          {:title
+           "To Those Who Had Invited Him, and Not Come to Receive Him.",
+           :id "iii.v",
+           :volume 207}
+          {:title "Panegyric on His Brother S. Cæsarius.",
+           :id "iii.vi",
+           :volume 207}
+          {:title "On his Sister Gorgonia.",
+           :id "iii.vii",
+           :volume 207}
+          {:title
+           "To His Father, When He Had Entrusted to Him the Care of the Church of Nazianzus.",
+           :id "iii.viii",
+           :volume 207}
+          {:title
+           "On His Father's Silence, Because of the Plague of Hail.",
+           :id "iii.ix",
+           :volume 207}
+          {:title "On the Death of His Father.",
+           :id "iii.x",
+           :volume 207}
+          {:title "On the Great Athanasius, Bishop of Alexandria.",
+           :id "iii.xi",
+           :volume 207}
+          {:title "Introduction to the 'Theological' Orations.",
+           :id "iii.xii",
+           :volume 207}
+          {:title
+           "The First Theological Oration.  A Preliminary Discourse Against the Eunomians.",
+           :id "iii.xiii",
+           :volume 207}
+          {:title "The Second Theological Oration.",
+           :id "iii.xiv",
+           :volume 207}
+          {:title "The Third Theological Oration.  On the Son.",
+           :id "iii.xv",
+           :volume 207}
+          {:title
+           "The Fourth Theological Oration, Which is the Second Concerning the Son.",
+           :id "iii.xvi",
+           :volume 207}
+          {:title "The Fifth Theological Oration. On the Holy Spirit.",
+           :id "iii.xvii",
+           :volume 207}
+          {:title "Against The Arians, and Concerning Himself.",
+           :id "iii.xviii",
+           :volume 207}
+          {:title "On the Arrival of the Egyptians.",
+           :id "iii.xix",
+           :volume 207}
+          {:title
+           "On the Words of the Gospel, 'When Jesus Had Finished These Sayings,' Etc.--S. Matt. xix. 1.",
+           :id "iii.xx",
+           :volume 207}
+          {:title "On the Theophany, or Birthday of Christ.",
+           :id "iii.xxi",
+           :volume 207}
+          {:title "Oration on the Holy Lights.",
+           :id "iii.xxii",
+           :volume 207}
+          {:title "The Oration on Holy Baptism.",
+           :id "iii.xxiii",
+           :volume 207}
+          {:title "On Pentecost.", :id "iii.xxiv",
+           :volume 207}
+          {:title
+           "The Last Farewell in the Presence of the One Hundred and Fifty Bishops.",
+           :id "iii.xxv",
+           :volume 207}
+          {:title
+           "Funeral Oration on the Great S. Basil, Bishop of Cæsarea in Cappadocia.",
+           :id "iii.xxvi",
+           :volume 207}
+          {:title "The Second Oration on Easter.",
+           :id "iii.xxvii",
+           :volume 207}
+          {:title "Letters on the Apollinarian Controversy.",
+           :id "iv.ii",
+           :volume 207}
+          {:title
+           "Correspondence with Saint Basil the Great, Archbishop of Cæsarea.",
+           :id "iv.iii",
+           :volume 207}
+          {:title "Miscellaneous Letters.",
+           :id "iv.iv",
+           :volume 207}]}
+ {:author "St. Basil"
+  :books [{:title "De Spiritu Sancto.",
+           :id "vii",
+           :volume 208}
+          {:title "The Hexæmeron.",
+           :id "viii",
+           :volume 208}
+          {:title "The Letters.",
+           :id "ix",
+           :volume 208}]}
+ {:author "St. John of Damascus"
+  :books [{:title "An Exact Exposition of the Orthodox Faith.",
+           :id "iii.iv",
+           :volume 209}]}
+ {:author "St. Ambrose"
+  :books [{:title "On the Duties of the Clergy.", :id "iv.i", :volume 210}
+          {:title "On the Holy Spirit.", :id "iv.ii", :volume 210}
+          {:title "On the Decease of His Brother Satyrus.",
+           :id "iv.iii",
+           :volume 210}
+          {:title "Exposition of the Christian Faith.",
+           :id "iv.iv",
+           :volume 210}
+          {:title "On the Mysteries.", :id "iv.v", :volume 210}
+          {:title "Concerning Repentance.", :id "iv.vi", :volume 210}
+          {:title "Concerning Virgins.", :id "iv.vii", :volume 210}
+          {:title "Concerning Widows.", :id "iv.viii", :volume 210}
+          {:title "Memorial of Symmachus, the Prefect of the City.",
+           :id "v.i",
+           :volume 210}
+          {:title "Epistle XVII: To Valentinian II.",
+           :id "v.ii",
+           :volume 210}
+          {:title "The Memorial of Symmachus, Prefect of the City.",
+           :id "v.iii",
+           :volume 210}
+          {:title "Epistle XVIII: To Valentinian, in Reply to Symmachus.",
+           :id "v.iv",
+           :volume 210}
+          {:title "Epistle XX: To Marcellina as to the Arian Party.",
+           :id "v.v",
+           :volume 210}
+          {:title
+           "Letter XXI: To Valentinian II., Declining Challenge of Auxentius.",
+           :id "v.vi",
+           :volume 210}
+          {:title
+           "Sermon Against Auxentius on the Giving Up of the Basilicas.",
+           :id "v.vii",
+           :volume 210}
+          {:title
+           "Letter XXII: To Marcellina on Finding the Bodies of SS. Gervasius and Protasius.",
+           :id "v.viii",
+           :volume 210}
+          {:title
+           "Letter XL: To Theodosius as to the Burning of a Jewish Synagogue.",
+           :id "v.ix",
+           :volume 210}
+          {:title "Letter XLI: To Marcellina on the Same.",
+           :id "v.x",
+           :volume 210}
+          {:title
+           "Letter LI: To Theodosius After the Massacre at Thessalonica.",
+           :id "v.xi",
+           :volume 210}
+          {:title "Letter LVII: To Eugenius, Reproving Him.",
+           :id "v.xii",
+           :volume 210}
+          {:title
+           "Letter LXI: To Theodosius, After His Victory Over Eugenius.",
+           :id "v.xiii",
+           :volume 210}
+          {:title "Letter LXII: To Theodosius, Urging Him To Be Merciful.",
+           :id "v.xiv",
+           :volume 210}
+          {:title "Epistle LXIII: To the Church at Vercellæ.",
+           :id "v.xv",
+           :volume 210}]}
+ {:author "Sulpitius Severus"
+  :books [{:title "On the Life of St. Martin.", :id "ii.ii", :volume 211}
+          {:title "The Letters of Sulpitius Severus.",
+           :id "ii.iii",
+           :volume 211}
+          {:title "Dialogues of Sulpitius Severus.",
+           :id "ii.iv",
+           :volume 211}
+          {:title "The Doubtful Letters of Sulpitius Severus.",
+           :id "ii.v",
+           :volume 211}
+          {:title "The Sacred History Of Sulpitius Severus.",
+           :id "ii.vi",
+           :volume 211}]}
+ {:author "St. Vincent of Lerins"
+  :books [{:title
+           "The Commonitory of Vincent of Lérins, For the Antiquity and Universality of the Catholic Faith Against the Profane Novelties of All Heresies.",
+           :id "iii",
+           :volume 211}]}
+ {:author "St. John Cassian"
+  :books [{:title
+           "The Twelve Books on the Institutes of the Cœnobia, and the Remedies for the Eight Principal Faults.",
+           :id "iv.iii",
+           :volume 211}
+          {:title
+           "The Conferences of John Cassian. Part I. Containing Conferences I-X.",
+           :id "iv.iv",
+           :volume 211}
+          {:title
+           "The Conferences of John Cassian. Part II. Containing  Conferences XI-XVII.",
+           :id "iv.v",
+           :volume 211}
+          {:title
+           "The Conferences of John Cassian. Part III. Containing  Conferences XVIII.-XXIV.",
+           :id "iv.vi",
+           :volume 211}
+          {:title
+           "The Seven Books of John Cassian on the Incarnation of  the Lord, Against Nestorius.",
+           :id "iv.vii",
+           :volume 211}]}
+ {:author "St. Leo the Great"
+  :books [{:title "Letters.", :id "ii.iv", :volume 212}
+          {:title "Sermons.", :id "ii.v", :volume 212}]}
+ {:author "St. Gregory the Great"
+  :books [{:title "The Book of Pastoral Rule.", :id "iii.iv", :volume 212}
+          {:title "Register of the Epistles of St. Gregory the Great.",
+           :id "iii.v",
+           :volume 212}
+          {:title "Selected Epistles of Gregory the Great.",
+           :id "ii",
+           :volume 213}]}
+ {:author "St. Ephraim the Syrian"
+  :books [{:title
+           "Introductory Dissertation:  Ephraim the Syrian and Aphrahat the Persian Sage.",
+           :id "iii.iii",
+           :volume 214}
+          {:title "Ephraim Syrus:  The Nisibene Hymns.",
+           :id "iii.iv",
+           :volume 214}
+          {:title
+           "Ephraim Syrus:  Nineteen Hymns on the Nativity of Christ in the Flesh.",
+           :id "iii.v",
+           :volume 214}
+          {:title
+           "Ephraim Syrus:  Fifteen Hymns For the Feast of the Epiphany.",
+           :id "iii.vi",
+           :volume 214}
+          {:title "Ephraim Syrus:  The Pearl.  Seven Hymns on the Faith.",
+           :id "iii.vii",
+           :volume 214}
+          {:title "Ephraim Syrus:  Three Homilies.",
+           :id "iii.viii",
+           :volume 214}
+          {:title "Aphrahat:  Select Demonstrations.",
+           :id "iii.ix",
+           :volume 214}]}
+ {:author "Ecumenical Councils"
+  :books [{:title
+           "The First Ecumenical Council:  The First Council of Nice.",
+           :id "vii",
+           :volume 215}
+          {:title
+           "The Canons of the Councils of Ancyra, Gangra, Neocæsarea, Antioch and Laodicea, which Canons were Accepted and Received by the Ecumenical Synods.",
+           :id "viii",
+           :volume 215}
+          {:title
+           "The Second Ecumenical Council:  The First Council of Constantinople.",
+           :id "ix",
+           :volume 215}
+          {:title "The Third Ecumenical Council:  The Council of Ephesus.",
+           :id "x",
+           :volume 215}
+          {:title
+           "The Fourth Ecumenical Council.  The Council of Chalcedon.",
+           :id "xi",
+           :volume 215}
+          {:title
+           "The Fifth Ecumenical Council.  The Second Council of Constantinople.",
+           :id "xii",
+           :volume 215}
+          {:title
+           "The Sixth Ecumenical Council.  The Third Council of Constantinople.",
+           :id "xiii",
+           :volume 215}
+          {:title
+           "The Canons of the Council in Trullo; Often Called The Quinisext Council.",
+           :id "xiv",
+           :volume 215}
+          {:title
+           "The Canons of the Synods of Sardica, Carthage, Constantinople, and Carthage Under St. Cyprian, Which Canons Were Received by the Council in Trullo and Ratified by II. Nice.",
+           :id "xv",
+           :volume 215}
+          {:title
+           "The Seventh Ecumenical Council.  The Second Council of Nice.",
+           :id "xvi",
+           :volume 215}
+          {:title
+           "Appendix containing Canons and Rulings not having Conciliar Origin but Approved by Name in Canon II. of the Synod in Trullo.",
+           :id "xvii",
+           :volume 215}]}])
