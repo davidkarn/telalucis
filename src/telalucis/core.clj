@@ -216,6 +216,21 @@
                not-found))
            not-found coll)))
 
+(defn seek-result
+  "Returns the result of calling pred on the first item from coll for which (pred item) returns true.
+   Returns nil if no such item is present, or the not-found value if supplied."
+  {:added  "1.9" ; note, this was never accepted into clojure core
+   :static true}
+  ([pred coll] (seek-result pred coll nil))
+  ([pred coll not-found]
+   (reduce (fn [_ x]
+             (let [res (pred x)]
+               (if res
+                 (reduced res)
+                 not-found)))
+           not-found
+           coll)))
+
 (defn sanitize-str
   [string]
   (cond (= string "Ecclesiasticus") ; prevent collision between Ecelesiastes and Ecclesiasticus
@@ -257,6 +272,8 @@
                       (.write wrtr (json/write-str chapter)))))
                 (:children book))))
        (toc book-data)))
+
+
 
 (defn save-bible-to-disk
   [book-data translation]
@@ -412,7 +429,6 @@
                      (toc-outline (:children item)
                                   (- level 1))))))
         toc)))
-                   
 
 (def outlines
   [(toc-outline (file-toc (nth anfs 0)) 1)
@@ -424,8 +440,6 @@
    (toc-outline (file-toc (nth anfs 6)) 1)
    (toc-outline (file-toc (nth anfs 7)) 1)
    (toc-outline (file-toc (nth anfs 8)) 1)])
-   
-
 
 (def cf-2 (str docs-root "npnf102.xml"))
 (def cf-3 (str docs-root "npnf103.xml"))
@@ -444,10 +458,62 @@
 (chapter-notes chapt "augustine" "confess" "confess-vi")
 (write-refs-to-disk (chapter-notes chapt "augustine" "confess" "confess-vi"))
 
+(defn volume-filename
+  [volume]
+  (cond (< volume 20) (str docs-root "anf" (format "%02d" volume) ".xml")
+        (> volume 20) (str docs-root "npnf" (format "%03d" volume) ".xml")))
+
+(defn get-volume
+  [volume]
+  (get-pages (parse-theology (volume-filename volume))))
+
+(defn get-book-by-id
+  [volume id]
+  (cond (= (:id volume) id) volume
+        (seq? volume)       (seek-result #(get-book-by-id % id)
+                                         volume)
+        (:children volume)  (seek-result #(get-book-by-id % id)
+                                         (:children volume))
+        (:content volume)   (seek-result #(get-book-by-id % id)
+                                         (:content volume))
+        true                false))
+
+(defn save-book-to-disk
+  [author title id book-data]
+  (map (fn [chapter]  
+         (.mkdir (java.io.File. (str path "books/" author)))
+         (.mkdir (java.io.File. (str path "books/" author "/" id)))
+         (if (not (and (:title chapter) (:id chapter)))
+           (with-open [wrtr (io/writer (str path "books/" author "/" id "/"
+                                            (:id chapter) ".json"))]
+             (.write wrtr (json/write-str (get-book-by-id book-data (:id chapter)))))))
+       (toc [book-data])))
+
+(defn parse-book
+  [author title id volume]
+  (save-book-to-disk author
+                     title
+                     id
+                     (get-book-by-id (get-volume volume)
+                                     id)))
+
+(defn parse-anpn-contents
+  [contents]
+  (map (fn [author-details]
+         (let [author (:author author-details)
+               volume (:volume author-details)]
+           (map (fn [book]
+                  (let [title (:title book)
+                        id (:id book)
+                        volume (or (:volume book) volume)]
+                    (parse-book author title id volume)))
+                (:books author-details))))
+       contents))
+
 (def anti-nicene-contents
   [{:author "Clement Of Rome",
     :id "ii",
-    :volumne 1
+    :volume 1
     :books [{:title "First Epistle to the Corinthians",
              :id "ii.ii"}]}
    {:author "Mathetes",
@@ -1533,7 +1599,7 @@
            :volume 203}
           {:title "Preface to Origen's Homilies on Numbers.",
            :id "vi.xx",
-           :volume 203})}
+           :volume 203}]}
  {:author "St. Athanasius",
   :books [{:title "Against the Heathen. (Contra Gentes.)",
            :id "vi",
@@ -1646,7 +1712,7 @@
           {:title "To Pammachius against John of Jerusalem.",
            :id "vi.viii",
            :volume 206}
-          {:title "Against the Pelagians.", :id "vi.ix", :volume}
+          {:title "Against the Pelagians.", :id "vi.ix", :volume 206}
           {:title "Prefaces to Jerome's Early Works.",
            :id "vii.ii",
            :volume 206}
