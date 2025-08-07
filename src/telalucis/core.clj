@@ -27,7 +27,8 @@
 
 (defn note-has-scripture-ref
   [note]
-  (if (= (:tag note) "scripRef")
+  (if (or (= (:tag note) "scripRef")
+          (= (:tag note) :scripRef))
     note
     (if (:content note)
       (first (filter identity (map note-has-scripture-ref (:content note))))
@@ -35,28 +36,29 @@
                                   
 
 (defn chapter-notes
-  [chapter-data author book chapter-name]
+  [chapter-data author book chapter-name book-id chapter-id]
   (filter
    identity
-   (flatten 
-   (map (fn [para]
-          (let [notes-with-ref (filter note-has-scripture-ref (:notes para))]
-            (map (fn [root-ref]
-                   (let [scrip-ref (note-has-scripture-ref root-ref)]
-                     (if scrip-ref
-                       {:ref     scrip-ref
-                        :fn-id   (:id (:attrs root-ref))
-                        :author  author
-                        :book    book
-                        :chapter chapter-name
-                        :para    (flatten
-                                  (filter #(not (and (= (:tag %) "note")
-                                                     (not (= (:id %) (:id (:attrs root-ref))))))
-                                          (:contents para)))}
-                       nil)))
-                 notes-with-ref)))
-        (flatten (map :children (:children chapter-data)))))))
-
+   (flatten
+    (map (fn [para]
+           (let [notes-with-ref (filter note-has-scripture-ref (:notes para))]
+             (map (fn [root-ref]
+                    (let [scrip-ref (note-has-scripture-ref root-ref)]
+                      (if scrip-ref
+                        {:ref        scrip-ref
+                         :fn-id      (:id (:attrs root-ref))
+                         :author     author
+                         :book       book
+                         :chapter    chapter-name
+                         :book-id    book-id
+                         :chapter-id chapter-id
+                         :para       (flatten
+                                      (filter #(not (and (= (:tag %) "note")
+                                                         (not (= (:id %) (:id (:attrs root-ref))))))
+                                              (:contents para)))}
+                        nil)))
+                  notes-with-ref)))
+         (flatten (map :children (:children chapter-data)))))))
 
 (defn translate-book
   [book]
@@ -143,9 +145,12 @@
        "-"
        (:chapter script-path)
        ".json"))
-       
+
 (defn scripture-ref-to-path
+;todo - all scrip refs are not parsed, implement parser for these  
+; - skip if ref cannot be parsed
   [ref]
+  (pprint ref)
   (let [[_ book chapter verse] (str/split (:parsed (:attrs (:ref ref))) #"\|")]
     {:book    (translate-book book)
      :chapter chapter
@@ -166,14 +171,14 @@
                        (assoc scrip-path :refs [ref])))))
           {}
           refs))
-   
+
 (defn write-refs-to-disk
   [refs]
   (let [table (compile-refs refs)]
     (map (fn [key]
            (with-open [wrtr (io/writer (path-for-scripture-ref (get table key)))]
              (.write wrtr (json/write-str (get table key)))))
-     (keys table))))
+         (keys table))))
 
 ;; ;; document-format
 ;; {:title "string"
@@ -201,7 +206,6 @@
 
 ;; ;;textblock-format
 ;; ["string"|{:dec "i"|"u"|"b" :text "string"}|{:note <number>}]
-
 
 (defn seek
   "Returns first item from coll for which (pred item) returns true.
@@ -249,7 +253,7 @@
 
 (defn toc
   [contents]
-  (->> contents 
+  (->> contents
        (filter (fn [x] (and (= :section (:node-type x))
                             (not (#{"Title Page" "Preface" "Contents"} (:title x))))))
        (map (fn [x] (assoc x :children (toc (:children x)))))))
@@ -272,8 +276,6 @@
                       (.write wrtr (json/write-str chapter)))))
                 (:children book))))
        (toc book-data)))
-
-
 
 (defn save-bible-to-disk
   [book-data translation]
@@ -299,7 +301,6 @@
   [element attr-name]
   (attr-name (:attrs element)))
 
-    
 (defn parse-bible-node
   [tag]
   (map (fn [node]
@@ -326,7 +327,6 @@
        (filter
         (fn [node] (#{:div1 :div2 :div3 :div4 :div5 :div6 :p} (:tag node)))
         (:content tag))))
-
 
 (defn get-notes
   [para]
@@ -358,7 +358,6 @@
 (defn parse-bible
   [contents]
   (parse-bible-node (get-tag contents :ThML.body)))
-
 
 (defn get-sections
   [tag]
@@ -467,35 +466,64 @@
   [volume]
   (get-pages (parse-theology (volume-filename volume))))
 
+(defn get-volume-for-refs
+  [volume]
+  (parse-theology (volume-filename volume)))
+
 (defn get-book-by-id
   [volume id]
-  (cond (= (:id volume) id) volume
-        (seq? volume)       (seek-result #(get-book-by-id % id)
-                                         volume)
-        (:children volume)  (seek-result #(get-book-by-id % id)
-                                         (:children volume))
-        (:content volume)   (seek-result #(get-book-by-id % id)
-                                         (:content volume))
-        true                false))
+  (cond (= (:id volume) id)          volume
+        (= (:id (:attrs volume)) id) volume
+        (seq? volume)                (seek-result #(get-book-by-id % id)
+                                                  volume)
+        (:children volume)           (seek-result #(get-book-by-id % id)
+                                                  (:children volume))
+        (:content volume)            (seek-result #(get-book-by-id % id)
+                                                  (:content volume))
+        true                         false))
 
 (defn save-book-to-disk
   [author title id book-data]
-  (map (fn [chapter]  
+  (map (fn [chapter]
          (.mkdir (java.io.File. (str path "books/" author)))
          (.mkdir (java.io.File. (str path "books/" author "/" id)))
-         (if (not (and (:title chapter) (:id chapter)))
-           (with-open [wrtr (io/writer (str path "books/" author "/" id "/"
-                                            (:id chapter) ".json"))]
-             (.write wrtr (json/write-str (get-book-by-id book-data (:id chapter)))))))
+         (with-open [wrtr (io/writer (str path "books/" author "/" id "/"
+                                          (:id chapter) ".json"))]
+           (.write wrtr (json/write-str (get-book-by-id book-data (:id chapter))))))
        (toc [book-data])))
 
+(defn write-refs
+  [refs]
+  (let [path          (path-for-scripture-ref (first refs))
+        file-exists   (.exists (io/file path))
+        existing-data (if file-exists
+                        (json/read-str (slurp path))
+                        [])]
+    (with-open [wrtr (io/writer path)]
+      (.write wrtr (json/write-str (concat existing-data refs))))))
+
+(defn save-book-refs-to-disk
+  [author title id book-data]
+  (map (fn [chapter]
+         (let [refs-table (compile-refs
+                           (chapter-notes (get-book-by-id book-data (:id chapter))
+                                          author
+                                          title
+                                          (:title chapter)
+                                          id
+                                          (:id chapter)))]
+           (pprint refs-table)
+           (map (fn [key] (write-refs (get refs-table key)))
+                (keys refs-table))))
+       (:children (first (toc [book-data])))))
+                       
 (defn parse-book
   [author title id volume]
   (save-book-to-disk author
                      title
-                     id
+                     (str volume ":" id)
                      (get-book-by-id (get-volume volume)
-                                     id)))
+                                     (str volume ":" id))))
 
 (defn parse-anpn-contents
   [contents]
@@ -2019,3 +2047,6 @@
            "Appendix containing Canons and Rulings not having Conciliar Origin but Approved by Name in Canon II. of the Synod in Trullo.",
            :id "xvii",
            :volume 215}]}])
+
+(parse-anpn-contents anti-nicene-contents)
+(parse-anpn-contents post-nicene-contents)
