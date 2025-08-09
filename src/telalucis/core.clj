@@ -149,6 +149,7 @@
 (defn scripture-ref-to-path
 ;todo - all scrip refs are not parsed, implement parser for these  
 ; - skip if ref cannot be parsed
+; - also include volume number in book ids when saving books to disk
   [ref]
   (pprint ref)
   (let [[_ book chapter verse] (str/split (:parsed (:attrs (:ref ref))) #"\|")]
@@ -382,31 +383,6 @@
   [contents]
   (get-sections (get-tag contents :ThML.body)))
 
-(defn char-to-int
-  [c]
-  (case c
-    \I 1    \i 1
-    \V 5    \v 5
-    \X 10   \x 10
-    \L 50   \l 50
-    \C 100  \c 100
-    \D 500  \d 500
-    \M 1000 \m 1000
-    0))
-
-(defn parse-roman-numeral
-  [str]
-  (loop [i   1
-         num (char-to-int (get str 0))]
-    (if (>= i (count str))
-      num
-      (let [pre (char-to-int (get str (- i 1)))
-            cur (char-to-int (get str i))]
-        (recur (+ i 1)
-               (if (<= cur pre)
-                 (+ num cur)
-                 (+ (- num (* pre 2))
-                    cur)))))))
 (def anfs (map (fn [i] (str "anf0" i ".xml")) (range 1 10)))
 (def pnfs (map (fn [i] (str "npnf" i ".xml")) (concat (range 101 115) (range 201 215))))
 
