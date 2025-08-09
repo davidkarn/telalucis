@@ -4,6 +4,7 @@
   (:require [taoensso.nippy :as nippy])
   (:require [clojure.xml :as xml])
   (:require [clojure.data.json :as json])
+  (:require [telalucis.scripture-refs :as scrip-ref])
   (:gen-class))
 
 (def docs-root "/Users/davidkarn/Downloads/")
@@ -59,84 +60,7 @@
                         nil)))
                   notes-with-ref)))
          (flatten (map :children (:children chapter-data)))))))
-
-(defn translate-book
-  [book]
-  (case book
-    "Ps"     "psalms"
-    "1Cor"   "1-corinthi"
-    "Ezra"   "1-esdras"
-    "1John"  "1-john"
-    "1Sam"   "1-kings--a"
-    "1Macc"  "1-machabee"
-    "1Chr"   "1-paralipo"
-    "1Pet"   "1-peter"
-    "1Thess" "1-thessalo"
-    "1Tim"   "1-timothy"
-    "2Cor"   "2-corinthi"
-    "Neh"    "2-esdras--"
-    "2John"  "2-john"
-    "2Sam"   "2-kings--a"
-    "2Macc"  "2-machabee"
-    "2Chr"   "2-paralipo"
-    "2Pet"   "2-peter"
-    "2Thess" "2-thessalo"
-    "2Tim"   "2-timothy"
-    "3John"  "3-john"
-    "1Kgs"   "3-kings"
-    "2Kgs"   "4-kings"
-    "Obad"   "abdias"
-    "Acts"   "acts"
-    "Sir"    "sirach"
-    "Hag"    "aggeus"
-    "Amos"   "amos"
-    "Rev"    "apocalypse"
-    "Bar"    "baruch"
-    "Song"   "canticle-o"
-    "Col"    "colossians"
-    "Dan"    "daniel"
-    "Deut"   "deuteronom"
-    "Eccl"   "ecclesiast"
-    "Eph"    "ephesians"
-    "Esth"   "esther"
-    "Exod"   "exodus"
-    "Ezek"   "ezechiel"
-    "Gal"    "galatians"
-    "Gen"    "genesis"
-    "Hab"    "habacuc"
-    "Heb"    "hebrews"
-    "Isa"    "isaias"
-    "Jas"    "james"
-    "Jer"    "jeremias"
-    "Job"    "job"
-    "Joel"   "joel"
-    "John"   "john"
-    "Jonah"  "jonas"
-    "Josh"   "josue"
-    "Jude"   "jude"
-    "Judg"   "judges"
-    "Jdt"    "judith"
-    "Lam"    "lamentatio"
-    "Lev"    "leviticus"
-    "Luke"   "luke"
-    "Mal"    "malachias"
-    "Mark"   "mark"
-    "Matt"   "matthew"
-    "Mic"    "micheas"
-    "Nah"    "nahum"
-    "Num"    "numbers"
-    "Hos"    "osee"
-    "Phlm"   "philemon"
-    "Phil"   "philippian"
-    "PrAzar" "prayer-of-"
-    "Prov"   "proverbs"
-    "Rom"    "romans"
-    "Ruth"   "ruth"
-    "Zeph"   "sophonias"
-    "Titus"  "titus"
-    "Tob"    "tobias"
-    "Wis"    "wisdom"
-    "Zach"   "zacharias"))
+xoxo
 
 (defn path-for-scripture-ref
   [script-path]
@@ -151,11 +75,14 @@
 ; - skip if ref cannot be parsed
 ; - also include volume number in book ids when saving books to disk
   [ref]
-  (pprint ref)
-  (let [[_ book chapter verse] (str/split (:parsed (:attrs (:ref ref))) #"\|")]
-    {:book    (translate-book book)
-     :chapter chapter
-     :verse   verse}))
+  (if (:parsed (:attrs (:ref ref)))
+    (let [[_ book chapter verse] (str/split (:parsed (:attrs (:ref ref))) #"\|")]
+      {:book    (scrip-ref/translate-book book)
+       :chapter chapter
+       :verse   verse})
+    (let [parsed (scrip-ref/parse-ref (first (:content (:ref ref))) true)]
+      (or parsed nil))))
+      
 
 (defn compile-refs
   [refs]
@@ -270,7 +197,6 @@
            (.mkdir (java.io.File. bookpath))
            (map (fn [chapter]
                   (if (not (and (:title chapter) (:id chapter)))
-                    (pprint ["error" chapter])
                     (with-open [wrtr (io/writer (str bookpath
                                                      (sanitize-str (:title chapter)) "-"
                                                      (sanitize-str (:id chapter)) ".json"))]
@@ -488,7 +414,6 @@
                                           (:title chapter)
                                           id
                                           (:id chapter)))]
-           (pprint refs-table)
            (map (fn [key] (write-refs (get refs-table key)))
                 (keys refs-table))))
        (:children (first (toc [book-data])))))

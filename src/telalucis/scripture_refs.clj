@@ -1,6 +1,83 @@
 (ns telalucis.scripture-refs
   (:require [clojure.string :as str]))
 
+(defn translate-book
+  [book]
+  (case book
+    "Ps"     :psalms
+    "1Cor"   :1-corinthians
+    "Ezra"   :1-esdras
+    "1John"  :1-john
+    "1Sam"   :1-kings
+    "1Macc"  :1-maccabees
+    "1Chr"   :1-chronicles
+    "1Pet"   :1-peter
+    "1Thess" :1-thessalonians
+    "1Tim"   :1-timothy
+    "2Cor"   :2-corinthians
+    "Neh"    :2-esdras
+    "2John"  :2-john
+    "2Sam"   :2-kings
+    "2Macc"  :2-maccabees
+    "2Chr"   :2-chronicles
+    "2Pet"   :2-peter
+    "2Thess" :2-thessalonians
+    "2Tim"   :2-timothy
+    "3John"  :3-john
+    "1Kgs"   :3-kings
+    "2Kgs"   :4-kings
+    "Obad"   :obadiah
+    "Acts"   :acts
+    "Sir"    :sirach
+    "Hag"    :aggeus
+    "Amos"   :amos
+    "Rev"    :apocalypse
+    "Bar"    :baruch
+    "Song"   :canticle-of-canticles
+    "Col"    :colossians
+    "Dan"    :daniel
+    "Deut"   :deuteronomy
+    "Eccl"   :ecclesiastes
+    "Eph"    :ephesians
+    "Esth"   :esther
+    "Exod"   :exodus
+    "Ezek"   :ezechiel
+    "Gal"    :galatians
+    "Gen"    :genesis
+    "Hab"    :habacuc
+    "Heb"    :hebrews
+    "Isa"    :isaias
+    "Jas"    :james
+    "Jer"    :jeremias
+    "Job"    :job
+    "Joel"   :joel
+    "John"   :john
+    "Jonah"  :jonah
+    "Josh"   :joshua
+    "Jude"   :jude
+    "Judg"   :judges
+    "Jdt"    :judith
+    "Lam"    :lamentations
+    "Lev"    :leviticus
+    "Luke"   :luke
+    "Mal"    :malachias
+    "Mark"   :mark
+    "Matt"   :matthew
+    "Mic"    :micheas
+    "Nah"    :nahum
+    "Num"    :numbers
+    "Hos"    :osee
+    "Phlm"   :philomena
+    "Phil"   :philippians
+    "Prov"   :proverbs
+    "Rom"    :romans
+    "Ruth"   :ruth
+    "Zeph"   :sophonias
+    "Titus"  :titus
+    "Tob"    :tobit
+    "Wis"    :wisdom
+    "Zach"   :zacharias))
+
 (def bible-chapters
   {:genesis		  [31, 25, 24, 26, 32, 22, 24, 22, 29,
                            32, 32, 20, 18, 24, 21, 16, 27, 33, 38, 18,
@@ -261,7 +338,7 @@
 (def books-tbl-kings-cath
   {:1-kings ["1 kings","1 kr","1 kra","1 kralj","1 ki","1 kgs","1 r","1 re","1 kon","1 erg","1 rois","1 kings","1 kralji","1 koningen","1 reyes"],
    :2-kings ["2 kings","2 kr","2 kra","2 kralj","2 ki","2 kgs","2 r","2 re","2 kon","2 erg","2 rois","2 kings","2 kralji","2 koningen","2 reyes"]
-   :3-kings ["3 kings","3 kr","3 kra","3 kralj","3 ki","3 kgs","3 r","3 re","3 rg","3 regn","3 kon","3 erg","3 rois","3 kings","3 kralji","3 koningen","3 reyes"],
+   :3-kings ["3 kings","3 kr","3 kra","3 kralj","3 ki","3 kgs","3 r","3 re","3 rg","3 regn","3 kon","3 erg","3 rois","3 kings","3 xokralji","3 koningen","3 reyes"],
    :4-kings ["4 kings","4 kr","4 kra","4 kralj","4 ki","4 kgs","4 r","4 re","4 rg","4 regn","4 kon","4 erg","4 rois","4 kings","4 kralji","4 koningen","4 reyes"]})
    
 (def books-tbl-kings-prot
@@ -387,7 +464,20 @@
          (reduced key)
          nil))
      (keys books-table))))
-                      
+
+
+(defn validate-ref
+  [ref]
+  (try 
+    (let [book-verse-counts ((:book ref) bible-chapters)
+          chapter-count     (nth book-verse-counts (- (:chapter ref) 1))]
+      (if (<= (:verse ref) chapter-count)
+        ref
+        nil))
+    (catch Exception e
+      (throw e)
+      nil)))
+
 (defn parse-ref
   [reference-string four-kings]
   (let [table     (merge books-tbl
@@ -399,8 +489,14 @@
                    (str "(?i)\\b(" all-books ")\\b\\.? +([0-9ivxlcdmIVXLCDM]"
                         "+[.,] +)?(\\d+(-\\d+)?(, \\d+)?)\\b[,.]?"))
         matches   (re-find regex reference-string)]
-    {:chapter (if (nth matches 11)
-                (parse-roman-numeral (nth matches 11))
-                1)
-     :verse   (int (bigint (nth matches 12)))
-     :book    (get-book-id table (second matches))}))
+    (if (< (count matches) 11)
+      nil
+      (validate-ref
+       {:chapter (if (nth matches 11)
+                   (parse-roman-numeral (nth matches 11))
+                   1)
+        :verse   (int (bigint (nth matches 12)))
+        :book    (get-book-id table (second matches))}))))
+
+          
+        
