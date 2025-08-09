@@ -7,6 +7,7 @@
     "Ps"     :psalms
     "1Cor"   :1-corinthians
     "Ezra"   :1-esdras
+    "1Esd"   :1-esdras
     "1John"  :1-john
     "1Sam"   :1-kings
     "1Macc"  :1-maccabees
@@ -36,6 +37,7 @@
     "Song"   :canticle-of-canticles
     "Col"    :colossians
     "Dan"    :daniel
+    "Bel"    :daniel
     "Deut"   :deuteronomy
     "Eccl"   :ecclesiastes
     "Eph"    :ephesians
@@ -53,6 +55,7 @@
     "Joel"   :joel
     "John"   :john
     "Jonah"  :jonah
+    "Jon"    :jonah
     "Josh"   :joshua
     "Jude"   :jude
     "Judg"   :judges
@@ -70,12 +73,14 @@
     "Phlm"   :philomena
     "Phil"   :philippians
     "Prov"   :proverbs
+    "Sus"    :susanna
     "Rom"    :romans
     "Ruth"   :ruth
     "Zeph"   :sophonias
     "Titus"  :titus
     "Tob"    :tobit
     "Wis"    :wisdom
+    "Zech"   :zacharias    
     "Zach"   :zacharias))
 
 (def bible-chapters
@@ -480,23 +485,26 @@
 
 (defn parse-ref
   [reference-string four-kings]
-  (let [table     (merge books-tbl
-                         (if four-kings
-                           books-tbl-kings-cath
-                           books-tbl-kings-prot))
-        all-books (str/join "|" (apply concat (vals books-tbl)))
-        regex     (re-pattern
-                   (str "(?i)\\b(" all-books ")\\b\\.? +([0-9ivxlcdmIVXLCDM]"
-                        "+[.,] +)?(\\d+(-\\d+)?(, \\d+)?)\\b[,.]?"))
-        matches   (re-find regex reference-string)]
-    (if (< (count matches) 11)
-      nil
-      (validate-ref
-       {:chapter (if (nth matches 11)
-                   (parse-roman-numeral (nth matches 11))
-                   1)
-        :verse   (int (bigint (nth matches 12)))
-        :book    (get-book-id table (second matches))}))))
+  (try
+    (let [table     (merge books-tbl
+                           (if four-kings
+                             books-tbl-kings-cath
+                             books-tbl-kings-prot))
+          all-books (str/join "|" (apply concat (vals books-tbl)))
+          regex     (re-pattern
+                     (str "(?i)\\b(" all-books ")\\b\\.? +([0-9ivxlcdmIVXLCDM]"
+                          "+[.,] +)?(\\d+(-\\d+))\\b[,.])?"))
+          matches   (re-find regex reference-string)]
+      (if (< (count matches) 11)
+        nil
+        (validate-ref
+         {:chapter (if (nth matches 11)
+                     (parse-roman-numeral (nth matches 11))
+                     1)
+          :verse   (int (bigint (nth matches 12)))
+          :book    (get-book-id table (second matches))})))
+    (catch Exception _
+      nil)))
 
           
         

@@ -60,12 +60,11 @@
                         nil)))
                   notes-with-ref)))
          (flatten (map :children (:children chapter-data)))))))
-xoxo
 
 (defn path-for-scripture-ref
   [script-path]
   (str app-root "public/data/bible/refs/"
-       (:book script-path)
+       (name (:book script-path))
        "-"
        (:chapter script-path)
        ".json"))
@@ -88,15 +87,18 @@ xoxo
   [refs]
   (reduce (fn [table ref]
             (let [scrip-path (scripture-ref-to-path ref)
-                  key        (str/join ":" [(:book scrip-path)
-                                            (:chapter scrip-path)])]
-              (assoc table
-                     key
-                     (if (get key table)
-                       (assoc (get key table)
-                              :refs
+                  key        (and scrip-path
+                                  (str/join ":" [(:book scrip-path)
+                                                 (:chapter scrip-path)]))]
+              (if (not scrip-path)
+                table
+                (assoc table
+                       key
+                       (if (get key table)
+                         (assoc (get key table)
+                                :refs
                               (concat ref (:refs (get key table))))
-                       (assoc scrip-path :refs [ref])))))
+                         (assoc scrip-path :refs [ref]))))))
           {}
           refs))
 
@@ -394,15 +396,16 @@ xoxo
            (.write wrtr (json/write-str (get-book-by-id book-data (:id chapter))))))
        (toc [book-data])))
 
-(defn write-refs
-  [refs]
-  (let [path          (path-for-scripture-ref (first refs))
+(defn write-ref
+  [ref]
+  (let [path          (path-for-scripture-ref ref)
         file-exists   (.exists (io/file path))
         existing-data (if file-exists
                         (json/read-str (slurp path))
                         [])]
+    (clojure.pprint/pprint [path (count existing-data)])
     (with-open [wrtr (io/writer path)]
-      (.write wrtr (json/write-str (concat existing-data refs))))))
+      (.write wrtr (json/write-str (conj existing-data ref))))))
 
 (defn save-book-refs-to-disk
   [author title id book-data]
@@ -414,17 +417,24 @@ xoxo
                                           (:title chapter)
                                           id
                                           (:id chapter)))]
-           (map (fn [key] (write-refs (get refs-table key)))
+           (clojure.pprint/pprint [author id (count refs-table)])
+           (map (fn [key] (write-ref (get refs-table key)))
                 (keys refs-table))))
        (:children (first (toc [book-data])))))
                        
-(defn parse-book
+(defn parse-and-save-book
   [author title id volume]
-  (save-book-to-disk author
-                     title
-                     (str volume ":" id)
-                     (get-book-by-id (get-volume volume)
-                                     (str volume ":" id))))
+  (let [global-id (str volume ":" id)
+        book-data (get-book-by-id (get-volume volume)
+                                  id)]
+    (save-book-to-disk author
+                       title
+                       global-id
+                       book-data)
+    (save-book-refs-to-disk author
+                            title
+                            global-id
+                            book-data)))
 
 (defn parse-anpn-contents
   [contents]
@@ -435,7 +445,7 @@ xoxo
                   (let [title (:title book)
                         id (:id book)
                         volume (or (:volume book) volume)]
-                    (parse-book author title id volume)))
+                    (parse-and-save-book author title id volume)))
                 (:books author-details))))
        contents))
 
