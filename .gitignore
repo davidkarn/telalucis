@@ -17,3 +17,6 @@ pom.xml.asc
 public
 .clj-kondo
 .lsp
+.cpcache
+.shadow-cljs
+node_modules

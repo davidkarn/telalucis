@@ -1,0 +1,13 @@
+{:deps {}
+ :dev-http {7777 ["resources/public" "classpath:public"]}
+ :builds
+ {:app
+  {:target :browser
+   :modules {:main {:init-fn frontend.core/main}}
+   :dev {:output-dir "resources/public/app-js"}}
+
+  :portfolio
+  {:target :browser
+   :modules {:main {:init-fn frontend.scenes/main}}
+   :dev {:output-dir "resources/public/portfolio-js"}}}}
+
