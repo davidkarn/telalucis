@@ -1,4 +1,5 @@
 (ns frontend.ui)
+  
 
 ;; app data structure
 ;;
@@ -71,11 +72,64 @@
 ;;    :id  ""
 ;; }
 
-(defn render-app
-  [store]
-  )
-
-(defn render-verse [{:keys [content]}]
+(defn verse [{:keys [content]}]
   [:p
    content])
+
+(defn toc
+  [toc-data]
+  [:div.toc
+   (map (fn [author]
+          [:div.author
+           [:strong.author-name (:author author)]
+           [:div.author-books
+            (map (fn [book]
+                   [:div.book
+                    [:a.title
+                     {:href "javascript:false"
+                      :on {:click [:open-book {:author (:author author)
+                                               :volume (or (:volume book) (:volume author))
+                                               :id     (:id book)
+                                               :title  (:title book)}]}}
+                     (:title book)]])
+                 (:books author))]])
+        toc-data)])
+
+(defn lookup-doc
+  [doc store]
+  (get (:books store)
+       (str (:author doc) ":" (:id doc))))
+
+(defn render-doc-cell
+  [cell]
+  (cond (= (:node-type cell) "section")
+        [:div.doc-section
+         [:h3 (:title cell)]
+         (map render-doc-cell (:children cell))]
+
+        (and (:notes cell) (:contents cell))
+        (map render-doc-cell (:contents cell))
+
+        (string? cell)
+        [:p cell]))
+
+(defn render-doc
+  [definition contents]
+  (prn definition contents)
+  [:div.document
+   [:div.doc-header
+    [:h3.author (:author definition)]
+    [:h2.book-title (:title definition)]]
+   [:div.doc-contents
+    (render-doc-cell contents)]])
+
+(defn render-app
+  [store]
+  [:div.app
+   (toc (:toc store))
+   [:div.content
+    (map
+     (fn [doc]
+       (render-doc doc (lookup-doc doc store)))
+     (:open-docs store))]])
 

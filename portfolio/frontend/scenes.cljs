@@ -7,7 +7,7 @@
 
 
 (defscene empty-verse
-  (ui/render-verse {}))
+  (ui/verse {}))
 
 (defn main []
     (portfolio/start!
