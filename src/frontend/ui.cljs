@@ -101,17 +101,23 @@
        (str (:author doc) ":" (:id doc))))
 
 (defn render-doc-cell
-  [cell]
-  (cond (= (:node-type cell) "section")
-        [:div.doc-section
-         [:h3 (:title cell)]
-         (map render-doc-cell (:children cell))]
+  ([cell] (render-doc-cell cell false))
+  ([cell in-p]
+   (cond (= (:node-type cell) "section")
+         [:div.doc-section
+          [:h3 (:title cell)]
+          (map #(render-doc-cell % in-p) (:children cell))]
+         
+         (and (:notes cell) (:contents cell))
+         (if in-p
+           (map render-doc-cell (:contents cell))
+           [:p (map #(render-doc-cell % true) (:contents cell))])
 
-        (and (:notes cell) (:contents cell))
-        (map render-doc-cell (:contents cell))
-
-        (string? cell)
-        [:p cell]))
+         (vector? cell)
+         (map #(render-doc-cell % in-p) cell)
+         
+         (string? cell)
+         cell)))
 
 (defn render-doc
   [definition contents]
