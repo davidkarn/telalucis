@@ -62,3 +62,23 @@ h1, h2, h3 {
 p {
     margin-bottom: 0.5em;
 }
+
+a.bible-chapter {
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.bible-verse {
+    display: flex;
+    gap: 5px;
+    align-items: start;
+}
+
+.bible-verse .verse-number {
+    width: 2rem;
+}
+
+.bible-verse .verse-contents {
+    display:flex;
+    width: fit-content;
+}

@@ -3,6 +3,7 @@
   (:require [cljs-http.client :as http]
             [cljs.core.async :refer [<!]]
             [replicant.dom :as r]
+            [frontend.bible :as bible]
             [frontend.ui :as ui]))
 
 (defn load-book
@@ -16,9 +17,38 @@
                [:books (str (:author book) ":" (:id book))]
                (:body response)))))
 
+(defn load-bible-book
+  ([store book] (load-bible-book store book "douay"))
+  ([store book translation]
+   (go (let [response (<! (http/get (str "/data/bible/" 
+                                        translation "/"
+                                        book ".json")))]
+         (swap! store assoc-in
+                [:bible translation book]
+                (:body response))))))
+
+(defn load-bible-refs
+  [store book chapter]
+  (go (let [key      (str book "-" chapter)
+            response (<! (http/get (str "/data/bible/refs/" key ".json")))]
+        (swap! store assoc-in
+               [:bible-refs key]
+               (:body response)))))
+
+
+
 (defn handle-event
   [store data]
   (case (first data)
+    :open-bible-chapter
+    (let [book (bible/book-internal-name (second data))
+          chapter (nth data 2)]
+      (load-bible-book store book)
+      (load-bible-refs store book chapter)
+      (swap! store assoc :open-docs [{:type :bible
+                                      :book book
+                                      :chapter chapter}]))
+    
     :open-book
     (do (load-book store (second data))
         (swap! store assoc :open-docs [(assoc (second data) :type :book)]))))
@@ -46,6 +76,7 @@
 
     (reset! store {:open-docs []
                    :books {}
+                   :bible {"douay" {}}
                    :toc []})
 
     (load-toc store)))
