@@ -10,6 +10,16 @@
 
 (devtools.core/install!)
 
+(defn open-anchor!
+  [anchor]
+  (and anchor 
+       (js/setTimeout
+        (fn [] (set! js/window.location.href
+                     (str (first (clojure.string/split js/window.location.href "#"))
+                          "#"
+                          anchor)))
+        500)))
+
 (defn load-book
   [store book]
   (go (let [response (<! (http/get (str "/data/books/"
@@ -19,7 +29,8 @@
         (prn (:body response))
         (swap! store assoc-in
                [:books (str (:author book) ":" (:id book))]
-               (:body response)))))
+               (:body response))
+        (open-anchor! (:anchor book)))))
 
 (defn load-bible-book
   ([store book] (load-bible-book store book "douay"))

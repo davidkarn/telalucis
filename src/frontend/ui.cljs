@@ -59,24 +59,50 @@
         (filter (fn [ref] (= (:verse ref) (str (:num verse))))
                 refs))))
 
+(defn render-note-contents
+  [contents]
+  (cond (:content contents)
+        (map render-note-contents (:content contents))
+             
+        (array? contents)
+        (map render-note-contents contents)
+
+        (string? contents)
+        contents))
+
 (defn render-doc-cell
-  ([cell] (render-doc-cell cell false))
-  ([cell in-p]
+  ([cell] (render-doc-cell cell false []))
+  ([cell in-p notes]
    (cond (= (:node-type cell) "section")
          [:div.doc-section
           [:h3 (:title cell)]
-          (map #(render-doc-cell % in-p) (:children cell))]
+          (map #(render-doc-cell % in-p notes) (:children cell))]
+
+         (= "note" (:tag cell))
+         [:span.note-ref {:id (str "ref-" (:id cell))} 
+          [:a {:href (str "#" (:id cell))}
+           (:n (:attrs (first (filter (fn [n] (= (:id (:attrs n)) (:id cell)))
+                                      notes))))]]
          
          (and (:notes cell) (:contents cell))
          (if in-p
            (map render-doc-cell (:contents cell))
-           [:p (map #(render-doc-cell % true) (:contents cell))])
+           [:div.doc-para
+            [:p (map #(render-doc-cell % true (:notes cell)) (:contents cell))]
+            (and (> (count (:notes cell)) 0)
+                 [:div.doc-notes
+                  (map (fn [note]
+                         [:div.note {:id (:id (:attrs note))}
+                          [:a.note-num {:href (str "#ref-" (:id (:attrs note)))}
+                           (:n (:attrs note))]
+                          [:div.note-contents (render-note-contents note)]])
+                       (:notes cell))])])
 
          (vector? cell)
-         (map #(render-doc-cell % in-p) cell)
+         (map #(render-doc-cell % in-p notes) cell)
          
          (string? cell)
-         cell)))
+         cell)))        
 
 (defn render-doc
   [definition contents]
@@ -112,6 +138,7 @@
                                                 :id     (second (clojure.string/split
                                                                  (:book-id ref)
                                                                  ":"))
+                                                :anchor (str "ref-" (:fn-id ref))
                                                 :title  (:book ref)}]}}
                     [:span.ref-author (:author ref)]
                     " "

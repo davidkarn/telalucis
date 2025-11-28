@@ -93,3 +93,24 @@ a.bible-chapter {
     font-size: 0.8em;
     padding-left:2.2rem;
 }
+
+.doc-para {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.doc-notes .note {
+    display: flex;
+    gap: 5px;
+    font-size: 0.8rem;
+}
+
+.doc-notes {
+    margin-bottom: 1rem;
+}
+
+.note-ref {
+    vertical-align: super;
+    font-size: 0.8rem;
+}
