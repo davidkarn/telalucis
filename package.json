@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "snabbdom": "3.5.1"
-  }
+  },
+    "scripts": {
+        "start": "npx shadow-cljs watch app portfolio"
+    }
 }

@@ -1,77 +1,5 @@
 (ns frontend.ui
     (:require [frontend.bible :as bible]))
-  
-
-;; app data structure
-;;
-;; {:open-docs 
-;;   ({
-;;     :type "book"
-;;     :title ""
-;;     :author ""
-;;     :contents <content-block> | <section-block>[]
-;;    } | {
-;;     :type "bible-chapter"
-;;     :translation ""
-;;     :book ""
-;;     :chapter <int>
-;;     :id ""
-;;     :verses {
-;;       :num <int>
-;;       :verse ""
-;;     }
-;;   })[]
-;;  :available-docs {
-;;   :<author-name> [
-;;     {:title "" :id ""}
-;;    ]
-;;   }
-;;  :toc {
-;;    :author ""
-;;    :books {
-;;      :title ""
-;;      :id ""
-;;    }[]
-;;  }[] 
-;; }
-;;
-;;
-;;
-;; bible-book
-;; {
-;;     :type "bible"
-;;     :translation ""
-;;     :book ""
-;;     :chapters {
-;;       :id ""
-;;       :title ""
-;;       :verses {
-;;         :num <int>
-;;         :verse ""
-;;       }[]
-;;     }
-;; }
-;;
-;; content-block
-;; {
-;;  :notes {
-;;      :id ""
-;;      :contents <content-span>[]
-;;    }[]
-;;  :contents content-span | content-block
-;; }
-;;
-;; content-span
-;; string | {
-;;   :tag "p" | "i"
-;;   :content <content-span>[]
-;; } | footnote-reference
-;;
-;; footnote-reference
-;; {
-;;    :tag "note"
-;;    :id  ""
-;; }
 
 (defn verse [{:keys [content]}]
   [:p
@@ -120,6 +48,17 @@
   ([translation book chapter store]
    (get-in store [:bible translation book :chapters (- chapter 1)] store)))
 
+(defn lookup-bible-refs
+  [book chapter store]
+  (get-in store [:bible-refs (str book "-" chapter)]))
+
+(defn get-verse-refs
+  [refs verse]
+  (flatten
+   (map (fn [ref] (:refs ref))
+        (filter (fn [ref] (= (:verse ref) (str (:num verse))))
+                refs))))
+
 (defn render-doc-cell
   ([cell] (render-doc-cell cell false))
   ([cell in-p]
@@ -141,7 +80,6 @@
 
 (defn render-doc
   [definition contents]
-  (prn definition contents)
   [:div.document
    [:div.doc-header
     [:h3.author (:author definition)]
@@ -150,7 +88,8 @@
     (render-doc-cell contents)]])
 
 (defn render-bible-chapter
-  [definition contents]
+  [definition contents refs]
+  (prn refs)
   [:div.document
    [:div.doc-header
     [:h3.author (bible/book-name (:book definition))]
@@ -158,13 +97,36 @@
    [:div.doc-contents
     (map
      (fn [verse]
-       [:div.bible-verse
-        [:div.verse-number (- (:num verse) 1)]
-        [:div.verse-contents (:verse verse)]])
+       (let [verse-refs (get-verse-refs refs verse)]
+         (prn [verse verse-refs])
+         [:div.bible-verse-wrapper
+          [:div.bible-verse
+           [:div.verse-number (- (:num verse) 1)]
+           [:div.verse-contents (:verse verse)]]
+          [:div.verse-refs
+           (map (fn [ref]
+                  [:div.verse-ref
+                   [:a.verse-link
+                    {:href "javascript:false"
+                     :on   {:click [:open-book {:author (:author ref)
+                                                :id     (second (clojure.string/split
+                                                                 (:book-id ref)
+                                                                 ":"))
+                                                :title  (:book ref)}]}}
+                    [:span.ref-author (:author ref)]
+                    " "
+                    [:span.ref-book (:book ref)]]
+                   " "
+                   [:span.ref-snippet
+                    (subs (clojure.string/join " " (filter string? (:para ref)))
+                          0
+                          120)]])
+                verse-refs)]]))
      (drop 1 (:verses contents)))]])
 
 (defn render-app
   [store]
+  (prn (:bible-refs store))
   [:div.app
    (toc (:toc store))
    [:div.content
@@ -174,6 +136,10 @@
              (render-doc doc (lookup-doc doc store))
 
              (= (:type doc) :bible)
-             (render-bible-chapter doc (lookup-bible-chapter (:book doc) (:chapter doc) store))))
+             (render-bible-chapter doc
+                                   (lookup-bible-chapter (:book doc)
+                                                         (:chapter doc)
+                                                         store)
+                                   (lookup-bible-refs (:book doc) (:chapter doc) store))))
      (:open-docs store))]])
 

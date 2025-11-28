@@ -34,7 +34,6 @@
     (if (:content note)
       (first (filter identity (map note-has-scripture-ref (:content note))))
       nil)))
-                                  
 
 (defn chapter-notes
   [chapter-data author book chapter-name book-id chapter-id]

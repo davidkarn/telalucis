@@ -3,8 +3,12 @@
   (:require [cljs-http.client :as http]
             [cljs.core.async :refer [<!]]
             [replicant.dom :as r]
+            [clojure.string :as string]            
+            [devtools.core :as devtools]
             [frontend.bible :as bible]
             [frontend.ui :as ui]))
+
+(devtools.core/install!)
 
 (defn load-book
   [store book]
@@ -34,8 +38,6 @@
         (swap! store assoc-in
                [:bible-refs key]
                (:body response)))))
-
-
 
 (defn handle-event
   [store data]

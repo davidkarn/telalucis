@@ -82,3 +82,14 @@ a.bible-chapter {
     display:flex;
     width: fit-content;
 }
+
+.bible-verse-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+}
+
+.verse-refs {
+    font-size: 0.8em;
+    padding-left:2.2rem;
+}
