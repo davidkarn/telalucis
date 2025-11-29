@@ -29,10 +29,11 @@
                    [:div.book
                     [:a.title
                      {:href "javascript:false"
-                      :on   {:click [:open-book {:author (:author author)
-                                                 :volume (or (:volume book) (:volume author))
-                                                 :id     (:id book)
-                                                 :title  (:title book)}]}}
+                      :on   {:click [:open-book {:author    (:author author)
+                                                 :author-id (:author-id author)
+                                                 :volume    (or (:volume book) (:volume author))
+                                                 :id        (:id book)
+                                                 :title     (:title book)}]}}
                      (:title book)]])
                  (:books author))]])
         toc-data)])
@@ -83,10 +84,16 @@
           [:a {:href (str "#" (:id cell))}
            (:n (:attrs (first (filter (fn [n] (= (:id (:attrs n)) (:id cell)))
                                       notes))))]]
+
+         (and (:contents cell) (= "i" (:tag cell)))
+         [:i (map #(render-doc-cell % in-p notes) (:contents cell))]
          
-         (and (:notes cell) (:contents cell))
+         (and (:contents cell) (= "b" (:tag cell)))
+         [:b (map #(render-doc-cell % in-p notes) (:contents cell))]
+         
+         (:contents cell)
          (if in-p
-           (map render-doc-cell (:contents cell))
+           (map #(render-doc-cell % in-p notes) (:contents cell))
            [:div.doc-para
             [:p (map #(render-doc-cell % true (:notes cell)) (:contents cell))]
             (and (> (count (:notes cell)) 0)

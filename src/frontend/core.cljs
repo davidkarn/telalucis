@@ -23,7 +23,7 @@
 (defn load-book
   [store book]
   (go (let [response (<! (http/get (str "/data/books/"
-                                        (:author book) "/"
+                                        (or (:author-id book) (:author book)) "/"
                                         (:id book) "/"
                                         (:id book) ".json")))]
         (prn (:body response))

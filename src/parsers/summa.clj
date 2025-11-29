@@ -26,7 +26,7 @@
                 path)))))
 
 (defn get-book-questions
-  [contents]
+  [contents book-id]
   (map (fn [question]
          (first
           (filter identity
@@ -40,7 +40,7 @@
                                    nil)))
                        (sel/select (sel/tag :p) contents)))))
        (filter (fn [a] (and (:href (:attrs a))
-                            (clojure.string/starts-with? (:href (:attrs a)) "FP/")))
+                            (clojure.string/starts-with? (:href (:attrs a)) (str book-id "/"))))
                (sel/select (sel/tag :a) contents))))
 
 (defn question-from-id
@@ -64,46 +64,42 @@
         el
 
         (= :i (:tag el))
-        {:tag "i" :content (map format-text-content (:content el))}
+        {:tag "i" :contents (map format-text-content (:content el))}
 
         (= :b (:tag el))
-        {:tag "b" :content (map format-text-content (:content el))}
+        {:tag "b" :contents (map format-text-content (:content el))}
 
         (= :p (:tag el))
-        {:tag "span" :content (map format-text-content (:content el))}
+        {:tag "span" :contents (map format-text-content (:content el))}
 
         (= :a (:tag el))
-        (if (re-matches #"http://drbo.org.*" (:href (:attrs el)))
+        (if (and (re-matches #"http://drbo.org.*" (:href (:attrs el)))
+                 (not (re-matches #".*\(.*" (first (:content el)))))
           {:tag "scripRef"
-           :attrs {:parsed (str "|" (str/replace
-                                     (str/replace
-                                      (str/replace
-                                       (str (first (:content el))
-                                            (if (re-matches #"^[^:]+$" (first (:content el)))
-                                              ":1"
-                                              ""))
-                                       #": +"
-                                       ":")
-                                      #"(:| (?=\d+:\d+))" "|")
-                                     #"( |\.)"
-                                     ""))}
-           :content (:content el)}
+           :attrs {:parsed (as-> (first (:content el)) v
+                             (str/replace v #",\d+" "")
+                             (str v (if (re-matches #"^[^:]+$" v) ":1" ""))
+                             (str/replace v #": +" ":")
+                             (str/replace v #"(:| (?=\d+:\d+))" "|")
+                             (str/replace v #"( |\.)" "")
+                             (str "|" v))}
+           :contents (:content el)}
           (let [id (str/replace (:href (:attrs el)) #".*#" "")]
             {:tag "bookRef"
              :attrs {:author "Aquinas"
                      :book "Summa Theologica"
                      :id id}
-             :content (:content el)}))
+             :contents (:content el)}))
 
         true
         ""))
 
 (defn format-question
   [contents]
-  (loop [els             (filter (fn [el] (and (not (:align (:attrs el)))
+  (loop [els             (filter (fn [el] (and (not (= "right" (:align (:attrs el))))
                                                (not (#{:center :script :hr} (:tag el)))))
                                  (:content (first (sel/select (sel/tag :body) contents))))
-         current-section {:contents []}
+         current-section {:children []}
          all-sections    []]
     (let [el (first els)
           id (:id (:attrs el))]
@@ -116,8 +112,9 @@
             (recur (drop 1 els)
                    (assoc (if (not (:id current-section))
                             current-section
-                            {:contents []})
+                            {:children []})
                           :id id
+                          :node-type "section"
                           :question (question-from-id id)
                           :article (article-from-id id)
                           :book (book-from-id id))
@@ -133,24 +130,20 @@
             (= :h3 (:tag el))
             (recur (drop 1 els)
                    (assoc current-section
-                          :title (str/join " " (filter string? (:content el)))
-                          :contents (conj (:contents current-section)
-                                         {:tag "b"
-                                          :attrs {:heading "heading" :id (:id current-section)}
-                                          :content (str/join " " (filter string? (:content el)))}))
+                          :title (str/join " " (filter string? (:content el))))
                    all-sections)
 
             (= :p (:tag el))
             (recur (drop 1 els)
                    (assoc current-section
-                          :contents (conj (:contents current-section)
+                          :children (conj (:children current-section)
                                          (format-text-content el)))
                    all-sections)
 
             (and (string? el) (> (count (str/trim el)) 0))
             (recur (drop 1 els)
                    (assoc current-section
-                          :contents (conj (:contents current-section) (str/trim el)))
+                          :children (conj (:children current-section) (str/trim el)))
                    all-sections)
 
             true
@@ -160,30 +153,31 @@
 
 (defn format-summa
   []
-  {:title "Summa Theologica"
+  {:title     "Summa Theologica"
    :node-type "section"
-   :id "summa"
-   :children (map
-              (fn [book]
-                (let [data (pull-file (str book ".html"))
-                      questions (get-book-questions data)]
-                  {:title (get {"FP" "Prima Pars"
-                                "FS" "Prima Secundae Partis"
-                                "SS" "Secunda Secundae Partis"
-                                "TP" "Tertia Pars"
-                                "XP" "Supplementum Tertiae Partis"} book)
-                   :node-type "section"
-                   :id (str "summa-" book)
-                   :children (map
-                              (fn [question]
-                                (let [contents (pull-file (:path question))]
-                                  {:title (str "Question " (:num question))
-                                   :sub-title (:label question)
-                                   :id (str "summa-" book "-" (:num question))
-                                   :number (:num question)
-                                   :children (format-question contents)}))
-                              questions)}))
-              ["FP" "FS" "SS" "TP" "XP"])})
+   :id        "summa"
+   :children  (map
+               (fn [book]
+                 (let [data      (pull-file (str book ".html"))
+                       questions (get-book-questions data book)]
+                   {:title     (get {"FP" "Prima Pars"
+                                     "FS" "Prima Secundae Partis"
+                                     "SS" "Secunda Secundae Partis"
+                                     "TP" "Tertia Pars"
+                                     "XP" "Supplementum Tertiae Partis"} book)
+                    :node-type "section"
+                    :id        (str "summa-" book)
+                    :children  (map
+                                (fn [question]
+                                  (let [contents (pull-file (:path question))]
+                                    {:title     (str "Question " (:num question))
+                                     :sub-title (:label question)
+                                     :node-type "section"
+                                     :id        (str "summa-" book "-" (:num question))
+                                     :number    (:num question)
+                                     :children  (format-question contents)}))
+                                questions)}))
+               ["FP" "FS" "SS" "TP" "XP"])})
 
 (defn write-to-disk
   []
@@ -235,3 +229,5 @@
                         (:contents section))))
                 (:children question))))
         (:children book))))
+
+;(map (fn [book] (telalucis.core/write-refs-to-disk (extract-refs book))) (:children (format-summa)))
