@@ -1594,51 +1594,51 @@
            :volume 214}
           {:title "Aphrahat:  Select Demonstrations.",
            :id "iii.ix",
-           :volume 214}]}
- {:author "Ecumenical Councils"
-  :books [{:title
-           "The First Ecumenical Council:  The First Council of Nice.",
-           :id "vii",
-           :volume 215}
-          {:title
-           "The Canons of the Councils of Ancyra, Gangra, Neocæsarea, Antioch and Laodicea, which Canons were Accepted and Received by the Ecumenical Synods.",
-           :id "viii",
-           :volume 215}
-          {:title
-           "The Second Ecumenical Council:  The First Council of Constantinople.",
-           :id "ix",
-           :volume 215}
-          {:title "The Third Ecumenical Council:  The Council of Ephesus.",
-           :id "x",
-           :volume 215}
-          {:title
-           "The Fourth Ecumenical Council.  The Council of Chalcedon.",
-           :id "xi",
-           :volume 215}
-          {:title
-           "The Fifth Ecumenical Council.  The Second Council of Constantinople.",
-           :id "xii",
-           :volume 215}
-          {:title
-           "The Sixth Ecumenical Council.  The Third Council of Constantinople.",
-           :id "xiii",
-           :volume 215}
-          {:title
-           "The Canons of the Council in Trullo; Often Called The Quinisext Council.",
-           :id "xiv",
-           :volume 215}
-          {:title
-           "The Canons of the Synods of Sardica, Carthage, Constantinople, and Carthage Under St. Cyprian, Which Canons Were Received by the Council in Trullo and Ratified by II. Nice.",
-           :id "xv",
-           :volume 215}
-          {:title
-           "The Seventh Ecumenical Council.  The Second Council of Nice.",
-           :id "xvi",
-           :volume 215}
-          {:title
-           "Appendix containing Canons and Rulings not having Conciliar Origin but Approved by Name in Canon II. of the Synod in Trullo.",
-           :id "xvii",
-           :volume 215}]}])
+           :volume 214}]}])
+ ;; {:author "Ecumenical Councils"
+ ;;  :books [{:title
+ ;;           "The First Ecumenical Council:  The First Council of Nice.",
+ ;;           :id "vii",
+ ;;           :volume 215}
+ ;;          {:title
+ ;;           "The Canons of the Councils of Ancyra, Gangra, Neocæsarea, Antioch and Laodicea, which Canons were Accepted and Received by the Ecumenical Synods.",
+ ;;           :id "viii",
+ ;;           :volume 215}
+ ;;          {:title
+ ;;           "The Second Ecumenical Council:  The First Council of Constantinople.",
+ ;;           :id "ix",
+ ;;           :volume 215}
+ ;;          {:title "The Third Ecumenical Council:  The Council of Ephesus.",
+ ;;           :id "x",
+ ;;           :volume 215}
+ ;;          {:title
+ ;;           "The Fourth Ecumenical Council.  The Council of Chalcedon.",
+ ;;           :id "xi",
+ ;;           :volume 215}
+ ;;          {:title
+ ;;           "The Fifth Ecumenical Council.  The Second Council of Constantinople.",
+ ;;           :id "xii",
+ ;;           :volume 215}
+ ;;          {:title
+ ;;           "The Sixth Ecumenical Council.  The Third Council of Constantinople.",
+ ;;           :id "xiii",
+ ;;           :volume 215}
+ ;;          {:title
+ ;;           "The Canons of the Council in Trullo; Often Called The Quinisext Council.",
+ ;;           :id "xiv",
+ ;;           :volume 215}
+ ;;          {:title
+ ;;           "The Canons of the Synods of Sardica, Carthage, Constantinople, and Carthage Under St. Cyprian, Which Canons Were Received by the Council in Trullo and Ratified by II. Nice.",
+ ;;           :id "xv",
+ ;;           :volume 215}
+ ;;          {:title
+ ;;           "The Seventh Ecumenical Council.  The Second Council of Nice.",
+ ;;           :id "xvi",
+ ;;           :volume 215}
+ ;;          {:title
+ ;;           "Appendix containing Canons and Rulings not having Conciliar Origin but Approved by Name in Canon II. of the Synod in Trullo.",
+ ;;           :id "xvii",
+ ;;           :volume 215}]}])
 
 ;(parse-anpn-contents anti-nicene-contents)
 ;(parse-anpn-contents post-nicene-contents)

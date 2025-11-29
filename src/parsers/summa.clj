@@ -73,9 +73,9 @@
         {:tag "span" :content (map format-text-content (:content el))}
 
         (= :a (:tag el))
-        (if (re-matches #"http://drbo.org.*" (:href el))
+        (if (re-matches #"http://drbo.org.*" (:href (:attrs el)))
           {:tag "scripRef"
-           :attrs {:parsed (str "|" (str/replace (first (:content el)) #"[ :]" "|"))}
+           :attrs {:parsed (str "|" (str/replace (first (:content el)) #"(\. |:)" "|"))}
            :content (:content el)}
           (let [id (str/replace (:href (:attrs el)) #".*#" "")]
             {:tag "bookRef"
@@ -92,7 +92,7 @@
   (loop [els             (filter (fn [el] (and (not (:align (:attrs el)))
                                                (not (#{:center :script :hr} (:tag el)))))
                                  (:content (first (sel/select (sel/tag :body) contents))))
-         current-section {:content []}
+         current-section {:contents []}
          all-sections    []]
     (let [el (first els)
           id (:id (:attrs el))]
@@ -105,7 +105,7 @@
             (recur (drop 1 els)
                    (assoc (if (not (:id current-section))
                             current-section
-                            {:content []})
+                            {:contents []})
                           :id id
                           :question (question-from-id id)
                           :article (article-from-id id)
@@ -123,23 +123,23 @@
             (recur (drop 1 els)
                    (assoc current-section
                           :title (str/join " " (filter string? (:content el)))
-                          :content (conj (:content current-section)
+                          :contents (conj (:contents current-section)
                                          {:tag "b"
-                                          :attrs {:heading "heading"}
+                                          :attrs {:heading "heading" :id (:id current-section)}
                                           :content (str/join " " (filter string? (:content el)))}))
                    all-sections)
 
             (= :p (:tag el))
             (recur (drop 1 els)
                    (assoc current-section
-                          :content (conj (:content current-section)
+                          :contents (conj (:contents current-section)
                                          (format-text-content el)))
                    all-sections)
 
             (and (string? el) (> (count (str/trim el)) 0))
             (recur (drop 1 els)
                    (assoc current-section
-                          :content (conj (:content current-section) (str/trim el)))
+                          :contents (conj (:contents current-section) (str/trim el)))
                    all-sections)
 
             true
@@ -173,3 +173,54 @@
                                    :children (format-question contents)}))
                               questions)}))
               ["FP" "FS" "SS" "TP" "XP"])})
+
+(defn write-to-disk
+  []
+  (map
+   (fn [book]
+     (let [author "aquinas"
+           id (:id book)]
+       (.mkdir (java.io.File. (str telalucis.core/path "books/" author)))
+       (.mkdir (java.io.File. (str telalucis.core/path "books/" author "/" id)))
+       (with-open [wrtr (io/writer (str telalucis.core/path "books/" author "/" id "/" id ".json"))]
+         (.write wrtr (json/write-str book)))))
+   (:children (format-summa))))
+
+(defn get-scrip-refs
+  [section context book-id id question]
+  (cond (string? section)
+        nil
+
+        (= "span" (:tag section))
+        (filter identity
+                (flatten (map (fn [s] (get-scrip-refs s context book-id id question))
+                              (:content section))))
+
+        (= "scripRef" (:tag section))
+        {:ref section
+         :author "St. Thomas Aquinas"
+         :book "Summa Theologica"
+         :chapter (:sub-title question)
+         :book-id book-id
+         :chapter-id id
+         :para context}
+        
+        true
+        nil))
+
+(defn extract-refs
+  [book]
+  (flatten
+   (map (fn [question]
+          (flatten
+           (map (fn [section]
+                  (flatten
+                   (map (fn [sec]
+                          (get-scrip-refs sec
+                                          sec
+                                          (:id book)
+                                          (:id section)
+                                          question))
+                        (:contents section))))
+                (:children question))))
+        (:children book))))

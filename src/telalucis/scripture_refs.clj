@@ -42,6 +42,7 @@
     "Dan"    :daniel
     "Bel"    :daniel
     "Deut"   :deuteronomy
+    "Dt"   :deuteronomy
     "Eccl"   :ecclesiastes
     "Eph"    :ephesians
     "Esth"   :esther
@@ -52,11 +53,14 @@
     "Hab"    :habacuc
     "Heb"    :hebrews
     "Isa"    :isaias
+    "Is"    :isaias
     "Jas"    :james
+    "James1"    :james
     "Jer"    :jeremias
     "Job"    :job
     "Joel"   :joel
     "John"   :john
+    "Jn"   :john
     "Jonah"  :jonah
     "Jon"    :jonah
     "Josh"   :joshua
@@ -78,9 +82,11 @@
     "Prov"   :proverbs
     "Sus"    :susanna
     "Rom"    :romans
+    "Rm"    :romans
     "Ruth"   :ruth
     "Zeph"   :sophonias
     "Titus"  :titus
+    "Titus1"  :titus
     "Tob"    :tobit
     "Wis"    :wisdom
     "Zech"   :zacharias    
