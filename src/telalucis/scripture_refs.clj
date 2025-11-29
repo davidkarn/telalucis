@@ -17,6 +17,7 @@
     "1Tim"   :1-timothy
     "2Cor"   :2-corinthians
     "Neh"    :2-esdras
+    "2Esd"    :2-esdras
     "2John"  :2-john
     "2Sam"   :2-kings
     "2Macc"  :2-maccabees
@@ -27,6 +28,8 @@
     "3John"  :3-john
     "1Kgs"   :3-kings
     "2Kgs"   :4-kings
+    "1Kings"   :3-kings
+    "2Kings"   :4-kings
     "Obad"   :obadiah
     "Acts"   :acts
     "Sir"    :sirach
@@ -252,7 +255,7 @@
    :apocalypse	    [20, 29, 22, 11, 14, 17, 17, 13, 21, 11, 19,
                      17, 18, 20, 8, 21, 18, 24, 21, 15, 27, 21]})
 
-(defn book-keys-table
+(def book-keys-table
   {"genesis"		       :genesis
    "exodus"		       :exodus
    "leviticus"                 :leviticus
@@ -414,7 +417,7 @@
    :2-john ["2 john","2 jn","2 jan","2 joh","2 jo","2 j","2 io","2 iv","2 john","2 janez","2 johannes","2 jean","2 juan"],
    :3-john ["3 john","3 jn","3 jan","3 joh","3 jo","3 j","3 io","3 iv","3 john","3 janez","3 johannes","3 jean","3 juan"],
    :jude ["jude","jud","juda","jude","jd","ju","iud","judas"],
-   :revelation ["revelation","raz","rev","ap","apc","apoc","apok","apk","op","openb","offb","otk","razodetje","apokalipsa","revelation","openbaring","apokalyps","offenbarung","apocalipsis"],
+   :revelation ["revelation","raz","rev","ap","apc","apoc","apok","apk","op","openb","offb","otk","rAzodetje","Apokalipsa","revelation","openbaring","apokalyps","offenbarung","apocalipsis"],
    :esther ["esther","est","ester","esth","esther","estera","esther (greek)","estg","esg","estgr","esthgr","estgrec","estd","estdc","gkest","addesth","stest","estera(gr)","esther(gr)","esther(greek)","ester(griechisch)","ester(griego)","ester_(grieks)"],
    :judith ["judith","jdt","jdth","idt","judita","judith","judit"],
    :tobit ["tobit","tob","tb","tobit","tobija"],

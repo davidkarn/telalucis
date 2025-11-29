@@ -348,17 +348,17 @@
 (def cf-4 (str docs-root "npnf104.xml"))
 (def cf-5 (str docs-root "npnf105.xml"))
 (def cf-6 (str docs-root "npnf106.xml"))
-(save-books-to-disk (get-pages (parse-theology cf-2)) "augustine")
-(save-books-to-disk (get-pages (parse-theology cf-3)) "augustine")
-(save-books-to-disk (get-pages (parse-theology cf-4)) "augustine")
-(save-books-to-disk (get-pages (parse-theology cf-5)) "augustine")
+;(save-books-to-disk (get-pages (parse-theology cf-2)) "augustine")
+;(save-books-to-disk (get-pages (parse-theology cf-3)) "augustine")
+;(save-books-to-disk (get-pages (parse-theology cf-4)) "augustine")
+;(save-books-to-disk (get-pages (parse-theology cf-5)) "augustine")
 
-(get-pages contents)
-(save-bible-to-disk (parse-bible (parse-theology douay)) "douay")
-(save-books-to-disk (get-pages contents) "augustine")
-(def chapt (read-chapter-from-disk "augustine" "the-confes-vi" "he-continu-vi-xii"))
-(chapter-notes chapt "augustine" "confess" "confess-vi")
-(write-refs-to-disk (chapter-notes chapt "augustine" "confess" "confess-vi"))
+;(get-pages contents)
+;(save-bible-to-disk (parse-bible (parse-theology douay)) "douay")
+;(save-books-to-disk (get-pages contents) "augustine")
+;(def chapt (read-chapter-from-disk "augustine" "the-confes-vi" "he-continu-vi-xii"))
+;(chapter-notes chapt "augustine" "confess" "confess-vi")
+;(write-refs-to-disk (chapter-notes chapt "augustine" "confess" "confess-vi"))
 
 (defn volume-filename
   [volume]
@@ -402,7 +402,6 @@
         existing-data (if file-exists
                         (json/read-str (slurp path))
                         [])]
-    (clojure.pprint/pprint [path (count existing-data)])
     (with-open [wrtr (io/writer path)]
       (.write wrtr (json/write-str (conj existing-data ref))))))
 
@@ -416,7 +415,7 @@
                                           (:title chapter)
                                           id
                                           (:id chapter)))]
-           (clojure.pprint/pprint [author id (count refs-table)])
+           (clojure.pprint/pprint ["saving refs" author id (count refs-table)])
            (map (fn [key] (write-ref (get refs-table key)))
                 (keys refs-table))))
        (:children (first (toc [book-data])))))
@@ -440,6 +439,7 @@
   (map (fn [author-details]
          (let [author (:author author-details)
                volume (:volume author-details)]
+           (clojure.pprint/pprint ["parsing" author volume])
            (map (fn [book]
                   (let [title (:title book)
                         id (:id book)
@@ -899,328 +899,10 @@
     :books [{:title "Against the Sabellians", :id "vii.ii", :type nil}]}])
 
 (def post-nicene-contents
-  [{:author "Augustine",
-    :books  [{:title  "The Confessions",
-              :id     "vi",
-              :volume 101}
-             {:title  "Letters of St. Augustin",
-              :id     "vii",
-              :volume 101}
-             {:title  "City of God"
-              :volume 102
-              :id     "iv"}
-             {:title  "On Christian Doctrine",
-              :id     "v",
-              :volume 102}
-             {:title "On the Holy Trinity.", :id "iv.i", :volume 103}
-             {:title "The Enchiridion.", :id "iv.ii", :volume 103}
-             {:title  "On the Catechising of the Uninstructed.",
-              :id     "iv.iii",
-              :volume 103}
-             {:title  "A Treatise on Faith and the Creed.",
-              :id     "iv.iv",
-              :volume 103}
-             {:title  "Concerning Faith of Things Not Seen.",
-              :id     "iv.v",
-              :volume 103}
-             {:title "On the Profit of Believing.", :id "iv.vi", :volume 103}
-             {:title "On the Creed.", :id "iv.vii", :volume 103}
-             {:title "On Continence.", :id "v.i", :volume 103}
-             {:title "On the Good of Marriage.", :id "v.ii", :volume 103}
-             {:title "Of Holy Virginity.", :id "v.iii", :volume 103}
-             {:title "On the Good of Widowhood.", :id "v.iv", :volume 103}
-             {:title "On Lying.", :id "v.v", :volume 103}
-             {:title "Against Lying.", :id "v.vi", :volume 103}
-             {:title "Of the Work of Monks.", :id "v.vii", :volume 103}
-             {:title "On Patience.", :id "v.viii", :volume 103}
-             {:title  "On Care to Be Had for the Dead.",
-              :id     "v.ix",
-              :volume 103}
-             {:title  "Introductory Essay on the Manichæan Heresy.",
-              :id     "iv.ii",
-              :volume 104}
-             {:title  "Preface to the Anti-Manichæan Writings.",
-              :id     "iv.iii",
-              :volume 104}
-             {:title  "On the Morals of the Catholic Church.",
-              :id     "iv.iv",
-              :volume 104}
-             {:title  "On the Morals of the Manichæans.",
-              :id     "iv.v",
-              :volume 104}
-             {:title  "On Two Souls, Against the Manichæans.",
-              :id     "iv.vi",
-              :volume 104}
-             {:title  "Acts or Disputation Against Fortunatus the Manichæan.",
-              :id     "iv.vii",
-              :volume 104}
-             {:title  " Against the Epistle of Manichæus, Called Fundamental.",
-              :id     "iv.viii",
-              :volume 104}
-             {:title  "Reply to Faustus the Manichæan.",
-              :id     "iv.ix",
-              :volume 104}
-             {:title  "Concerning the Nature of Good, Against the Manichæans.",
-              :id     "iv.x",
-              :volume 104}
-             {:title  "On Baptism, Against the Donatists.",
-              :id     "v.iv",
-              :volume 104}
-             {:title  "Answer to the Letters of Petilian, the Donatist.",
-              :id     "v.v",
-              :volume 104}
-             {:title  "The Correction of the Donatists.",
-              :id     "v.vi",
-              :volume 104}
-             {:title
-              "A Treatise on the Merits and Forgiveness of Sins, and on the Baptism of Infants.",
-              :id     "x",
-              :volume 105},
-             {:title  "A Treatise on the Spirit and the Letter.",
-              :id     "xi",
-              :volume 105}
-             {:title  "A Treatise on Nature and Grace.",
-              :id     "xii",
-              :volume 105}
-             {:title  "A Treatise Concerning Man’s Perfection in Righteousness.",
-              :id     "xiii",
-              :volume 105}
-             {:title  "A Work on the Proceedings of Pelagius.",
-              :id     "xiv",
-              :volume 105}
-             {:title  "A Treatise on the Grace of Christ, and on Original Sin.",
-              :id     "xv",
-              :volume 105}
-             {:title  "On Marriage and Concupiscence.",
-              :id     "xvi",
-              :volume 105}
-             {:title  "A Treatise on the Soul and its Origin.",
-              :id     "xvii",
-              :volume 105}
-             {:title  "A Treatise Against Two Letters of the Pelagians.",
-              :id     "xviii",
-              :volume 105}
-             {:title  "A Treatise on Grace and Free Will.",
-              :id     "xix",
-              :volume 105}
-             {:title  "A Treatise on Rebuke and Grace.",
-              :id     "xx",
-              :volume 105}
-             {:title  "A Treatise on the Predestination of the Saints.",
-              :id     "xxi",
-              :volume 105}
-             {:title  "Our Lord’s Sermon on the Mount.",
-              :id     "v",
-              :volume 106}
-             {:title  "The Harmony of the Gospels.",
-              :id     "vi",
-              :volume 106}
-             {:title  "Sermons on Selected Lessons of the New Testament.",
-              :id     "vii",
-              :volume 106}
-             {:title
-              "Lectures or Tractates on the Gospel According to St. John.",
-              :id     "iii",
-              :volume 107}
-             {:title  "Ten Homilies on the First Epistle of John.",
-              :id     "iv",
-              :volume 107}
-             {:title  "Two Books of Soliloquies.",
-              :id     "v",
-              :volume 107}
-             {:title  "Expositions on the Book of Psalms.",
-              :id     "ii",
-              :volume 108}]}
-   {:author "St. John Crysostom",
-    :books  [{:title  "Prolegomena.",
-              :id     "iii",
-              :volume 109}
-             {:title  "Treatise Concerning the Christian Priesthood.",
-              :id     "iv",
-              :volume 109}
-             {:title  "An Exhortation to Theodore After His Fall."
-              :id     "v"
-              :volume 109}
-             {:title  "Letter to a Young Widow.",
-              :id     "vi",
-              :volume 109}
-             {:title  "Homilies on S. Ignatius and S. Babylas.",
-              :id     "vii",
-              :volume 109}
-             {:title  "Homily Concerning Lowliness of Mind.",
-              :id     "viii",
-              :volume 109}
-             {:title  "Instructions to Catechumens.",
-              :id     "ix",
-              :volume 109}
-             {:title  "Three Homilies Concerning the Power of Demons.",
-              :id     "x",
-              :volume 109}
-             {:title
-              "Homily on the Passage (Matt. xxvi. 19), 'Father If It Be Possible Let This Cup Pass from Me,' Etc., and Against Marcionists and Manichæans.",
-              :id     "xi",
-              :volume 109}
-             {:title
-              "Homily on the Paralytic Let Down Through the Roof: and Concerning the Equality of the Divine Father and the Son.",
-              :id     "xii",
-              :volume 109}
-             {:title
-              "Homily to Those Who Had Not Attended the Assembly: and on the Apostolic Saying, 'If Thine Enemy Hunger, Feed Him, Etc. (Rom. xii. 20), and Concerning Resentment of Injuries.'",
-              :id     "xiii",
-              :volume 109}
-             {:title
-              "Homily Against Publishing the Errors of the Brethren, and Uttering Imprecations upon Enemies.",
-              :id     "xiv",
-              :volume 109}
-             {:title  "Two Homilies on Eutropius.",
-              :id     "xv",
-              :volume 109}
-             {:title
-              "A Treatise to Prove that No One Can Harm the Man Who Does Not Injure Himself.",
-              :id     "xvi",
-              :volume 109}
-             {:title  "Letters of St. Chrysostom to Olympias.",
-              :id     "xvii",
-              :volume 109}
-             {:title
-              "Correspondence of St. Chrysostom with the Bishop of Rome.",
-              :id     "xviii",
-              :volume 109}
-             {:title  "The Homilies on the Statues to the People of Antioch.",
-              :id     "xix",
-              :volume 109}
-             {:title  "The Homilies of St. John Chrysostom.",
-              :id     "iii",
-              :volume 110}
-             {:title  "A Commentary on the Acts of the Apostles",
-              :id     "vi",
-              :volume 111}
-             {:title
-              "The Homilies of St. John Chrysostom on Paul's Epistle to the Romans",
-              :id     "vii",
-              :volume 111}
-             {:title  "Homilies on First Corinthians.",
-              :id     "iv",
-              :volume 112}
-             {:title  "Homilies on Second Corinthians.",
-              :id     "v",
-              :volume 112}
-             {:title
-              "The Commentary and Homilies of St. John Chrysostom on Galatians and Ephesians.",
-              :id     "iii",
-              :volume 113}
-             {:title
-              "The Homilies of St. John Chrysostom on Philippians, Colossians, and Thessalonians.",
-              :id     "iv",
-              :volume 113}
-             {:title
-              "The Homilies of St. John Chrysostom on Timothy, Titus, and Philemon.",
-              :id     "v",
-              :volume 113}
-             {:title
-              "The Homilies of St. John Chrysostom on the Gospel of St. John.",
-              :id     "iv",
-              :volume 114}
-             {:title
-              "The Homilies of St. John Chrysostom on the Epistle to the Hebrews.",
-              :id     "v",
-              :volume 114}]}
-   {:author "Eusebius"
-    :books  [{:title  "The Church History of Eusebius.",
-              :id     "iii",
-              :volume 201}
-             {:title
-              "The Life of Constantine with Orations of Constantine and Eusebius.",
-              :id     "iv",
-              :volume 201}]}
-   {:author "Socrates Scholasticus"
-    :books  [{:title  "The Ecclesiastical History of Socrates Scholasticus.",
-              :id     "ii",
-              :volume 202}]}
-   {:author "Sozomen"
-    :books  [{:title  "The Ecclesiastical History of Sozomen.",
-              :id     "iii",
-              :volume 202}]}
-   {:author "Theodoret"
-    :books  [{:title
-              "The Ecclesiastical History, Dialogues, and Letters of Theodoret.",
-              :id     "iv",
-              :volume 203}]}
-   {:author "Gennadius"
-    :books  [{:title  "Lives of Illustrius Men"
-              :volume 203
-              :id     "v.iv"}]}
-   {:author "Jerome",
-    :books  [{:title  "Lives of Illustrious Men.",
-              :id     "v.iii",
-              :volume 203}]}
-   {:author "Rufinus"
-    :books  [{:title
-              "Preface to the Commentary on the Benedictions of the Twelve Patriarchs.",
-              :id     "vi.iii",
-              :volume 203}
-             {:title "Preface to Book II.", :id "vi.iv", :volume 203}
-             {:title  "Translation of Pamphilus' Defence of Origen.",
-              :id     "vi.v",
-              :volume 203}
-             {:title
-              "Rufinus's Epilogue to Pamphilus the Martyr's Apology for Origen; otherwise The Book Concerning the Adulteration of the Works of Origen.",
-              :id     "vi.vi",
-              :volume 203}
-             {:title
-              "Preface to the Translations of Origen's Books Περὶ ᾽Αρχῶν.",
-              :id     "vi.vii",
-              :volume 203}
-             {:title  "Preface to Book III. of the Περὶ ᾽Αρχῶν.",
-              :id     "vi.viii",
-              :volume 203}
-             {:title  "Rufinus' Apology in Defence of Himself.",
-              :id     "vi.ix",
-              :volume 203}
-             {:title
-              "The Letter of Anastasius, Bishop of the Church of Rome to John Bishop of Jerusalem Concerning the Character of Rufinus.",
-              :id     "vi.x",
-              :volume 203}
-             {:title
-              "The Apology of Rufinus. Addressed to Apronianus, in Reply to Jerome's Letter to Pammachius.",
-              :id     "vi.xi",
-              :volume 203}
-             {:title
-              "Jerome's Apology for Himself Against the Books of Rufinus.",
-              :id     "vi.xii",
-              :volume 203}
-             {:title  "A Commentary on the Apostles' Creed.",
-              :id     "vi.xiii",
-              :volume 203}
-             {:title
-              "The Preface to the Books of Recognitions of St. Clement.",
-              :id     "vi.xiv",
-              :volume 203}
-             {:title  "Preface to the Translation of the Sayings of Xystus.",
-              :id     "vi.xv",
-              :volume 203}
-             {:title
-              "Preface to the Two Books of Ecclesiastical History, Added by Rufinus to His Translation of Eusebius.",
-              :id     "vi.xvi",
-              :volume 203}
-             {:title
-              "Rufinus' Preface to the Translation of Origen's Commentary on Psalms 36, 37, and 38.",
-              :id     "vi.xvii",
-              :volume 203}
-             {:title
-              "Rufinus' Preface to the Translation of Origen's Commentary on the Epistle to the Romans.",
-              :id     "vi.xviii",
-              :volume 203}
-             {:title
-              "The Peroration of Rufinus Appended to His Translation of Origen's Commentary on the Epistle to the Romans.",
-              :id     "vi.xix",
-              :volume 203}
-             {:title  "Preface to Origen's Homilies on Numbers.",
-              :id     "vi.xx",
-              :volume 203}]}
+  [
 
    {:author "Augustine",
-  :books    [{:title "The Confessions",
+    :books    [{:title "The Confessions",
           :id        "vi",
           :volume    101}
           {:title  "Letters of St. Augustin",
@@ -1958,5 +1640,5 @@
            :id "xvii",
            :volume 215}]}])
 
-(parse-anpn-contents anti-nicene-contents)
-(parse-anpn-contents post-nicene-contents)
+;(parse-anpn-contents anti-nicene-contents)
+;(parse-anpn-contents post-nicene-contents)
