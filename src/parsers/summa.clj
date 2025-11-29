@@ -75,7 +75,18 @@
         (= :a (:tag el))
         (if (re-matches #"http://drbo.org.*" (:href (:attrs el)))
           {:tag "scripRef"
-           :attrs {:parsed (str "|" (str/replace (first (:content el)) #"(\. |:)" "|"))}
+           :attrs {:parsed (str "|" (str/replace
+                                     (str/replace
+                                      (str/replace
+                                       (str (first (:content el))
+                                            (if (re-matches #"^[^:]+$" (first (:content el)))
+                                              ":1"
+                                              ""))
+                                       #": +"
+                                       ":")
+                                      #"(:| (?=\d+:\d+))" "|")
+                                     #"( |\.)"
+                                     ""))}
            :content (:content el)}
           (let [id (str/replace (:href (:attrs el)) #".*#" "")]
             {:tag "bookRef"

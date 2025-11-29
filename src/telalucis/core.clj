@@ -75,6 +75,8 @@
   [ref]
   (if (:parsed (:attrs (:ref ref)))
     (let [[_ book chapter verse] (str/split (:parsed (:attrs (:ref ref))) #"\|")]
+      (clojure.pprint/pprint [book chapter verse (:parsed (:attrs (:ref ref)))])
+      
       {:book    (scrip-ref/translate-book book)
        :chapter chapter
        :verse   verse})

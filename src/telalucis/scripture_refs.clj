@@ -9,33 +9,41 @@
     "Ezra"   :1-esdras
     "1Esd"   :1-esdras
     "1John"  :1-john
+    "1Jn"  :1-john
     "1Sam"   :1-kings
     "1Macc"  :1-maccabees
     "1Chr"   :1-chronicles
     "1Pet"   :1-peter
+    "1Pt"   :1-peter
     "1Thess" :1-thessalonians
     "1Tim"   :1-timothy
     "2Cor"   :2-corinthians
     "Neh"    :2-esdras
     "2Esd"    :2-esdras
     "2John"  :2-john
+    "2Jn"  :2-john
     "2Sam"   :2-kings
     "2Macc"  :2-maccabees
     "2Chr"   :2-chronicles
     "2Pet"   :2-peter
+    "2Pt"   :2-peter
     "2Thess" :2-thessalonians
     "2Tim"   :2-timothy
     "3John"  :3-john
+    "3Jn"  :3-john
     "1Kgs"   :3-kings
     "2Kgs"   :4-kings
     "1Kings"   :3-kings
     "2Kings"   :4-kings
+    "3Kgs"   :3-kings
+    "4Kgs"   :4-kings
     "Obad"   :obadiah
     "Acts"   :acts
     "Sir"    :sirach
     "Hag"    :aggeus
     "Amos"   :amos
     "Rev"    :apocalypse
+    "Apoc"    :apocalypse
     "Bar"    :baruch
     "Song"   :canticle-of-canticles
     "Col"    :colossians
@@ -44,18 +52,21 @@
     "Deut"   :deuteronomy
     "Dt"   :deuteronomy
     "Eccl"   :ecclesiastes
+    "Eccles"   :ecclesiastes
     "Eph"    :ephesians
     "Esth"   :esther
     "Exod"   :exodus
+    "Ex"   :exodus
     "Ezek"   :ezechiel
     "Gal"    :galatians
     "Gen"    :genesis
+    "Gn"    :genesis
     "Hab"    :habacuc
     "Heb"    :hebrews
     "Isa"    :isaias
     "Is"    :isaias
     "Jas"    :james
-    "James1"    :james
+    "James"    :james
     "Jer"    :jeremias
     "Job"    :job
     "Joel"   :joel
@@ -70,10 +81,14 @@
     "Lam"    :lamentations
     "Lev"    :leviticus
     "Luke"   :luke
+    "Lk"   :luke
     "Mal"    :malachias
+    "Malachi"    :malachias
     "Mark"   :mark
     "Matt"   :matthew
+    "Mt"   :matthew
     "Mic"    :micheas
+    "Micah"    :micheas
     "Nah"    :nahum
     "Num"    :numbers
     "Hos"    :osee
