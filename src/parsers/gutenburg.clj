@@ -167,10 +167,74 @@
         (recur current-chapter book (rest contents) (first contents) (+ 1 i))))))
              
 
-           
-              
-              
-             
-             
-               
-           
+(def books
+  [{:title "The Glories of Mary"
+    :author "St. Alphonsus Liguori"
+    :id "glories-mary"
+    :path "gloriesofmary.html"}
+   {:title "Life of St. Malachy of Armagh"
+    :author "St. Bernard of Clairvaux"
+    :id "life-st-malachy"
+    :path "bernard_malachy.html"}])
+   
+(defn write-to-disk
+  [books]
+  (map
+   (fn [book]
+     (let [author   (:author book)
+           contents (read-book-contents (get-body (pull-file (:path book))))
+           title    (:title book)
+           id       (:id book)]
+       (.mkdir (java.io.File. (str telalucis.core/path "books/" author)))
+       (.mkdir (java.io.File. (str telalucis.core/path "books/" author "/" id)))
+       (with-open [wrtr (io/writer (str telalucis.core/path "books/" author "/" id "/" id ".json"))]
+         (.write wrtr (json/write-str {:title title
+                                       :node-type "section"
+                                       :id id
+                                       :children contents})))))
+   books))
+
+
+(defn get-scrip-refs
+  [book section context chapter-id chapter-title]  
+  (cond (string? section)
+        nil
+
+        (= "note" (:tag section))
+        (filter identity
+                (flatten (map (fn [s] (get-scrip-refs book s context chapter-id chapter-title))
+                              (:content section))))
+
+        (= "scripRef" (:tag section))
+        {:ref section
+         :author (:author book)
+         :book (:title book)
+         :book-id (:id book)
+         :chapter-id chapter-id
+         :chapter chapter-title
+         :para context}
+        
+        true
+        nil))
+
+(defn extract-refs
+  [book]
+  (let [contents (read-book-contents (get-body (pull-file (:path book))))]
+    (filter identity
+            (flatten
+             (map
+              (fn [chapter]
+                (map (fn [section]
+                       (map (fn [note]
+                              (get-scrip-refs book
+                                              note
+                                              (:children chapter)
+                                              (:id chapter)
+                                              (:title chapter)))
+                            (:notes section)))
+                     (:children chapter)))
+              contents)))))
+
+(map write-to-disk books)
+(map (fn [book] (telalucis.core/write-refs-to-disk (extract-refs book)))
+     books)
