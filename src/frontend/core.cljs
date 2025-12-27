@@ -24,6 +24,7 @@
   [store book]
   (go (let [response (<! (http/get (str "/data/books/"
                                         (or (:author-id book) (:author book)) "/"
+                                        (if (:volume book) (str (:volume book) ":") "")
                                         (:id book) "/"
                                         (:id book) ".json")))]
         (prn (:body response))

@@ -142,9 +142,7 @@
                    [:a.verse-link
                     {:href "javascript:false"
                      :on   {:click [:open-book {:author (:author ref)
-                                                :id     (second (clojure.string/split
-                                                                 (:book-id ref)
-                                                                 ":"))
+                                                :id     (:book-id ref)
                                                 :anchor (str "ref-" (:fn-id ref))
                                                 :title  (:book ref)}]}}
                     [:span.ref-author (:author ref)]

@@ -75,8 +75,6 @@
   [ref]
   (if (:parsed (:attrs (:ref ref)))
     (let [[_ book chapter verse] (str/split (:parsed (:attrs (:ref ref))) #"\|")]
-      (clojure.pprint/pprint [book chapter verse (:parsed (:attrs (:ref ref)))])
-      
       {:book    (scrip-ref/translate-book book)
        :chapter chapter
        :verse   verse})
@@ -364,7 +362,8 @@
 
 (defn volume-filename
   [volume]
-  (cond (< volume 20) (str docs-root "anf" (format "%02d" volume) ".xml")
+  (cond (string? volume) (str "/Users/davidkarn/Projects/bookscontents/" volume ".xml")
+        (< volume 20) (str docs-root "anf" (format "%02d" volume) ".xml")
         (> volume 20) (str docs-root "npnf" (format "%03d" volume) ".xml")))
 
 (defn get-volume
@@ -392,6 +391,8 @@
   (map (fn [chapter]
          (.mkdir (java.io.File. (str path "books/" author)))
          (.mkdir (java.io.File. (str path "books/" author "/" id)))
+         (print (str path "books/" author "/" id "/"
+                                          (:id chapter) ".json"))
          (with-open [wrtr (io/writer (str path "books/" author "/" id "/"
                                           (:id chapter) ".json"))]
            (.write wrtr (json/write-str (get-book-by-id book-data (:id chapter))))))
@@ -404,6 +405,7 @@
         existing-data (if file-exists
                         (json/read-str (slurp path))
                         [])]
+    (print path)
     (with-open [wrtr (io/writer path)]
       (.write wrtr (json/write-str (conj existing-data ref))))))
 
@@ -417,7 +419,6 @@
                                           (:title chapter)
                                           id
                                           (:id chapter)))]
-           (clojure.pprint/pprint ["saving refs" author id (count refs-table)])
            (map (fn [key] (write-ref (get refs-table key)))
                 (keys refs-table))))
        (:children (first (toc [book-data])))))
@@ -430,7 +431,13 @@
     (save-book-to-disk author
                        title
                        global-id
-                       book-data)
+                       book-data)))
+
+(defn parse-and-save-refs-for-book
+  [author title id volume]
+  (let [global-id (str volume ":" id)
+        book-data (get-book-by-id (get-volume volume)
+                                  id)]
     (save-book-refs-to-disk author
                             title
                             global-id
@@ -447,6 +454,20 @@
                         id (:id book)
                         volume (or (:volume book) volume)]
                     (parse-and-save-book author title id volume)))
+                (:books author-details))))
+       contents))
+
+(defn save-tml-refs
+  [contents]
+  (map (fn [author-details]
+         (let [author (:author author-details)
+               volume (:volume author-details)]
+           (clojure.pprint/pprint ["parsing" author volume])
+           (map (fn [book]
+                  (let [title (:title book)
+                        id (:id book)
+                        volume (or (:volume book) volume)]
+                    (parse-and-save-refs-for-book author title id volume)))
                 (:books author-details))))
        contents))
 
@@ -1644,3 +1665,6 @@
 
 ;(parse-anpn-contents anti-nicene-contents)
 ;(parse-anpn-contents post-nicene-contents)
+
+
+
