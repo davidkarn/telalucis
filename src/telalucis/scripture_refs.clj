@@ -81,7 +81,8 @@
     "Lam"    :lamentations
     "Lev"    :leviticus
     "Luke"   :luke
-    "Lk"   :luke
+    "Lk"     :luke
+    "Luc"     :luke
     "Mal"    :malachias
     "Malachi"    :malachias
     "Mark"   :mark
@@ -106,6 +107,84 @@
     "Wis"    :wisdom
     "Zech"   :zacharias    
     "Zach"   :zacharias))
+
+(defn translate-book-inverse
+  [book]
+  (case book
+    :psalms                "Ps"
+    :1-corinthians         "1Cor"
+    :1-esdras              "1Esd"
+    :1-john                "1John"
+    :1-kings               "1Sam"
+    :1-maccabees           "1Macc"
+    :1-chronicles          "1Chr"
+    :1-peter               "1Pet"
+    :1-thessalonians       "1Thess"
+    :1-timothy             "1Tim"
+    :2-corinthians         "2Cor"
+    :2-esdras              "Neh"
+    :2-john                "2John"
+    :2-kings               "2Sam"
+    :2-maccabees           "2Macc"
+    :2-chronicles          "2Chr"
+    :2-peter               "2Pet"
+    :2-thessalonians       "2Thess"
+    :2-timothy             "2Tim"
+    :3-john                "3John"
+    :3-kings               "1Kgs"
+    :4-kings               "2Kgs"
+    :obadiah               "Obad"
+    :acts                  "Acts"
+    :sirach                "Sir"
+    :aggeus                "Hag"
+    :amos                  "Amos"
+    :apocalypse            "Rev"
+    :baruch                "Bar"
+    :canticle-of-canticles "Song"
+    :colossians            "Col"
+    :daniel                "Dan"
+    :deuteronomy           "Deut"
+    :ecclesiastes          "Eccl"
+    :ephesians             "Eph"
+    :esther                "Esth"
+    :exodus                "Exod"
+    :ezechiel              "Ezek"
+    :galatians             "Gal"
+    :genesis               "Gen"
+    :habacuc               "Hab"
+    :hebrews               "Heb"
+    :isaias                "Isa"
+    :james                 "Jas"
+    :jeremias              "Jer"
+    :job                   "Job"
+    :joel                  "Joel"
+    :john                  "John"
+    :jonah                 "Jonah"
+    :joshua                "Josh"
+    :jude                  "Jude"
+    :judges                "Judg"
+    :judith                "Jdt"
+    :lamentations          "Lam"
+    :leviticus             "Lev"
+    :luke                  "Luke"
+    :malachias             "Mal"
+    :mark                  "Mark"
+    :matthew               "Matt"
+    :micheas               "Mic"
+    :nahum                 "Nah"
+    :numbers               "Num"
+    :osee                  "Hos"
+    :philomena             "Phlm"
+    :philippians           "Phil"
+    :proverbs              "Prov"
+    :susanna               "Sus"
+    :romans                "Rom"
+    :ruth                  "Ruth"
+    :sophonias             "Zeph"
+    :titus                 "Titus"
+    :tobit                 "Tob"
+    :wisdom                "Wis"
+    :zacharias             "Zach"))
 
 (def bible-chapters
   {:genesis		  [31, 25, 24, 26, 32, 22, 24, 22, 29,
@@ -343,7 +422,6 @@
    "3 john"		       :3-john
    "jude"		       :jude
    "revelation"                :apocalypse
-   "esther (greek)"	       :esther
    "judith"		       :judith
    "tobit"		       :tobit
    "1 maccabees"	       :1-machabees
@@ -414,7 +492,7 @@
    :malachi ["malachi","mal","ml","malahija","malachi","maleachi"],
    :matthew ["matthew","mt","mat","matt","matej","matthew","matteus","mateo","matth"],
    :mark ["mark","mr","mar","mrk","mk","mc","marko","mark","marcus","markus","marc","marcos"],
-   :luke ["luke","lk","luk","lc","luc","lu","luka","luke","lucas","lukas","lucas"],
+   :luke ["luke","lk","luk","lc","luc","lu","luka","luke","lucas","lukas","lucas", "luc"],
    :john ["john","jn","jan","jhn","joh","jo","janez","john","johannes","jean","juan"],
    :acts ["the acts","apd","dej","dejap","act","ac","hand","hnd","apg","dj","hch","eg","acts","dela","dejanja","handelingen","apostelgeschichte","hechos"],
    :romans ["romans","rim","rimlj","rom","ro","rm","r","erm","rimljanom","romans","romeinen","romanos"],
@@ -439,7 +517,7 @@
    :3-john ["3 john","3 jn","3 jan","3 joh","3 jo","3 j","3 io","3 iv","3 john","3 janez","3 johannes","3 jean","3 juan"],
    :jude ["jude","jud","juda","jude","jd","ju","iud","judas"],
    :revelation ["revelation","raz","rev","ap","apc","apoc","apok","apk","op","openb","offb","otk","rAzodetje","Apokalipsa","revelation","openbaring","apokalyps","offenbarung","apocalipsis"],
-   :esther ["esther","est","ester","esth","esther","estera","esther (greek)","estg","esg","estgr","esthgr","estgrec","estd","estdc","gkest","addesth","stest","estera(gr)","esther(gr)","esther(greek)","ester(griechisch)","ester(griego)","ester_(grieks)"],
+   :esther ["esther","est","ester","esth","esther","estera","esther","estg","esg","estgr","esthgr","estgrec","estd","estdc","gkest","addesth","stest","estera","esther","esther","ester","ester","ester_"],
    :judith ["judith","jdt","jdth","idt","judita","judith","judit"],
    :tobit ["tobit","tob","tb","tobit","tobija"],
    :1-maccabees ["1 maccabees","1 mkb","1 mak","1 makk","1 mc","1 mac","1 macc","1 mcc","1 ma","1 m","1 makabejci","1 maccabees","1 makkabeeen","1 makkabeeers","1 macabeos"],
@@ -450,7 +528,7 @@
    :sirach ["sirach","sir","si","sirah","sirach","eclo","ecclesiasticus","ecclesiastique"],
    :baruch ["baruch","bar","ba","baruh","baruch","baruc"],
    :letter-of-jeremiah ["letter of jeremiah","jerp","lje","ljer","ltjr","letjer","lettrejer","epjer","epjr","epistjer","brjer","ctj","jrgt","jeremijevop","jeremijevopismo","briefjeremias","brfjer","brief_van_jeremia"],
-   :prayer-of-azariah ["prayer of azariah / song of the three young men","dand","adddan","danadd","stdan","danz","dngrec","dangrec","dndc","dngr","prazar","az","s3y","softhr","songthr","daniel(dodatki)","daniel(additions)","toevdan","dangr","toevoegingen_aan_dan"],
+   :prayer-of-azariah ["prayer of azariah / song of the three young men","dand","adddan","danadd","stdan","danz","dngrec","dangrec","dndc","dngr","prazar","az","s3y","softhr","songthr","daniel","daniel","toevdan","dangr","toevoegingen_aan_dan"],
    :susanna ["susanna","suz","sus","suzana","susanna","susana"],
    :bel-and-the-dragon ["bel and the dragon","bel","beldr","zmaj","dragon"],
    :prayer-of-manasseh ["prayer of manasseh","man","prman","orman","gebman","manase","manasse","manasses","prmanasses"],
@@ -517,18 +595,28 @@
           all-books (str/join "|" (apply concat (vals books-tbl)))
           regex     (re-pattern
                      (str "(?i)\\b(" all-books ")\\b\\.? +([0-9ivxlcdmIVXLCDM]"
-                          "+[.,] +)?(\\d+(-\\d+))\\b[,.])?"))
+                          "+[., ]+)?(\\d+(-\\d+)?)\\b[,.]?"))
           matches   (re-find regex reference-string)]
-      (if (< (count matches) 11)
+      (if (< (count matches) 4)
         nil
         (validate-ref
-         {:chapter (if (nth matches 11)
-                     (parse-roman-numeral (nth matches 11))
+         {:chapter (if (nth matches 2)
+                     (parse-roman-numeral (nth matches 2))
                      1)
-          :verse   (int (bigint (nth matches 12)))
+          :verse   (int (bigint (nth matches 3)))
           :book    (get-book-id table (second matches))})))
-    (catch Exception _
-      nil)))
+    (catch Exception _ nil)))
 
-          
-        
+(defn print-ref
+  [ref]
+  (str (str/capitalize (first ((:book ref) books-tbl)))
+       ". " (:chapter ref)
+       ". " (:verse ref)))
+
+(defn to-parsed
+  [ref]
+  (str "|" (translate-book-inverse (:book ref))
+       "|" (:chapter ref)
+       "|" (:verse ref)
+       "|0|0"))
+
