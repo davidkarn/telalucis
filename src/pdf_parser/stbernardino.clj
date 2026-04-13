@@ -15,6 +15,10 @@
    (hickory.core/parse
     (slurp path))))
 
+(defn pull-page
+  [i]
+  (pull-file (str core/app-root "resources/data/sermons_" i ".hocr")))
+
 (defn blocks-in-hocr
   [contents]
   (sel/select (sel/class "ocr_carea") contents))
@@ -156,16 +160,43 @@
         main-paragraphs       (paragraphs-in-hocr-block (:block main-block))
         main-paragraph-breaks (map #(is-line-indented (:dimensions main-block) %)
                                    (block-lines (:block main-block)))]
-    
+
     {:footnotes        (map #(read-single-hocr-block-text (:block %)) footnotes)
      :text             (add-notes-to-paragraphs main-paragraphs
-                                    (concat left-blocks right-blocks)
-                                    main-paragraph-breaks
-                                    (:top (:dimensions main-block))
-                                    (:bottom (:dimensions main-block)))
+                                                (concat left-blocks right-blocks)
+                                                main-paragraph-breaks
+                                                (:top (:dimensions main-block))
+                                                (:bottom (:dimensions main-block)))
      :starts-with-para (first main-paragraph-breaks)}))
 
+(defn combine-paragraphs
+  [last-para next-page-text]
+  (concat [{:footnotes  (concat (or (:footnotes last-para) [])
+                                (:footnotes next-page-text))
+            :side-notes (concat (:side-notes last-para)
+                                (:side-notes (first next-page-text)))
+            :text       (str (:text last-para)
+                             (:text (:first next-page-text)))}]
+          (rest (:text next-page-text))))
+                                
 (defn parse-stbernardino-book
   []
-  (let [pages (range 1 256)]))
-    
+  (let [pages (range 8 256)]
+    (loop [page       8
+           paragraphs []]
+      (clojure.pprint/pprint page)
+      (if (>= page (last pages))
+        paragraphs
+        (if (#{115 167} page)
+          (recur (+ page 1) paragraphs)
+          (let [page-text (parse-page (pull-page page))]
+            (if (or (= (count paragraphs) 0)
+                    (:starts-with-para page-text))
+              (recur (+ page 1)
+                     (concat (drop-last paragraphs)
+                             (combine-paragraphs (last paragraphs) page-text)))
+              (recur (+ page 1)
+                     (concat paragraphs (concat [(assoc (first (:text page-text))
+                                                        :footnotes
+                                                        (:footnotes page-text))]
+                                                (rest (:text page-text))))))))))))
