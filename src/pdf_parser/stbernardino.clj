@@ -24,6 +24,76 @@
   [contents]
   (sel/select (sel/class "ocr_carea") contents))
 
+(defn max-dimension
+  [block-sizes dimension ]
+  (if (= (count block-sizes) 0)
+    nil
+    (apply max (map #(dimension (:dimensions %)) block-sizes))))
+
+(defn min-dimension
+  [block-sizes dimension ]
+  (if (= (count block-sizes) 0)
+    nil
+    (apply min (map #(dimension (:dimensions %)) block-sizes))))
+
+(defn merge-split-main-text-blocks
+  [block-sizes]
+  (let [content-height (max-dimension block-sizes :bottom)
+        content-width  (max-dimension block-sizes :right)
+        biggest        (last block-sizes)]
+    (if (>= (/ (- (:bottom (:dimensions biggest))
+                  (:top (:dimensions biggest)))
+               content-height)
+            0.75)
+      block-sizes
+      (let [similar-blocks (filter (fn [block]
+                                     (and (< (/ (abs (- (:left (:dimensions block))
+                                                        (:left (:dimensions biggest))))
+                                                content-width)
+                                             0.05)
+                                          (< (/ (abs (- (:right (:dimensions block))
+                                                        (:right (:dimensions biggest))))
+                                                content-width)
+                                             0.05)))
+                                   block-sizes)]
+        (if (= (count similar-blocks) 0)
+          block-sizes
+          (let [matches      (group-by
+                              (fn [block]
+                                (and (>= (:left (:dimensions block))
+                                         (- (min-dimension similar-blocks :left)
+                                            (* content-width 0.05)))
+                                     (<= (:right (:dimensions block))
+                                         (+ (max-dimension similar-blocks :right)
+                                            (* content-width 0.05)))
+                                     (>= (:top (:dimensions block))
+                                         (min-dimension similar-blocks :top))
+                                     (<= (:bottom (:dimensions block))
+                                         (max-dimension similar-blocks :bottom))))
+                              block-sizes)
+                not-matching (get matches false)
+                matching     (sort-by :top (get matches true))
+                top          (min-dimension matching :top)
+                bottom       (max-dimension matching :bottom)
+                left         (min-dimension matching :left)
+                right        (max-dimension matching :right)]
+            (concat not-matching
+                    [{:dimensions {:top    top
+                                   :bottom bottom
+                                   :left   left
+                                   :right  right
+                                   :width  (- right left)
+                                   :height (- bottom top)}
+                      :size       (* (- right left) (- bottom top)),
+                      :block      {:type    :element,
+                                   :attrs
+                                   {:class "ocr_carea",
+                                    :id    (:id (:attrs (:block (first matching))))
+                                    :title (str "bbox " left " " top " " right " " bottom)}
+                                   :tag     :div
+                                   :content (apply concat
+                                                   (map #(:content (:block %))
+                                                        matching))}}])))))))
 (defn get-block-dimensions
   [block]
   (let [positions (map #(Integer/parseInt %)
@@ -135,16 +205,21 @@
           (range 0 (count breaks-with-pos))))))
      
 
+(defn get-block-sizes
+  [blocks]
+  (sort-by :size 
+           (map (fn [block]
+                  (let [dimensions (get-block-dimensions block)]
+                    {:block      block
+                     :size       (* (:width dimensions) (:height dimensions))
+                     :dimensions dimensions}))
+                blocks)))
+
 (defn parse-page
   [page page-number]
   (let [blocks                (blocks-in-hocr page)
-        block-sizes           (map (fn [block]
-                                     (let [dimensions (get-block-dimensions block)]
-                                       {:block      block
-                                        :size       (* (:width dimensions) (:height dimensions))
-                                        :dimensions dimensions}))
-                                   blocks)
-        main-block            (last (sort-by :size block-sizes))
+        block-sizes           (merge-split-main-text-blocks (get-block-sizes blocks))
+        main-block            (last block-sizes)
         left-blocks           (filter (fn [b] (and
                                                (< (:right (:dimensions b))
                                                   (:left (:dimensions main-block)))
