@@ -23,11 +23,65 @@ export const MAX_KEYWORDS = 8;
 // Keywords shorter than this (once normalized) are dropped: they'd be found in most footnotes
 export const MIN_KEYWORD_LENGTH = 3;
 
+// Words in nearly every footnote, which tell no footnotes apart: articles and prepositions (in the
+// languages cited: English, German, French, Italian, Latin), locators and citation abbreviations.
+// With numbers and roman numerals, a keyword made only of these is dropped (see cleanKeywords), and
+// insights aren't grouped by them (see keywordTokens).
+export const JUNK_KEYWORD_WORDS = new Set([
+  // articles, prepositions, conjunctions
+  'the', 'and', 'of', 'in', 'on', 'to', 'for', 'with', 'by', 'from', 'see', 'also',
+  'der', 'die', 'das', 'des', 'dem', 'den', 'und', 'von', 'zu', 'zur', 'zum', 'im', 'am', 'bei',
+  'le', 'la', 'les', 'du', 'de', 'et', 'en', 'au', 'aux', 'sur', 'par',
+  'il', 'lo', 'gli', 'di', 'del', 'della', 'dei', 'delle', 'nel', 'nella',
+  'ad', 'ex', 'cum', 'per', 'sub', 'apud',
+  // locators
+  'page', 'pages', 'pag', 'pp', 'vol', 'vols', 'volume', 'volumes', 'bd', 'band', 'bände', 'tom',
+  'tome', 'tomus', 'chapter', 'chapters', 'chap', 'ch', 'cap', 'caput', 'book', 'books', 'lib', 'liber',
+  'part', 'pars', 'section', 'sect', 'sec', 'art', 'article', 'articulus', 'qu', 'quaest', 'quaestio',
+  'question', 'col', 'cols', 'column', 'line', 'lines', 'verse', 'verses', 'note', 'notes', 'fol',
+  'folio', 'ed', 'eds', 'edit', 'edition', 'aufl', 'seite', 'kap', 'heft', 'nr', 'num', 'no',
+  // citation abbreviations
+  'cit', 'loc', 'op', 'cf', 'cfr', 'conf', 'sqq', 'seq', 'seqq', 'ff', 'supra', 'infra', 'ibid',
+  'ibidem', 'id', 'idem', 'ead', 'eadem', 'passim', 'vid', 'vide', 'viz', 'etc', 'sic', 'ann', 'anno',
+]);
+
+// Whether a keyword is made only of junk words (see isJunkWord), with single letters among them:
+// "vol. 3", "ibid.", "cf. p. 12"; not a siglum of single letters alone ("P. L.")
+const isJunkKeyword = (keyword: string): boolean => {
+  const words = keywordWords(keyword);
+  return words.some(isJunkWord) && words.every((w) => w.length === 1 || isJunkWord(w));
+};
+
+// The words of a keyword, as compared (keywordKey's, without punctuation)
+const keywordWords = (keyword: string): string[] => (
+  keywordKey(keyword).split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 0)
+);
+
+const ROMAN_NUMERAL = /^m{0,4}(cm|cd|d?c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$/;
+
+// Whether a word of a keyword tells no footnotes apart: one of JUNK_KEYWORD_WORDS, a number, or a
+// roman numeral of two or more letters ("II", "XIV"; a single letter could be a siglum's, the "L"
+// of "P. L.")
+export const isJunkWord = (word: string): boolean => (
+  JUNK_KEYWORD_WORDS.has(word) || /^\p{N}+$/u.test(word)
+    || (word.length > 1 && ROMAN_NUMERAL.test(word))
+);
+
+// Words shorter than this aren't compared when grouping insights: against them nearly everything
+// scores high
+export const MIN_TOKEN_LENGTH = 3;
+
+// The words of an insight's keywords, as compared when grouping insights ("P. L. Migne, vol. 3" ->
+// "migne"): lower case, without punctuation, without junk (see isJunkWord) or short words
+export const keywordTokens = (keywords: string[]): string[] => [...new Set(
+  keywords.flatMap(keywordWords).filter((w) => w.length >= MIN_TOKEN_LENGTH && !isJunkWord(w))
+)];
+
 // How the model gives an insight's keywords
-export const INSIGHT_KEYWORDS = `keywords: 1 to ${ MAX_KEYWORDS } distinctive words or abbreviations, as they would be printed in a footnote the insight applies to (author names, titles and their abbreviations, collection sigla: "Migne", "P. L.", "Sent.", "Summa Theol."). They are used to find the footnotes the insight is relevant to, so do not give common words that appear in most citations ("page", "vol.", "ibid.", "cf.", "chapter").`;
+export const INSIGHT_KEYWORDS = `keywords: 1 to ${ MAX_KEYWORDS } distinctive words or abbreviations, as they would be printed in a footnote the insight applies to (author names, titles and their abbreviations, collection sigla: "Migne", "P. L.", "Sent.", "Summa Theol."). Keywords tokens should contain at least four non-punctuation characters. They are used to find the footnotes the insight is relevant to, so each keyword must name something particular: never a common word that appears in most citations, alone or in a keyword, such as articles and prepositions in any language ("the", "der", "die", "de", "et"), locators ("page", "vol.", "volume", "chapter", "Bd.", "art.", "col."), citation abbreviations ("ibid.", "op. cit.", "loc. cit.", "cf.", "cfr.", "sqq.", "supra"), numbers or roman numerals ("III", "34").`;
 
 // How the model scores an insight
-export const INSIGHT_SCORES = `A score of 1 is an insight on citations that likely to be relevent for most academic philosophical and theological works published in the 19th and early 20th century, a score is 2 is one that is likely to be relevent for more than 10% of such sources, scores 3 to 5 are more obscure and unlikely to be relevent outside of particular works.`;
+export const INSIGHT_SCORES = `A score of 1 is an insight on citations that likely to be relevent for over 50% of academic philosophical and theological works published in the 19th and early 20th century, a score is 2 is one that is likely to be relevent for more than 10% of such sources, 3 for 2%, 4 for 0.5%, and 5 for 0.1% are more obscure and unlikely to be relevent outside of particular works.`;
 
 // Insights scored above this aren't given the model when extracting citations
 export const MAX_PROMPT_SCORE = 2;
@@ -118,7 +172,9 @@ export const FOOTNOTES_FORMAT: ORResponseFormat = {
 };
 
 // The system prompt for extracting one page's citations. insights: those to give the model (see
-// insightsForPrompt).
+// insightsForPage). It asks for at most 2 new insights a page, each about an abbreviation, title or
+// numbering printed in the footnotes: asked more loosely, the model gives general remarks about
+// citations, and told it may give none, it gives none.
 export const footnotesPrompt = (insights: string[]) => `You extract bibliographic citations from the footnotes of one page of a scanned book.
 The footnotes are OCR output as HTML, in reading order. Return every footnote on the page, in order:
 
@@ -142,9 +198,16 @@ The footnotes are OCR output as HTML, in reading order. Return every footnote on
 
 ${ insights.map((insight) => '    - ' + insight).join('\n') }
 
-    Track any insights learned during the extraction of citations that will help with future extractions into the 'additionalInsights' field,
-    each with ${ INSIGHT_SCORES }
-    Give each its ${ INSIGHT_KEYWORDS } Do not return any insights unless they add additional information that is different and dissimilar from any of the provided insights.
+In 'additionalInsights', record up to 2 facts from this page's footnotes that do not occur in the list of insights above, and that would help read citations on
+    other pages, each about something printed in these footnotes and what it stands for:
+    - an abbreviation of an author, title, edition or collection and what it expands to
+      ("In II. L. Sent." is St. Thomas's commentary on the second book of Lombard's Sentences; "PG" is Migne's
+      Patrologia Graeca, cited by volume and column)
+    - how a cited work is divided and numbered ("Chronicon" of Theophanes, cited by the year of the world)
+    Each must name the abbreviation, title or locator as printed. Not general facts about how citations or footnotes
+    are written, nor anything about the authors, the subject or the language, nor what the insights above already say.
+    Give each insight ${ INSIGHT_SCORES }
+    Give each its ${ INSIGHT_KEYWORDS }
 `;
 
 // Whether an insight with this score is given the model: scored up to MAX_PROMPT_SCORE, or not
@@ -174,8 +237,9 @@ export const keywordKey = (keyword: string): string => (
   keyword.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim()
 );
 
-// An insight's keywords as kept: without repeats (by keywordKey) or ones too short to tell
-// footnotes apart, at most MAX_KEYWORDS, trimmed, in order
+// An insight's keywords as kept: without repeats (by keywordKey), ones too short to tell footnotes
+// apart, or ones made only of junk words ("vol. 3", "ibid.", "cf. p."; see isJunkWord), at most
+// MAX_KEYWORDS, trimmed, in order. A siglum of short words is kept ("P. L.").
 export const cleanKeywords = (keywords: string[]): string[] => {
   const seen = new Set<string>();
 
@@ -183,7 +247,7 @@ export const cleanKeywords = (keywords: string[]): string[] => {
     .map((k) => k.replace(/\s+/g, ' ').trim())
     .filter((k) => {
       const key = keywordKey(k);
-      if (key.length < MIN_KEYWORD_LENGTH || seen.has(key)) {
+      if (key.length < MIN_KEYWORD_LENGTH || seen.has(key) || isJunkKeyword(k)) {
         return false;
       }
       else {
@@ -220,11 +284,13 @@ export const hasKeyword = (text: string, keyword: string): boolean => {
 export const insightsForPage = (
   given: ScoredInsight[], all: ScoredInsight[], footnoteText: string
 ): string[] => {
-  const always  = insightsForPrompt(given);
+  const always  = [];
   const shown   = new Set(always.map(insightKey));
   const matched = byScore(all.filter((i) => (
-    !shown.has(insightKey(i.insight)) && i.keywords.some((k) => hasKeyword(footnoteText, k))
-  )));
+    !shown.has(insightKey(i.insight))
+      && i.score <= 2
+      && i.keywords.some((k) => hasKeyword(footnoteText, k))
+  ))).slice(0, 20);
 
   return [...always, ...removeDuplicateInsights(matched).map((i) => i.insight)];
 };

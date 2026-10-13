@@ -55,6 +55,8 @@ describe('footnotesPrompt', () => {
     expect(prompt).toContain('    - First insight\n    - Second insight');
     expect(prompt).toContain('A score of 1 is');
     expect(prompt).toContain('keywords: 1 to 8 distinctive words or abbreviations');
+    expect(prompt).toContain('record up to 2 facts');
+    expect(prompt).not.toContain('Do not return any insights unless');
   });
 });
 
@@ -66,6 +68,20 @@ describe('cleanKeywords', () => {
 
   it(`keeps at most ${ MAX_KEYWORDS }`, () => {
     expect(cleanKeywords(Array.from({ length: 12 }, (_, i) => `keyword ${ i }`))).toHaveLength(MAX_KEYWORDS);
+  });
+});
+
+describe('cleanKeywords, junk', () => {
+  it('drops keywords made only of junk words, keeping those with something particular', () => {
+    expect(cleanKeywords(['vol. 3', 'ibid.', 'cf. p. 12', 'op. cit.', 'Bd. II', 'the', 'Migne, vol. 3', 'P. L.', 'Astr. Nach.']))
+      .toEqual(['Migne, vol. 3', 'P. L.', 'Astr. Nach.']);
+  });
+});
+
+describe('INSIGHT_KEYWORDS', () => {
+  it('asks for no junk keywords', () => {
+    expect(footnotesPrompt([])).toContain('citation abbreviations ("ibid.", "op. cit."');
+    expect(footnotesPrompt([])).toContain('numbers or roman numerals');
   });
 });
 

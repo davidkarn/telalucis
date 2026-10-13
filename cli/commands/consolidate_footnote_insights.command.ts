@@ -49,7 +49,7 @@ export class ConsolidateFootnoteInsightsCommand extends CommandRunner {
       const response = await makeOpenRouterRequest([
         { role: 'system', content: CONSOLIDATE_PROMPT },
         { role: 'user', content: JSON.stringify(insights) },
-      ], CONSOLIDATED_FORMAT);
+      ], CONSOLIDATED_FORMAT, 'openai/gpt-4o-mini');
 
       const { insights: consolidated } = parseJsonResponse<{ insights: ConsolidatedInsight[] }>(response);
 

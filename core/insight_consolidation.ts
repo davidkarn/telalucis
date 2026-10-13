@@ -3,9 +3,11 @@
 // (see consolidationGroups), a request per group. Pure functions;
 // cli/commands/consolidate_footnote_insights.command.ts makes the requests and saves the results.
 import type { AppAction } from '../actions/app_actions.ts';
-import { column } from '../lib/lib.ts';
+import { column, jaroWinkler } from '../lib/lib.ts';
 import type { ORResponseFormat } from '../lib/open_router.ts';
-import { cleanKeywords, INSIGHT_KEYWORDS, INSIGHT_SCORES, keywordKey } from './footnote_extraction.ts';
+import {
+  cleanKeywords, INSIGHT_KEYWORDS, INSIGHT_SCORES, keywordKey, keywordTokens,
+} from './footnote_extraction.ts';
 
 // score: 1 to 5 (see INSIGHT_SCORES), null until scored; keywords: [] until given some
 export type Insight = { id: string, insight: string, score: number | null, keywords: string[] };
@@ -18,7 +20,14 @@ export type ConsolidatedInsight = {
 };
 
 // The most insights consolidated in one request
-export const MAX_GROUP_SIZE = 30;
+export const MAX_GROUP_SIZE = 100;
+
+// Insights whose keywords have tokens scoring more than this (Jaro-Winkler) against each other are
+// grouped together: "Augustinus" and "Augustine" (0.94), "Sent." and "Sententiarum" (0.87). Lower,
+// long ordinary words match too many others ("interpretation", "thought").
+export const SIMILAR_TOKEN_SCORE = 0.85;
+
+
 
 // Whether to send a group of insights to the model: two or more to merge, or one to score or give
 // keywords
@@ -30,49 +39,59 @@ const chunks = <T>(items: T[], size: number): T[][] => (
   Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, (i + 1) * size))
 );
 
-// The insights in groups to consolidate together: those sharing a keyword (by keywordKey), and
-// those sharing one with those, are in one group. A keyword more than MAX_GROUP_SIZE insights have
-// is too common to group them by. Insights without keywords are grouped together, to be given
-// some. A group is at most MAX_GROUP_SIZE insights (a larger one is split); each group's insights,
-// and the groups (by their first insight), are in the order given.
+// The insights in groups to consolidate together, each group made around one insight: taking the
+// insights in the order given, each not yet in a group starts one, which the insights not yet in a
+// group directly like it join, up to MAX_GROUP_SIZE in all, in the order given. Like it: sharing a
+// keyword (by keywordKey, junk ones left out; see cleanKeywords), or with a keyword token scoring
+// more than SIMILAR_TOKEN_SCORE against one of its tokens (see keywordTokens). An insight joining
+// a group doesn't bring the insights like it, so a chain of insights each like the next (a
+// Patrologia's sharing "theol" with a theological journal's, sharing "journal" with ...) isn't
+// one group. Insights without usable keywords (none, or only junk) are grouped together, to be
+// given some, at most MAX_GROUP_SIZE a group.
 export const consolidationGroups = (insights: Insight[]): Insight[][] => {
-  const parent = insights.map((_, i) => i);
-  const root   = (i: number): number => {
-    while (parent[i] !== i) {
-      i = parent[i]!;
-    }
-    return i;
-  };
+  const keysOf   = insights.map((i) => new Set(cleanKeywords(i.keywords).map(keywordKey)));
+  const tokensOf = insights.map((i) => keywordTokens(i.keywords));
+  const usable   = (i: number) => keysOf[i]!.size > 0 || tokensOf[i]!.length > 0;
 
-  const byKeyword = new Map<string, number[]>();
-  insights.forEach((insight, i) => {
-    for (const key of new Set(insight.keywords.map(keywordKey))) {
-      byKeyword.set(key, [...(byKeyword.get(key) ?? []), i]);
-    }
+  // which insights have each keyword and token, and each token's similar tokens (itself among
+  // them): every distinct token compared once with each other
+  const byKey   = new Map<string, number[]>();
+  const byToken = new Map<string, number[]>();
+  insights.forEach((_, i) => {
+    keysOf[i]!.forEach((k) => byKey.set(k, [...(byKey.get(k) ?? []), i]));
+    tokensOf[i]!.forEach((t) => byToken.set(t, [...(byToken.get(t) ?? []), i]));
   });
-
-  for (const members of byKeyword.values()) {
-    if (members.length <= MAX_GROUP_SIZE) {
-      for (const i of members.slice(1)) {
-        parent[root(i)] = root(members[0]!);
+  const tokens  = [...byToken.keys()];
+  const similar = new Map(tokens.map((t) => [t, [t]]));
+  tokens.forEach((token, t) => {
+    for (const other of tokens.slice(t + 1)) {
+      if (jaroWinkler(token, other) > SIMILAR_TOKEN_SCORE) {
+        similar.get(token)!.push(other);
+        similar.get(other)!.push(token);
       }
     }
-  }
-
-  // by the root of each group, in the order its first insight comes
-  const keyed   = new Map<number, Insight[]>();
-  const unkeyed = insights.filter((insight, i) => {
-    if (insight.keywords.length === 0) {
-      return true;
-    }
-    else {
-      keyed.set(root(i), [...(keyed.get(root(i)) ?? []), insight]);
-      return false;
-    }
   });
 
-  return [...keyed.values(), ...(unkeyed.length > 0 ? [unkeyed] : [])]
-    .flatMap((group) => chunks(group, MAX_GROUP_SIZE));
+  // the insights like insight i, in the order given
+  const likeIt = (i: number): number[] => [...new Set([
+    ...[...keysOf[i]!].flatMap((k) => byKey.get(k) ?? []),
+    ...tokensOf[i]!.flatMap((t) => similar.get(t)!.flatMap((s) => byToken.get(s) ?? [])),
+  ])].filter((j) => j !== i).sort((a, b) => a - b);
+
+  const grouped = new Set<number>();
+  const groups  = insights.flatMap((_, seed): Insight[][] => {
+    if (grouped.has(seed) || !usable(seed)) {
+      return [];
+    }
+    else {
+      const members = [seed, ...likeIt(seed).filter((j) => !grouped.has(j))].slice(0, MAX_GROUP_SIZE);
+      members.forEach((j) => grouped.add(j));
+      return [members.map((j) => insights[j]!)];
+    }
+  });
+  const unkeyed = insights.filter((_, i) => !usable(i));
+
+  return [...groups, ...chunks(unkeyed, MAX_GROUP_SIZE)];
 };
 
 export const CONSOLIDATED_FORMAT: ORResponseFormat = {

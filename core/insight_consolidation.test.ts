@@ -1,8 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
 import {
   checkConsolidation, consolidationGroups, insightConsolidationActions, insightsHaveChanged,
-  MAX_GROUP_SIZE, needsConsolidation, unconsolidated, type Insight,
+  MAX_GROUP_SIZE, needsConsolidation, SIMILAR_TOKEN_SCORE, unconsolidated, type Insight,
 } from './insight_consolidation.ts';
+import { keywordTokens } from './footnote_extraction.ts';
 
 const original: Insight[] = [
   { id: '1', insight: 'Summa is cited by part, question and article.', score: 1, keywords: ['Summa'] },
@@ -16,31 +17,70 @@ const insight = (id: string, keywords: string[], score: number | null = 2): Insi
 const ids     = (groups: Insight[][]) => groups.map((g) => g.map((i) => i.id));
 
 describe('consolidationGroups', () => {
-  it('groups insights sharing a keyword, ignoring case, in the order given', () => {
+  it('groups each insight with those sharing a keyword with it, ignoring case, in the order given', () => {
     expect(ids(consolidationGroups([
       insight('1', ['Summa']), insight('2', ['Migne']), insight('3', ['summa', 'Ia']),
-      insight('4', ['P. L.']), insight('5', ['MIGNE', 'p. l.']),
+      insight('4', ['P. L.', 'Migne']), insight('5', ['MIGNE', 'p. l.']),
     ]))).toEqual([['1', '3'], ['2', '4', '5']]);
   });
 
-  it('groups insights linked through others sharing keywords with each', () => {
+  it("doesn't chain: an insight like one in a group, but not like the one it was made around, isn't in it", () => {
     expect(ids(consolidationGroups([
       insight('1', ['Summa']), insight('2', ['Summa', 'Sent.']), insight('3', ['Sent.']),
       insight('4', ['Migne']),
-    ]))).toEqual([['1', '2', '3'], ['4']]);
+    ]))).toEqual([['1', '2'], ['3'], ['4']]);
   });
 
-  it('puts the insights without keywords in a group of their own, last', () => {
-    expect(ids(consolidationGroups([insight('1', []), insight('2', ['Summa']), insight('3', [])])))
-      .toEqual([['2'], ['1', '3']]);
+  it('puts the insights without keywords, or with only junk ones, in a group of their own, last', () => {
+    expect(ids(consolidationGroups([
+      insight('1', []), insight('2', ['Summa']), insight('3', ['vol.', 'ibid.']), insight('4', []),
+    ]))).toEqual([['2'], ['1', '3', '4']]);
   });
 
-  it(`doesn't group by a keyword more than ${ MAX_GROUP_SIZE } insights have, and splits large groups`, () => {
-    const many = Array.from({ length: MAX_GROUP_SIZE + 1 }, (_, i) => insight(String(i), ['common', `own ${ i }`]));
-    expect(consolidationGroups(many)).toHaveLength(MAX_GROUP_SIZE + 1);
+  it(`makes groups of at most ${ MAX_GROUP_SIZE }`, () => {
+    const many = Array.from({ length: MAX_GROUP_SIZE + 1 }, (_, i) => insight(String(i), ['Patrologia']));
+    expect(consolidationGroups(many).map((g) => g.length)).toEqual([MAX_GROUP_SIZE, 1]);
 
     const unkeyed = Array.from({ length: MAX_GROUP_SIZE + 5 }, (_, i) => insight(String(i), []));
     expect(consolidationGroups(unkeyed).map((g) => g.length)).toEqual([MAX_GROUP_SIZE, 5]);
+  });
+});
+
+describe('keywordTokens', () => {
+  it('splits keywords into words, lower case, without punctuation, repeats or short words', () => {
+    expect(keywordTokens(['P. L. Migne', 'In II. L. Sent.', 'migne'])).toEqual(['migne', 'sent']);
+  });
+
+  it('leaves out junk words: articles, locators, citation abbreviations, numbers, roman numerals', () => {
+    expect(keywordTokens(['the Summa', 'Die Lehre', 'vol. 34', 'op. cit.', 'Bd. III', 'Theophanis, col. 120']))
+      .toEqual(['summa', 'lehre', 'theophanis']);
+  });
+});
+
+describe('consolidationGroups, by similar keywords', () => {
+  it(`groups insights with keyword tokens scoring more than ${ SIMILAR_TOKEN_SCORE } against each other`, () => {
+    expect(ids(consolidationGroups([
+      insight('1', ['Augustinus']), insight('2', ['Migne']), insight('3', ['S. Augustine']),
+      insight('4', ['Chronico']), insight('5', ['Chronicon Theophanis']),
+    ]))).toEqual([['1', '3'], ['2'], ['4', '5']]);
+  });
+
+  it("doesn't group insights by junk words or keywords made only of them", () => {
+    expect(ids(consolidationGroups([
+      insight('1', ['vol.', 'Summa']), insight('2', ['vol.', 'Migne']), insight('3', ['the Chronicle']),
+      insight('4', ['the Lehre']),
+    ]))).toEqual([['1'], ['2'], ['3'], ['4']]);
+  });
+
+  it("doesn't group insights whose tokens aren't similar, or are too short to compare", () => {
+    expect(ids(consolidationGroups([insight('1', ['Summa']), insight('2', ['Sent.']), insight('3', ['P. L.'])])))
+      .toEqual([['1'], ['2'], ['3']]);
+  });
+
+  it("groups by similar tokens only with the insight a group is made around", () => {
+    expect(ids(consolidationGroups([
+      insight('1', ['Augustinus']), insight('2', ['Augustine', 'Hieronymus']), insight('3', ['Hieronymi']),
+    ]))).toEqual([['1', '2'], ['3']]);
   });
 });
 

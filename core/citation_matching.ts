@@ -1,3 +1,4 @@
+import { jaroWinkler } from '../lib/lib.ts';
 
 // also re-joins words broken at a line end by the OCR: "Knowabil- ity" -> "knowability"
 export const fold = (s: string) => (
@@ -52,31 +53,6 @@ const mainTitle = (s: string) => titleOrAuthorTokens(
     .split(/[:;]|\s[-\u2014]\s|,?\s+by\s+|,\s*or,?\s+/i)[0]
 );
 
-const jaro_winkler = (a: string, b: string): number => {
-  if (a === b) {return 1;}
-  if (!a.length || !b.length) {return 0;}
-  const range = Math.max(0, Math.floor(Math.max(a.length, b.length) / 2) - 1);
-  const am    = new Array(a.length).fill(false), bm = new Array(b.length).fill(false);
-  let m       = 0;
-  for (let i = 0; i < a.length; i++) {
-    for (let j = Math.max(0, i - range); j < Math.min(b.length, i + range + 1); j++) {
-      if (bm[j] || a[i] !== b[j]) {continue;}
-      am[i] = bm[j] = true; m++; break;
-    }
-  }
-  if (!m) {return 0;}
-  let t = 0, k = 0;
-  for (let i = 0; i < a.length; i++) {
-    if (!am[i]) {continue;}
-    while (!bm[k]) {k++;}
-    if (a[i] !== b[k]) {t++;}
-    k++;
-  }
-  const jaro = (m / a.length + m / b.length + (m - t / 2) / m) / 3;
-  let l      = 0;
-  while (l < 4 && a[l] === b[l]) {l++;}
-  return jaro + l * 0.1 * (1 - jaro);
-};
 
 const tokenListStartsWith = (long: string[], short: string[]) => (
   short.length > 0
@@ -142,7 +118,7 @@ export const sameTitle = (citedRaw: string, otherRaw: string): boolean => {
     }
     else {
       return c.join(' ').length >= 12
-        && jaro_winkler(c.join(' '), o.join(' ')) >= 0.93;
+        && jaroWinkler(c.join(' '), o.join(' ')) >= 0.93;
     }
   }
 };
