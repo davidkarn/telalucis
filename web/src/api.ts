@@ -105,6 +105,10 @@ export type PageCitations = {
   pageNumber: number,
   foreignCitations: Citation[],
   foreignCitationTitles: CitingBook[],
+  // by citation id: the words of the citing book around its footnote's marker, from the paragraph
+  // where it's printed ("…the Philosopher says (Ethic. ii, 7) that modesty is…"); none for a
+  // citation whose marker isn't found
+  sourceSnippets: Record<string, string>,
 };
 
 // Throws the API's message when it gives one ("This book is likely still under copyright...")

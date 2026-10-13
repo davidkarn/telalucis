@@ -21,6 +21,7 @@ import { LoadingSpinner } from './loading_spinner'
 
 const MAX_CITATIONS_BEFORE_COLLAPSING = 3;
 
+
 // a page's citations while they load: one array, so what's worked out from them isn't redone
 const NO_CITATIONS: Citation[] = [];
 
@@ -191,6 +192,7 @@ export const BookPageView = ({
                     citing: citingBooks.get(c.source.bookId),
                     hrefForCitingBook,
                     startCollapsed: foreignCitations.length > MAX_CITATIONS_BEFORE_COLLAPSING,
+                    snippet:        citations?.sourceSnippets[c.id],
                   })
                 ))
               ))
@@ -373,6 +375,7 @@ function Block({block}: {block: PageBlock}) {
 // when shown (or when it becomes true)
 function CitedBy({
   citation, citing, hrefForCitingBook, startCollapsed = false, open, onToggle, scrollTo = false,
+  snippet,
 }: {
   citation: Citation,
   citing: CitingBook | undefined,
@@ -381,6 +384,8 @@ function CitedBy({
   open?: boolean,
   onToggle?: () => void,
   scrollTo?: boolean,
+  // the citing book's words around the footnote's marker, under its title and author
+  snippet?: string | undefined,
 }) {
   const item = useRef<HTMLLIElement>(null);
   useEffect(() => {
@@ -417,6 +422,7 @@ function CitedBy({
             __('cite', {}, citing?.title ?? source.bookId)
           ),
           citing?.author && __('div', {className: 'muted'}, citing.author),
+          snippet !== undefined && __('div', {className: 'cited-by-snippet'}, snippet),
         ),
         __(ChevronDown, {className: 'cited-by-toggle'}),
       ),

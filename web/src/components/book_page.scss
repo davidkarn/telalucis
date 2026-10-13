@@ -30,6 +30,15 @@
 
         .cited-by-names {
             flex-grow: 1;
+
+            // the citing book's words around the footnote's marker
+            .cited-by-snippet {
+                margin-top: 0.25rem;
+                font-size: 0.75rem;
+                line-height: 1.4;
+                color: var(--text-muted);
+                font-style: italic;
+            }
         }
 
         .cited-by-toggle {

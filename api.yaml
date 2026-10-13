@@ -1040,9 +1040,11 @@ components:
                 items:
                   $ref: '#/components/schemas/Citation'
     PageCitations:
-      description: the citations in other books that point to a page, and the books they're in
+      description: >-
+        the citations in other books that point to a page, the books they're in, and the words of
+        each citing book around its footnote's marker
       type: object
-      required: [bookId, pageNumber, foreignCitations, foreignCitationTitles]
+      required: [bookId, pageNumber, foreignCitations, foreignCitationTitles, sourceSnippets]
       properties:
         bookId:
           type: string
@@ -1068,6 +1070,14 @@ components:
                 type: string
               author:
                 type: string
+        sourceSnippets:
+          description: >-
+            by citation id: up to 25 words of the citing book's body text around the footnote's
+            marker (15 before it), from the paragraph where it's printed, with "…" where the
+            paragraph goes on; absent for a citation whose marker isn't found
+          type: object
+          additionalProperties:
+            type: string
     PageInsights:
       type: object
       required:
