@@ -66,6 +66,9 @@ export interface CitationsTable {
   title: string,
   location: string,
   raw: string,
+  // the citing book's words around the footnote's marker, cached (see footnoteContext): null until
+  // worked out, '' when the marker isn't found
+  source_snippet: string | null,
 }
 
 // One place a citation cites (see core/citation_groups.ts): up to 8 parts, in the order the citation

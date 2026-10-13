@@ -16,7 +16,7 @@ import { AlternateIdsQueries } from '../model/alternate_ids';
 import { CopyrightStatusCheckScopes } from '../model/copyright_status_checks';
 import { assertNotWithheld } from './copyright';
 import { footnoteContext } from '../core/citation_pages';
-import { findFootnoteContextBlocks } from '../model/citation_source_pages';
+import { findFootnoteContextBlocks, saveSourceSnippets } from '../model/citation_source_pages';
 import {
   PageCitedCountsCacheActions, PageCitedCountsCacheQueries,
 } from '../model/page_cited_counts_cache';
@@ -322,23 +322,19 @@ export class BooksService {
       const foreignCitations = await citationsOfPage(
         this.db, bookId, { pageNumber: page.page_number, printedNumber }
       )
-        .select((eb) => citation_columns(eb))
+        .select((eb) => [...citation_columns(eb), 'citations.source_snippet'])
         .execute();
 
-      const citingBooks   = await findBooks(
+      const citingBooks = await findBooks(
         this.db, [...new Set(foreignCitations.map((c) => c.source_book_id))]
       );
-      const contextBlocks = await findFootnoteContextBlocks(this.db, foreignCitations.map((c) => c.id));
-      const snippets      = foreignCitations.flatMap((c) => {
-        const context = footnoteContext(contextBlocks.get(c.id) ?? [], c.source_footnote_identifier);
-        return context === null ? [] : [[c.id, context] as const];
-      });
+      const snippets    = await this.sourceSnippets(foreignCitations);
 
       return {
         bookId,
         pageNumber:            page.page_number,
         foreignCitations:      foreignCitations.map(to_citation_dto),
-        sourceSnippets:        Object.fromEntries(snippets),
+        sourceSnippets:        snippets,
         foreignCitationTitles: [...citingBooks.values()].map((b) => ({
           bookId: b.id,
           title:  b.title,
@@ -346,6 +342,27 @@ export class BooksService {
         })),
       };
     }
+  }
+
+  // Each citation's source snippet, by citation id (see footnoteContext): cached ones as they are,
+  // the others worked out from their citing pages and then cached; none for a citation whose
+  // marker isn't found
+  private async sourceSnippets(citations: {
+    id: string, source_footnote_identifier: string, source_snippet: string | null,
+  }[]): Promise<Record<string, string>> {
+    const missing = citations.filter((c) => c.source_snippet === null);
+    const blocks  = await findFootnoteContextBlocks(this.db, missing.map((c) => c.id));
+    const made    = missing.map((c) => ({
+      citationId: c.id,
+      snippet:    footnoteContext(blocks.get(c.id) ?? [], c.source_footnote_identifier) ?? '',
+    }));
+    await saveSourceSnippets(this.db, made);
+
+    const madeById = new Map(made.map((m) => [m.citationId, m.snippet]));
+    return Object.fromEntries(citations.flatMap((c) => {
+      const snippet = c.source_snippet ?? madeById.get(c.id) ?? '';
+      return snippet.length > 0 ? [[c.id, snippet]] : [];
+    }));
   }
 
   private findPage(bookId: string, pageNumber: number) {

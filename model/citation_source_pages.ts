@@ -69,3 +69,18 @@ export const findFootnoteContextBlocks = async(
   }
   return byCitation;
 };
+
+// Cache citations' source snippets (citations.source_snippet), '' for one whose marker isn't found
+export const saveSourceSnippets = async(
+  db: Kysely<Database>, snippets: { citationId: string, snippet: string }[]
+): Promise<void> => {
+  if (snippets.length > 0) {
+    await sql`
+      update citations set source_snippet = s.snippet
+      from unnest(
+        ${ snippets.map((s) => s.citationId) }::bigint[],
+        ${ snippets.map((s) => s.snippet) }::text[]
+      ) as s(citation_id, snippet)
+      where citations.id = s.citation_id`.execute(db);
+  }
+};
