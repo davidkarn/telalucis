@@ -84,3 +84,13 @@ export const saveSourceSnippets = async(
       where citations.id = s.citation_id`.execute(db);
   }
 };
+
+// Up to `limit` citations whose source snippet isn't cached yet, by id
+export const findCitationsWithoutSnippet = (db: Kysely<Database>, limit: number) => (
+  db.selectFrom('citations')
+    .select(['citations.id', 'citations.source_footnote_identifier'])
+    .where('citations.source_snippet', 'is', null)
+    .orderBy('citations.id')
+    .limit(limit)
+    .execute()
+);
