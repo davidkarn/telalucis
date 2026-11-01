@@ -8,6 +8,7 @@ import { ProcessOcredBooksCommand } from './commands/process_ocred_books.command
 import { SaveCoverCommand } from './commands/save_cover.command.ts';
 import { ReplCommand } from './commands/repl.command.ts';
 import { FillSourceSnippetsCommand } from './commands/fill_source_snippets.command.ts';
+import { ImportAquinasCommand } from './commands/import_aquinas.command.ts';
 
 // The commands of cli/main.ts, sharing the API's database connection
 @Module({
@@ -20,6 +21,7 @@ import { FillSourceSnippetsCommand } from './commands/fill_source_snippets.comma
     SaveCoverCommand,
     CheckCopyrightCommand,
     FillSourceSnippetsCommand,
+    ImportAquinasCommand,
     ReplCommand,
   ],
 })

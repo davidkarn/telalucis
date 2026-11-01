@@ -8,11 +8,13 @@ import { FootnoteExtractionInsightActions } from '../model/footnote_extraction_i
 import { BookActions } from '../model/books.ts';
 import { ExtractedCitationActions } from '../model/extracted_citations.ts';
 import { CopyrightStatusCheckActions } from '../model/copyright_status_checks.ts';
+import { BookPagesToCitationsActions } from '../model/book_pages_to_citations.ts';
 
 const modelActions = {
   QueuedBookImports:          QueuedBookImportsActions,
   FootnoteExtractionInsights: FootnoteExtractionInsightActions,
   Books:                      BookActions,
+  BookPagesToCitations:       BookPagesToCitationsActions,
   ExtractedCitations:         ExtractedCitationActions,
   CopyrightStatusChecks:      CopyrightStatusCheckActions,
 };

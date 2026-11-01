@@ -76,3 +76,5 @@ export const findCitedPages = async(
     return { pageId: row.page_number, parts };
   });
 };
+
+export const BookPagesToCitationsActions = { replacePageCitations };
