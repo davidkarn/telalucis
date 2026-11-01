@@ -2,10 +2,10 @@ import { Kysely, sql } from 'kysely';
 
 // Journals, and their issues (journal_issues), each covering a period from
 // start_date to end_date (a quarterly's issue: three months; a volume: a
-// year). A journal's articles are books, pointing at their journal
-// (books.journal_id; null for a book that isn't an article). An issue is
-// deleted with its journal; an article outlives its journal, losing the link.
-// updated_at is kept by triggers.
+// year). A journal's articles are books, pointing at the issue they appeared
+// in (books.journal_issue_id; null for a book that isn't an article), and so
+// at its journal. An issue is deleted with its journal; an article outlives
+// its issue, losing the link. updated_at is kept by triggers.
 export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`create table journals (
     id bigserial primary key,
@@ -27,9 +27,9 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`create index journal_issues_journal_id_idx on journal_issues (journal_id)`.execute(db);
 
   await sql`alter table books
-    add column journal_id bigint references journals(id) on delete set null`.execute(db);
+    add column journal_issue_id bigint references journal_issues(id) on delete set null`.execute(db);
 
-  await sql`create index books_journal_id_idx on books (journal_id)`.execute(db);
+  await sql`create index books_journal_issue_id_idx on books (journal_issue_id)`.execute(db);
 
   for (const table of ['journals', 'journal_issues']) {
     await sql`create function ${ sql.raw(table) }_set_updated_at() returns trigger as $$
@@ -46,7 +46,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
-  await sql`alter table books drop column journal_id`.execute(db);
+  await sql`alter table books drop column journal_issue_id`.execute(db);
   await sql`drop table journal_issues`.execute(db);
   await sql`drop table journals`.execute(db);
   await sql`drop function journal_issues_set_updated_at()`.execute(db);
