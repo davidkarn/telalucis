@@ -9,6 +9,7 @@ import { BookActions } from '../model/books.ts';
 import { ExtractedCitationActions } from '../model/extracted_citations.ts';
 import { CopyrightStatusCheckActions } from '../model/copyright_status_checks.ts';
 import { BookPagesToCitationsActions } from '../model/book_pages_to_citations.ts';
+import { JournalActions } from '../model/journals.ts';
 
 const modelActions = {
   QueuedBookImports:          QueuedBookImportsActions,
@@ -16,6 +17,7 @@ const modelActions = {
   Books:                      BookActions,
   BookPagesToCitations:       BookPagesToCitationsActions,
   ExtractedCitations:         ExtractedCitationActions,
+  Journals:                   JournalActions,
   CopyrightStatusChecks:      CopyrightStatusCheckActions,
 };
 

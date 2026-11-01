@@ -6,7 +6,6 @@
 //   npm run cli -- process-ocred-books [count]   (count: how many books, 10 when not given)
 import { Inject } from '@nestjs/common';
 import fs from 'node:fs/promises';
-import { setTimeout } from 'node:timers/promises';
 import type { Kysely } from 'kysely';
 import { Command, CommandRunner } from 'nest-commander';
 import { executeActions } from '../../actions/app_actions.ts';
@@ -14,22 +13,10 @@ import { DB } from '../../api/database.module.ts';
 import type { Database } from '../../api/database.ts';
 import { build_pages } from '../../core/book_pages.ts';
 import { suryaResultsPath } from '../../core/book_files.ts';
-import {
-  FOOTNOTES_FORMAT, footnoteHtml, footnotesPrompt, footnoteText, insightsForPage,
-  learnedInsights, pageCitations, removeDuplicateInsights,
-  type PageFootnotes, type ScoredInsight,
-} from '../../core/footnote_extraction.ts';
-import {
-  importOcredBookActions, startImportActions, type ExtractedCitations,
-} from '../../core/ocred_book_import.ts';
-import { log, mapLimited } from '../../lib/lib.ts';
-import { makeOpenRouterRequest, parseJsonResponse } from '../../lib/open_router.ts';
-import { FootnoteExtractionInsightQueries } from '../../model/footnote_extraction_insights.ts';
+import { importOcredBookActions, startImportActions } from '../../core/ocred_book_import.ts';
+import { extractFootnoteCitations } from '../../lib/footnote_citations.ts';
 import { QueuedBookImportsQueries } from '../../model/queued_book_imports.ts';
-import type { Citation, SuryaBook, SuryaPage } from '../../types.ts';
-
-// OpenRouter allows 20 requests a minute
-const REQUEST_INTERVAL_MS = 3200;
+import type { SuryaBook } from '../../types.ts';
 
 // Books imported when no count is given
 const DEFAULT_COUNT = 10;
@@ -91,52 +78,11 @@ export class ProcessOcredBooksCommand extends CommandRunner {
       else {
         // the book's id is the OCR folder name, surya's key for it
         const pages     = build_pages(suryaPages).pages;
-        const extracted = await this.extractCitations(bookId, suryaPages);
+        const extracted = await extractFootnoteCitations(this.db, bookId, suryaPages);
 
         await executeActions(this.db, importOcredBookActions(queued, bookId, pages, extracted));
         return true;
       }
     }
-  }
-
-  // Every citation in the book's footnotes, a request per page with Footnote blocks, each page's
-  // request given the insights learned so far: the widely applying ones (operatingInsights), and
-  // any with a keyword found in the page's footnotes (see insightsForPage). Pages whose request
-  // fails are returned in failedPages rather than failing the whole book.
-  private async extractCitations(
-    bookId: string, pages: SuryaPage[]
-  ): Promise<ExtractedCitations> {
-    const footnotePages                                  = pages.filter((p) => p.blocks.some((b) => b.label === 'Footnote'));
-    const citations: Citation[]                          = [];
-    const failedPages: { page: number, error: string }[] = [];
-
-    let insights: ScoredInsight[] = await FootnoteExtractionInsightQueries.findInsights(this.db);
-
-    let operatingInsights = insights.filter((i) => !i.score || i.score <= 1);
-
-    await mapLimited(footnotePages, 1, async(page) => {
-      try {
-        const given    = insightsForPage(operatingInsights, insights, footnoteText(page));
-        const response = await makeOpenRouterRequest([
-          { role: 'system', content: footnotesPrompt(given) },
-          { role: 'user', content: footnoteHtml(page) },
-        ], FOOTNOTES_FORMAT, 'openai/gpt-4o-mini');
-
-        const result      = parseJsonResponse<PageFootnotes>(response);
-        const learned     = learnedInsights(result);
-        insights          = removeDuplicateInsights(insights.concat(learned));
-        operatingInsights = removeDuplicateInsights(
-          operatingInsights.concat(learned.filter((s) => s.score !== null && s.score <= 2))
-        );
-        citations.push(...pageCitations(bookId, page.page, result));
-        log(response, 'page ' + page.page + ' of ' + pages.length);
-        await setTimeout(REQUEST_INTERVAL_MS);
-      }
-      catch (e) {
-        failedPages.push({ page: page.page, error: (e as Error).message ?? String(e) });
-      }
-    });
-
-    return { citations, failedPages, insights };
   }
 }

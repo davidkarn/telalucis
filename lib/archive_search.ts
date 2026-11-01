@@ -155,3 +155,14 @@ export const searchArchive = async(
     return hit;
   }
 };
+
+// An archive.org item's title and date, as its metadata gives them; null when
+// there's no such item (archive.org answers {} for one). Not cached here.
+export const archiveItemMetadata = async(
+  identifier: string,
+): Promise<{ identifier: string, title: string, date: string } | null> => {
+  const answer = await getJson<MetadataAnswer>(`${ ARCHIVE_BASE }/metadata/${ encodeURIComponent(identifier) }`);
+  const meta   = answer?.metadata;
+
+  return meta ? { identifier, title: one(meta['title']), date: one(meta['date']) } : null;
+};

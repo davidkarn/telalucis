@@ -2,8 +2,9 @@
 // (alternate_author_names). Pure functions; model/authors.ts reads and
 // saves them.
 
-// What books give as the author of a book that has none
-const NO_AUTHOR = ['anonymous', 'bible'];
+// What books give as the author of a book that has none, or many (a
+// journal's issue)
+const NO_AUTHOR = ['anonymous', 'bible', 'various'];
 
 // Whether a book's author (books.author) names an author: not "Anonymous",
 // the Bible, or nothing

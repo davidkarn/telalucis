@@ -101,11 +101,15 @@ const pageCount = (eb: DbExprBuilder<'books'>, name: string = 'page_count') => (
 // citations are saved with them: a citation_groups row per place each locationsCited group cites
 // (a range is a row per place; see core/citation_groups.ts).
 // translator: who translated it; left as it was when not given (importers that don't know one).
+// journal_issue_id: the journal issue it's in (an article, or an issue saved whole); likewise.
 // Its author_id is the author its author names, added when no author goes by that name yet (see
 // model/authors.ts).
 const saveBook = (
   db: Kysely<Database>,
-  book: { id: string, title: string, author: string, url: string | null, translator?: string | null },
+  book: {
+    id: string, title: string, author: string, url: string | null, translator?: string | null,
+    journal_issue_id?: string | null,
+  },
   pages: Page[],
 ) => db.transaction().execute(async(trx) => {
   const authorId = await AuthorActions.findOrCreateAuthor(trx, book.author);
@@ -118,6 +122,7 @@ const saveBook = (
       author_id: eb.ref('excluded.author_id'),
       url:       eb.ref('excluded.url'),
       ...(book.translator === undefined ? {} : { translator: eb.ref('excluded.translator') }),
+      ...(book.journal_issue_id === undefined ? {} : { journal_issue_id: eb.ref('excluded.journal_issue_id') }),
     })))
     .execute();
 
