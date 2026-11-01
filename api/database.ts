@@ -11,6 +11,7 @@ export interface BooksTable {
   cover_photo_path: string | null,
   translator: string | null,      // who translated it, for a book read in translation
   author_id: string | null,       // its author (authors); null for one with none ("Anonymous")
+  journal_id: string | null,      // the journal it's an article in (journals); null for a book
 }
 
 // How a book's pages are cited (migrations/0007_create_book_pages_to_citations.ts)
@@ -205,6 +206,24 @@ export interface AlternateBookNamesTable {
   updated_at: Generated<Date>,    // kept by a trigger: any update sets it
 }
 
+// Journals, whose articles are books (books.journal_id), and their issues
+// (migrations/0027_create_journals.ts)
+export interface JournalsTable {
+  id: Generated<string>,          // bigserial
+  name: string,
+  created_at: Generated<Date>,
+  updated_at: Generated<Date>,    // kept by a trigger: any update sets it
+}
+
+export interface JournalIssuesTable {
+  id: Generated<string>,          // bigserial
+  journal_id: string,
+  start_date: ColumnType<Date, Date | string, Date | string>,   // the period the issue covers
+  end_date: ColumnType<Date, Date | string, Date | string>,
+  created_at: Generated<Date>,
+  updated_at: Generated<Date>,    // kept by a trigger: any update sets it
+}
+
 export interface Database {
   books: BooksTable,
   pages: PagesTable,
@@ -223,4 +242,6 @@ export interface Database {
   authors: AuthorsTable,
   alternate_author_names: AlternateAuthorNamesTable,
   alternate_book_names: AlternateBookNamesTable,
+  journals: JournalsTable,
+  journal_issues: JournalIssuesTable,
 }
