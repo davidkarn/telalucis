@@ -7,8 +7,9 @@ import { setTimeout } from 'node:timers/promises';
 import type { Kysely } from 'kysely';
 import type { Database } from '../api/database.ts';
 import { fillCitationAuthors } from '../core/citation_authors.ts';
+import { batchExamples, examplesPart, type ExampleIndex } from '../core/citation_examples.ts';
 import {
-  batchCitations, batchHtml, batchText, FOOTNOTE_BATCH_FORMAT, footnoteBatches, missedPages,
+  batchCitations, batchFootnotes, batchHtml, batchText, FOOTNOTE_BATCH_FORMAT, footnoteBatches, missedPages,
   retryBatches, type BatchFootnotes,
 } from '../core/footnote_batches.ts';
 import {
@@ -17,12 +18,14 @@ import {
 } from '../core/footnote_extraction.ts';
 import type { ExtractedCitations } from '../core/ocred_book_import.ts';
 import { log } from './lib.ts';
-import { makeOpenRouterRequest, parseJsonResponse } from './open_router.ts';
+import { isLocalModel, makeOpenRouterRequest, parseJsonResponse } from './open_router.ts';
 import { FootnoteExtractionInsightQueries } from '../model/footnote_extraction_insights.ts';
 import type { Citation, SuryaPage } from '../types.ts';
 
 // OpenRouter allows 20 requests a minute
 const REQUEST_INTERVAL_MS = 3200;
+
+export const DEFAULT_FOOTNOTES_MODEL = 'openai/gpt-4o-mini';
 
 // Every citation in the book's footnotes, a request per batch of pages with
 // footnotes worth reading (see core/footnote_batches.ts), each request given
@@ -35,9 +38,15 @@ const REQUEST_INTERVAL_MS = 3200;
 // fillCitationAuthors).
 // skipInsights: neither give the model insights nor ask it for new ones, for
 // shorter requests; none are returned, so none are saved.
+// model: an OpenRouter model, or a local one ("local/<name>", see
+// lib/open_router.ts), asked without waiting between requests.
+// examples: citations to show the model those like each batch's (see
+// core/citation_examples.ts), none from this book.
 export const extractFootnoteCitations = async(
   db: Kysely<Database>, bookId: string, pages: SuryaPage[],
-  { skipInsights = false }: { skipInsights?: boolean } = {},
+  { skipInsights = false, model = DEFAULT_FOOTNOTES_MODEL, examples }: {
+    skipInsights?: boolean, model?: string, examples?: ExampleIndex,
+  } = {},
 ): Promise<ExtractedCitations> => {
   const batches                                        = footnoteBatches(pages);
   const citations: Citation[]                          = [];
@@ -62,10 +71,13 @@ export const extractFootnoteCitations = async(
       const given    = skipInsights
         ? null
         : insightsForPage(operatingInsights, insights, batchText(batch));
+      const shown    = examples
+        ? examplesPart(batchExamples(examples, batchFootnotes(batch), { excludeBookId: bookId }))
+        : '';
       const response = await makeOpenRouterRequest([
-        { role: 'system', content: footnotesPrompt(given, true) },
+        { role: 'system', content: footnotesPrompt(given, true) + shown },
         { role: 'user', content: batchHtml(batch) },
-      ], format, 'openai/gpt-4o-mini');
+      ], format, model);
 
       const result      = parseJsonResponse<BatchFootnotes>(response);
       const learned     = learnedInsights(result);
@@ -80,7 +92,9 @@ export const extractFootnoteCitations = async(
       log(response, `request ${ asked } (${ queue.length } to go): pages ${ batch.map((p) => p.page).join(', ') }`
         + (missed.length > 0 ? `; missed ${ missed.map((p) => p.page).join(', ') }` : '')
         + (found.strays > 0 ? `; ${ found.strays } footnotes on pages not given, left out` : ''));
-      await setTimeout(REQUEST_INTERVAL_MS);
+      if (!isLocalModel(model)) {
+        await setTimeout(REQUEST_INTERVAL_MS);
+      }
     }
     catch (e) {
       const error = (e as Error).message ?? String(e);

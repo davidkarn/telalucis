@@ -14,11 +14,15 @@
 // imported before as one book has that book replaced by its articles. Issues
 // not OCR'd yet, and those imported already, are passed over.
 //   npm run cli -- import-journal-issues [folders...] [--limit <n>] [--dir <folder>]
-//     [--reimport] [--dry-run] [--skip-insights]
+//     [--reimport] [--dry-run] [--skip-insights] [--model <model>] [--examples]
 // folders: the journals' folders (all when none are given). --dry-run: name
 // each issue's articles (asking the LLM for issues not asked before), without
 // extracting citations or saving. --skip-insights: extract without the
-// insights (see footnotesPrompt), for shorter requests. Needs OPENROUTER_KEY.
+// insights (see footnotesPrompt), for shorter requests.
+// --model: the model extracting citations, an OpenRouter one or "local/<name>"
+// for a local server's (see lib/open_router.ts). --examples: show it
+// citations in the collection like each batch's (see core/citation_examples.ts).
+// Needs OPENROUTER_KEY.
 import { Inject } from '@nestjs/common';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -40,7 +44,9 @@ import {
 import type { Page } from '../../types.ts';
 import { archiveItemMetadata } from '../../lib/archive_search.ts';
 import { linkUnlinkedCitations, relinkSummary } from '../../lib/citation_relinking.ts';
-import { extractFootnoteCitations } from '../../lib/footnote_citations.ts';
+import type { ExampleIndex } from '../../core/citation_examples.ts';
+import { DEFAULT_FOOTNOTES_MODEL, extractFootnoteCitations } from '../../lib/footnote_citations.ts';
+import { CitationExampleQueries } from '../../model/citation_examples.ts';
 import { makeOpenRouterRequest, parseJsonResponse } from '../../lib/open_router.ts';
 import { BookActions, BookQueries } from '../../model/books.ts';
 import { findCitationsInBook, linkCitations } from '../../model/incoming_citations.ts';
@@ -60,6 +66,7 @@ type Metadata = { identifier: string, title: string, date: string } | null;
 
 type Options = {
   limit?: number, dir?: string, reimport?: boolean, dryRun?: boolean, skipInsights?: boolean,
+  model?: string, examples?: boolean,
 };
 
 @Command({
@@ -69,6 +76,8 @@ type Options = {
 })
 export class ImportJournalIssuesCommand extends CommandRunner {
   private metadata: Record<string, Metadata> = {};
+  // the citations shown the model as examples, with --examples
+  private examples: ExampleIndex | undefined;
 
   constructor(@Inject(DB) private readonly db: Kysely<Database>) {
     super();
@@ -106,6 +115,16 @@ export class ImportJournalIssuesCommand extends CommandRunner {
     return true;
   }
 
+  @Option({ flags: '--model <model>', description: `the model extracting citations (${ DEFAULT_FOOTNOTES_MODEL }; "local/<name>" for a local server's)` })
+  parseModel(value: string): string {
+    return value;
+  }
+
+  @Option({ flags: '--examples', description: 'show the model citations like each batch\'s, as read before' })
+  parseExamples(): boolean {
+    return true;
+  }
+
   async run(folders: string[], options: Options = {}): Promise<void> {
     const unknown = folders.filter((f) => !JOURNALS.some((j) => j.folder === f));
     if (unknown.length > 0) {
@@ -116,6 +135,10 @@ export class ImportJournalIssuesCommand extends CommandRunner {
     const journals = JOURNALS.filter((j) => folders.length === 0 || folders.includes(j.folder));
     const imported = await BookQueries.findBookIds(this.db);
     let count      = 0;
+
+    if (options.examples && !options.dryRun) {
+      this.examples = await CitationExampleQueries.findExampleIndex(this.db);
+    }
 
     this.metadata = await fs.readFile(METADATA_CACHE, 'utf8')
       .then((s) => JSON.parse(s) as Record<string, Metadata>, () => ({}));
@@ -191,6 +214,8 @@ export class ImportJournalIssuesCommand extends CommandRunner {
           const scans      = suryaPages.filter((p) => p.page >= article.firstScan && p.page <= article.lastScan);
           const extracted  = await extractFootnoteCitations(this.db, bookId, scans, {
             skipInsights: options.skipInsights === true,
+            ...(options.model ? { model: options.model } : {}),
+            ...(this.examples ? { examples: this.examples } : {}),
           });
           const renumbered = { ...extracted, citations: renumberCitations(extracted.citations, offset) };
           const results    = await executeActions(

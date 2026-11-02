@@ -81,6 +81,13 @@ export const batchText = (batch: SuryaPage[]): string => (
   strip_tags(batch.map((page) => footnoteHtml(page)).join('\n'))
 );
 
+// A batch's footnotes, each Footnote block's text, what examples like them
+// are looked for by (see core/citation_examples.ts)
+export const batchFootnotes = (batch: SuryaPage[]): string[] => batch.flatMap((page) => page.blocks
+  .filter((b) => b.label === 'Footnote')
+  .map((b) => strip_tags(b.html).replace(/\s+/g, ' ').trim())
+  .filter((t) => t.length > 0));
+
 // The pages of a batch the model returned no footnotes for: it can stop
 // partway through a batch. They are asked again (see retryBatches).
 export const missedPages = (batch: SuryaPage[], result: BatchFootnotes): SuryaPage[] => {

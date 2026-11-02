@@ -4,9 +4,12 @@
 // each imported, for find-and-queue-cited-books, and points the citations of
 // it other books made before at it (see lib/citation_relinking.ts). The saving is done by actions
 // (core/ocred_book_import.ts); this reads what they need. Needs OPENROUTER_KEY.
-//   npm run cli -- process-ocred-books [count] [--skip-insights]
+//   npm run cli -- process-ocred-books [count] [--skip-insights] [--model <model>] [--examples]
 // count: how many books, 10 when not given. --skip-insights: extract without
-// the insights (see footnotesPrompt), for shorter requests.
+// the insights (see footnotesPrompt), for shorter requests. --model: the
+// model extracting citations, an OpenRouter one or "local/<name>" for a local
+// server's (see lib/open_router.ts). --examples: show it citations in the
+// collection like each batch's (see core/citation_examples.ts).
 import { Inject } from '@nestjs/common';
 import fs from 'node:fs/promises';
 import type { Kysely } from 'kysely';
@@ -18,7 +21,9 @@ import { build_pages } from '../../core/book_pages.ts';
 import { suryaResultsPath } from '../../core/book_files.ts';
 import { importOcredBookActions, startImportActions } from '../../core/ocred_book_import.ts';
 import { linkUnlinkedCitations, relinkSummary } from '../../lib/citation_relinking.ts';
-import { extractFootnoteCitations } from '../../lib/footnote_citations.ts';
+import type { ExampleIndex } from '../../core/citation_examples.ts';
+import { DEFAULT_FOOTNOTES_MODEL, extractFootnoteCitations } from '../../lib/footnote_citations.ts';
+import { CitationExampleQueries } from '../../model/citation_examples.ts';
 import { QueuedBookImportsQueries } from '../../model/queued_book_imports.ts';
 import type { SuryaBook } from '../../types.ts';
 
@@ -53,11 +58,28 @@ export class ProcessOcredBooksCommand extends CommandRunner {
     return true;
   }
 
-  async run([count]: string[], options: { skipInsights?: boolean } = {}): Promise<void> {
+  @Option({ flags: '--model <model>', description: `the model extracting citations (${ DEFAULT_FOOTNOTES_MODEL }; "local/<name>" for a local server's)` })
+  parseModel(value: string): string {
+    return value;
+  }
+
+  @Option({ flags: '--examples', description: 'show the model citations like each batch\'s, as read before' })
+  parseExamples(): boolean {
+    return true;
+  }
+
+  async run(
+    [count]: string[], options: { skipInsights?: boolean, model?: string, examples?: boolean } = {},
+  ): Promise<void> {
     const books = countFrom(count);
+    const how   = {
+      skipInsights: options.skipInsights === true,
+      ...(options.model ? { model: options.model } : {}),
+      ...(options.examples ? { examples: await CitationExampleQueries.findExampleIndex(this.db) } : {}),
+    };
 
     for (let imported = 0; imported < books; imported++) {
-      if (!await this.importNextBook(options.skipInsights === true)) {
+      if (!await this.importNextBook(how)) {
         console.log(`no more OCR'd books waiting to be imported (imported ${ imported } of ${ books })`);
         break;
       }
@@ -65,7 +87,9 @@ export class ProcessOcredBooksCommand extends CommandRunner {
   }
 
   // Import the next book waiting; false when none is
-  private async importNextBook(skipInsights: boolean): Promise<boolean> {
+  private async importNextBook(
+    how: { skipInsights: boolean, model?: string, examples?: ExampleIndex },
+  ): Promise<boolean> {
     const queued = await QueuedBookImportsQueries.findNextQueuedBook(this.db, 'inProgress');
 
     if (!queued) {
@@ -87,7 +111,7 @@ export class ProcessOcredBooksCommand extends CommandRunner {
       else {
         // the book's id is the OCR folder name, surya's key for it
         const pages     = build_pages(suryaPages).pages;
-        const extracted = await extractFootnoteCitations(this.db, bookId, suryaPages, { skipInsights });
+        const extracted = await extractFootnoteCitations(this.db, bookId, suryaPages, how);
 
         await executeActions(this.db, importOcredBookActions(queued, bookId, pages, extracted));
         // the citations other books made of it before it was imported
