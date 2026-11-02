@@ -38,10 +38,14 @@ describe('fillCitationAuthors', () => {
       .toEqual([cite(AQUINAS_AUTHOR, 'CG'), cite(AQUINAS_AUTHOR, 'Quaest. de An.'), cite(AQUINAS_AUTHOR, 'ST')]);
   });
 
-  it('keeps an author given, and blanks placeholders and repeated titles of other works', () => {
+  it('keeps an author given, blanks placeholders, and leaves a name in both as it is', () => {
     expect(fillCitationAuthors([
-      cite('Aristotle', 'De Anima'), cite('Kant', 'unknown'), cite('Phil. Nat.', 'Phil. Nat.'),
-    ])).toEqual([cite('Aristotle', 'De Anima'), cite('Kant', ''), cite('', 'Phil. Nat.')]);
+      cite('Aristotle', 'De Anima'), cite('Kant', 'unknown'), cite('Unknown', 'De princip.'),
+      cite('Mansi', 'Mansi'), cite('Bible', 'Bible'),
+    ])).toEqual([
+      cite('Aristotle', 'De Anima'), cite('Kant', ''), cite('', 'De princip.'),
+      cite('Mansi', 'Mansi'), cite('Bible', 'Bible'),
+    ]);
   });
 
   it('fills in the Sentences when another citation names St. Thomas', () => {

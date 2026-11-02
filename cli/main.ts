@@ -8,6 +8,7 @@
 //   fill-source-snippets           cache every citation's source snippet for the "Cited by" lists
 //   import-aquinas                 import Aquinas's English works (../AquinasOperaOmnia), with their citations
 //   import-journal-issues          import the OCR'd journal issues (../thomist ...), with their citations
+//   relink-citations [bookIds...]  link the citations of books in the collection not linked to them
 //   repl                           a REPL with the database and the models (also: npm run repl)
 // A book found on archive.org goes through them in that order (see model/queued_book_imports.ts).
 // `npm run cli -- --help` lists them; `npm run cli -- <command> --help` describes one.

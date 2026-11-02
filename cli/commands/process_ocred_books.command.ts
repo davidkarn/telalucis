@@ -1,7 +1,8 @@
 // Import the next OCR'd books (queued, status inProgress), one after another: each one's pages and
 // blocks from its surya results, then the citations in its footnotes, extracted by an LLM a page at
 // a time (see core/footnote_extraction.ts), with the insights the model learned doing it. Marks
-// each imported, for find-and-queue-cited-books. The saving is done by actions
+// each imported, for find-and-queue-cited-books, and points the citations of
+// it other books made before at it (see lib/citation_relinking.ts). The saving is done by actions
 // (core/ocred_book_import.ts); this reads what they need. Needs OPENROUTER_KEY.
 //   npm run cli -- process-ocred-books [count] [--skip-insights]
 // count: how many books, 10 when not given. --skip-insights: extract without
@@ -16,6 +17,7 @@ import type { Database } from '../../api/database.ts';
 import { build_pages } from '../../core/book_pages.ts';
 import { suryaResultsPath } from '../../core/book_files.ts';
 import { importOcredBookActions, startImportActions } from '../../core/ocred_book_import.ts';
+import { linkUnlinkedCitations, relinkSummary } from '../../lib/citation_relinking.ts';
 import { extractFootnoteCitations } from '../../lib/footnote_citations.ts';
 import { QueuedBookImportsQueries } from '../../model/queued_book_imports.ts';
 import type { SuryaBook } from '../../types.ts';
@@ -88,6 +90,8 @@ export class ProcessOcredBooksCommand extends CommandRunner {
         const extracted = await extractFootnoteCitations(this.db, bookId, suryaPages, { skipInsights });
 
         await executeActions(this.db, importOcredBookActions(queued, bookId, pages, extracted));
+        // the citations other books made of it before it was imported
+        console.log(`  ${ relinkSummary(await linkUnlinkedCitations(this.db, { bookIds: [bookId] })) }`);
         return true;
       }
     }

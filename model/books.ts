@@ -208,6 +208,13 @@ const findOtherBookNames = (db: Kysely<Database>, bookId: string) => (
     .execute()
 );
 
+// The ids, titles and authors of these books, or of every book when none are
+// given
+const findBookNames = (db: Kysely<Database>, bookIds?: string[]) => {
+  const query = db.selectFrom('books').select(['id', 'title', 'author']);
+  return bookIds === undefined ? query.execute() : query.where('id', 'in', bookIds).execute();
+};
+
 const findBookIds = async(db: Kysely<Database>): Promise<Set<string>> => (
   new Set((await db.selectFrom('books').select('id').execute()).map((b) => b.id))
 );
@@ -223,4 +230,4 @@ const setCoverPhotoPath = (db: Kysely<Database>, bookId: string, coverPhotoPath:
 export const BookScopes = { sortedForDisplay, scopedToQuery, sortedBy, byAuthor };
 export const BookActions = { saveBook, setCoverPhotoPath };
 export const BookSelectors = { citedByCount, citationsFromCount, unmatchedFromCount, pageCount };
-export const BookQueries = { findOtherBookNames, findBookIds };
+export const BookQueries = { findOtherBookNames, findBookNames, findBookIds };

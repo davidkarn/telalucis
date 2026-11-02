@@ -10,6 +10,7 @@ import { ReplCommand } from './commands/repl.command.ts';
 import { FillSourceSnippetsCommand } from './commands/fill_source_snippets.command.ts';
 import { ImportAquinasCommand } from './commands/import_aquinas.command.ts';
 import { ImportJournalIssuesCommand } from './commands/import_journal_issues.command.ts';
+import { RelinkCitationsCommand } from './commands/relink_citations.command.ts';
 
 // The commands of cli/main.ts, sharing the API's database connection
 @Module({
@@ -24,6 +25,7 @@ import { ImportJournalIssuesCommand } from './commands/import_journal_issues.com
     FillSourceSnippetsCommand,
     ImportAquinasCommand,
     ImportJournalIssuesCommand,
+    RelinkCitationsCommand,
     ReplCommand,
   ],
 })

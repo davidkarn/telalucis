@@ -5,7 +5,8 @@
 // prose (llm in core/aquinas_works.ts) also have each page read by an LLM for
 // them; its answers are kept in output/aquinas_llm/<book id>.json, so a page is
 // only sent once. Then each book's citations are pointed at the books in the
-// collection they cite. Re-running replaces each work's pages.
+// collection they cite, and the citations of it made before at it (see
+// lib/citation_relinking.ts). Re-running replaces each work's pages.
 //   npm run cli -- import-aquinas [--only <ids>] [--dir <folder>]
 //     [--no-llm] [--dry-run]
 // Needs OPENROUTER_KEY for the LLM pass (without it the pass is skipped, with a
@@ -27,6 +28,7 @@ import {
 import { AQUINAS_WORKS } from '../../core/aquinas_works.ts';
 import { importAquinasWorkActions } from '../../core/aquinas_import.ts';
 import { matchCitedBooks } from '../../core/cited_books.ts';
+import { linkUnlinkedCitations, relinkSummary } from '../../lib/citation_relinking.ts';
 import { makeOpenRouterRequest, parseJsonResponse } from '../../lib/open_router.ts';
 import { BookQueries } from '../../model/books.ts';
 import { findCitationsInBook, linkCitations } from '../../model/incoming_citations.ts';
@@ -103,6 +105,7 @@ export class ImportAquinasCommand extends CommandRunner {
         const results = await executeActions(this.db, importAquinasWorkActions(work, pages));
         if (results['saveBook']?.success) {
           console.log(`  linked ${ await this.linkCitations(work.id) } citations to books in the collection`);
+          console.log(`  ${ relinkSummary(await linkUnlinkedCitations(this.db, { bookIds: [work.id] })) }`);
         }
       }
     }

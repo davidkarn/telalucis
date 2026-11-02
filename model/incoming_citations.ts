@@ -28,6 +28,40 @@ export const findCitationsFromOtherBooks = (db: Kysely<Database>, bookId: string
     .execute()
 );
 
+// Every citation, in reading order as findCitationsFromOtherBooks
+export const findAllCitations = (db: Kysely<Database>) => (
+  db.selectFrom('citations')
+    .select([
+      'citations.id', 'citations.source_book_id', 'citations.author', 'citations.title',
+      'citations.location', 'citations.raw', 'citations.reference_book_id',
+    ])
+    .orderBy('citations.source_book_id')
+    .orderBy('citations.source_footnote_page')
+    .orderBy('citations.id')
+    .execute()
+);
+
+// Set citations' authors and titles (see fillCitationAuthors), in one
+// statement per chunk; how many were updated
+export const saveCitationNames = async(
+  db: Kysely<Database>, names: { id: string, author: string, title: string }[]
+): Promise<number> => {
+  let updated = 0;
+
+  for (const chunk of chunks(names)) {
+    const result = await sql`
+      UPDATE citations SET author = r.author, title = r.title
+      FROM unnest(
+        ${ chunk.map((n) => n.id) }::bigint[],
+        ${ chunk.map((n) => n.author) }::text[],
+        ${ chunk.map((n) => n.title) }::text[]
+      ) AS r(id, author, title)
+      WHERE citations.id = r.id`.execute(db);
+    updated     += Number(result.numAffectedRows ?? 0);
+  }
+  return updated;
+};
+
 // Every citation whose author matches a Postgres regular expression (case-insensitive), in
 // reading order as findCitationsFromOtherBooks
 export const findCitationsByAuthor = (db: Kysely<Database>, authorPattern: string) => (

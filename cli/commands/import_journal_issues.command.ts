@@ -4,7 +4,8 @@
 // imports a book: each issue a book of its pages, with the citations in its
 // footnotes extracted by an LLM a page at a time. Each is put in its journal
 // issue (journal_issues) and journal, found or added. Then its citations are
-// pointed at the books in the collection they cite. Issues not OCR'd yet, and
+// pointed at the books in the collection they cite, and earlier citations of
+// it at it (see lib/citation_relinking.ts). Issues not OCR'd yet, and
 // those imported already (their book is saved), are passed over.
 //   npm run cli -- import-journal-issues [folders...] [--limit <n>] [--dir <folder>]
 //     [--reimport] [--dry-run] [--skip-insights]
@@ -27,6 +28,7 @@ import {
   JOURNALS, issueName, issuePeriods, issueTitle, periodOf, type Period,
 } from '../../core/journal_issues.ts';
 import { archiveItemMetadata } from '../../lib/archive_search.ts';
+import { linkUnlinkedCitations, relinkSummary } from '../../lib/citation_relinking.ts';
 import { extractFootnoteCitations } from '../../lib/footnote_citations.ts';
 import { BookQueries } from '../../model/books.ts';
 import { findCitationsInBook, linkCitations } from '../../model/incoming_citations.ts';
@@ -165,6 +167,7 @@ export class ImportJournalIssuesCommand extends CommandRunner {
 
         if (results['saveCitations']?.success) {
           console.log(`  linked ${ await this.linkCitations(bookId) } citations to books in the collection`);
+          console.log(`  ${ relinkSummary(await linkUnlinkedCitations(this.db, { bookIds: [bookId] })) }`);
         }
       }
     }

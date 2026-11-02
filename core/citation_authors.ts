@@ -77,22 +77,21 @@ export const isAquinasTitle = (title: string, aquinasCited: boolean, location = 
 };
 
 // The citations with the authors missing filled in where the title says whose
-// work it is, and placeholder authors and titles ("unknown") blanked, an
-// author that only repeats the title too; the others as they are
+// work it is, and placeholder authors and titles ("unknown") blanked; the
+// others as they are. An author that only repeats a title not known is left:
+// it is as often the author's name ("Mansi", "Baron.") as the title's.
 export const fillCitationAuthors = <C extends Pick<Citation, 'author' | 'title' | 'location'>>(citations: C[]): C[] => {
   const aquinasCited = citations.some((c) => AQUINAS.test(c.author.trim()));
 
   return citations.map((c) => {
-    const title = PLACEHOLDER.test(c.title.trim()) ? '' : c.title;
+    const title  = PLACEHOLDER.test(c.title.trim()) ? '' : c.title;
+    const author = PLACEHOLDER.test(c.author.trim()) ? '' : c.author;
 
-    if (!hasNoAuthor(c)) {
-      return { ...c, title };
-    }
-    else if (isAquinasTitle(title, aquinasCited, c.location)) {
+    if (hasNoAuthor(c) && isAquinasTitle(title, aquinasCited, c.location)) {
       return { ...c, title, author: AQUINAS_AUTHOR };
     }
     else {
-      return { ...c, title, author: '' };
+      return { ...c, title, author };
     }
   });
 };
