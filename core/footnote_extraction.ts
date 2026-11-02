@@ -1,4 +1,5 @@
-// Extracting the citations in an OCR'd book's footnotes with an LLM, a request per page: the
+// Extracting the citations in an OCR'd book's footnotes with an LLM, a request per page (or per
+// batch of pages, see core/footnote_batches.ts): the
 // prompt and response format, the insights the model keeps about how works are cited
 // (footnote_extraction_insights), and placing each citation in its footnote block. Pure functions;
 // cli/commands/process_ocred_books.command.ts makes the requests and saves the results.
@@ -89,7 +90,8 @@ export const MAX_PROMPT_SCORE = 2;
 // What the model returns for one page: each footnote on it, the citations in each footnote, and
 // the insights it learned, scored
 export type PageFootnotes = {
-  additionalInsights: { insight: string, score: number, keywords: string[] }[],
+  // none when insights were left out (see withoutInsights)
+  additionalInsights?: { insight: string, score: number, keywords: string[] }[],
   footnotes: {
     identifier: string,
     citations: {
@@ -172,28 +174,23 @@ export const FOOTNOTES_FORMAT: ORResponseFormat = {
 };
 
 // The system prompt for extracting one page's citations. insights: those to give the model (see
-// insightsForPage). It asks for at most 2 new insights a page, each about an abbreviation, title or
+// insightsForPage), or null for none. It asks for at most 2 new insights a page, each about an abbreviation, title or
 // numbering printed in the footnotes: asked more loosely, the model gives general remarks about
 // citations, and told it may give none, it gives none.
-export const footnotesPrompt = (insights: string[]) => `You extract bibliographic citations from the footnotes of one page of a scanned book.
+const ONE_PAGE = `You extract bibliographic citations from the footnotes of one page of a scanned book.
 The footnotes are OCR output as HTML, in reading order. Return every footnote on the page, in order:
+`;
 
-- identifier: the footnote's marker as printed ("12", "*", "†"), without <sup> tags. A footnote that
-  continues from the previous page has no marker: use "".
-- citations: one entry per work the footnote cites (none if it cites nothing):
-  - author: the author as written ("Pohle-Preuss", "St. Thomas"). For the Bible use "Bible".
-  - title: the work's title, without edition or location ("Christology", "Summa Theologica"). For the
-    Bible, the book ("2 Corinthians"). For "Ibid." or "op. cit.", use the author and title of the work it
-    refers back to when that appears earlier on this page; otherwise leave author and title as written.
-  - location: the part of the work cited, as written ("Vol. I, pp. 33 sqq.", "qu. 13, art. 9").
-  - raw: the citation's full text as printed, without HTML tags.
-  - locationsCited: the location as groups of {rawLabel, type, values}. Start a new group for each
-    separately cited place ("Bk II ch 1-3, also Bk III ch 5" -> two groups). rawLabel is the printed
-    locator ("Vol. IV", "ch 1-3", "pp. 33 sqq"). values are integers: convert Roman numerals, expand ranges
-    ("1-3" -> [1, 2, 3], "sqq" adds nothing). Types: ${ LOCATION_TYPES.join(', ') }. Use "position" for §,
-    n., col., and other locators without a matching type. For the Bible, a "book" entry whose value is
-    the book's position in the Catholic (Douay) canon (1-73), then "chapter" and "verse".
+const SEVERAL_PAGES = `You extract bibliographic citations from the footnotes of several consecutive pages of a
+scanned book. Each page's footnotes are OCR output as HTML, in reading order, inside <page number="N">
+... </page>. Return every footnote on every page, in order:
 
+- page: the number of the <page> the footnote is on.
+`;
+
+// The prompt's part on insights: those given (see insightsForPage), and the
+// new ones asked for
+const insightsPart = (insights: string[]) => `
     Following is a list of insights that will assist with recognizing cited works and their location parts:
 
 ${ insights.map((insight) => '    - ' + insight).join('\n') }
@@ -209,6 +206,41 @@ In 'additionalInsights', record up to 2 facts from this page's footnotes that do
     Give each insight ${ INSIGHT_SCORES }
     Give each its ${ INSIGHT_KEYWORDS }
 `;
+
+// insights: null to leave insights out, neither given nor asked for (with a
+// response format without them, see withoutInsights). pages: whether the
+// footnotes of several pages are given at once (see core/footnote_batches.ts),
+// each in a <page> element
+export const footnotesPrompt = (insights: string[] | null, pages = false) => `${ pages ? SEVERAL_PAGES : ONE_PAGE }
+- identifier: the footnote's marker as printed ("12", "*", "†"), without <sup> tags. A footnote that
+  continues from the previous page has no marker: use "".
+- citations: one entry per work the footnote cites (none if it cites nothing):
+  - author: the author as written ("Pohle-Preuss", "St. Thomas"). For the Bible use "Bible".
+  - title: the work's title, without edition or location ("Christology", "Summa Theologica"). For the
+    Bible, the book ("2 Corinthians"). For "Ibid." or "op. cit.", use the author and title of the work it
+    refers back to when that appears earlier in these footnotes; otherwise leave author and title as written.
+  - location: the part of the work cited, as written ("Vol. I, pp. 33 sqq.", "qu. 13, art. 9").
+  - raw: the citation's full text as printed, without HTML tags.
+  - locationsCited: the location as groups of {rawLabel, type, values}. Start a new group for each
+    separately cited place ("Bk II ch 1-3, also Bk III ch 5" -> two groups). rawLabel is the printed
+    locator ("Vol. IV", "ch 1-3", "pp. 33 sqq"). values are integers: convert Roman numerals, expand ranges
+    ("1-3" -> [1, 2, 3], "sqq" adds nothing). Types: ${ LOCATION_TYPES.join(', ') }. Use "position" for §,
+    n., col., and other locators without a matching type. For the Bible, a "book" entry whose value is
+    the book's position in the Catholic (Douay) canon (1-73), then "chapter" and "verse".
+${ insights === null ? '' : insightsPart(insights) }`;
+
+// A response format without additionalInsights, for a prompt without insights
+// (see footnotesPrompt)
+export const withoutInsights = (format: ORResponseFormat): ORResponseFormat => {
+  const out    = structuredClone(format);
+  const schema = out.json_schema.schema as unknown as {
+    required: string[], properties: Record<string, unknown>,
+  };
+
+  schema.required = schema.required.filter((r) => r !== 'additionalInsights');
+  delete schema.properties['additionalInsights'];
+  return out;
+};
 
 // Whether an insight with this score is given the model: scored up to MAX_PROMPT_SCORE, or not
 // scored yet (saved before scores)
@@ -297,7 +329,7 @@ export const insightsForPage = (
 
 // The insights the model learned on a page, their keywords cleaned (see cleanKeywords)
 export const learnedInsights = (result: PageFootnotes): ScoredInsight[] => (
-  result.additionalInsights.map(({ insight, score, keywords }) => ({
+  (result.additionalInsights ?? []).map(({ insight, score, keywords }) => ({
     insight, score, keywords: cleanKeywords(keywords),
   }))
 );

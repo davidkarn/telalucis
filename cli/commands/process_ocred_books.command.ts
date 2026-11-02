@@ -3,11 +3,13 @@
 // a time (see core/footnote_extraction.ts), with the insights the model learned doing it. Marks
 // each imported, for find-and-queue-cited-books. The saving is done by actions
 // (core/ocred_book_import.ts); this reads what they need. Needs OPENROUTER_KEY.
-//   npm run cli -- process-ocred-books [count]   (count: how many books, 10 when not given)
+//   npm run cli -- process-ocred-books [count] [--skip-insights]
+// count: how many books, 10 when not given. --skip-insights: extract without
+// the insights (see footnotesPrompt), for shorter requests.
 import { Inject } from '@nestjs/common';
 import fs from 'node:fs/promises';
 import type { Kysely } from 'kysely';
-import { Command, CommandRunner } from 'nest-commander';
+import { Command, CommandRunner, Option } from 'nest-commander';
 import { executeActions } from '../../actions/app_actions.ts';
 import { DB } from '../../api/database.module.ts';
 import type { Database } from '../../api/database.ts';
@@ -44,11 +46,16 @@ export class ProcessOcredBooksCommand extends CommandRunner {
     super();
   }
 
-  async run([count]: string[]): Promise<void> {
+  @Option({ flags: '--skip-insights', description: 'extract citations without insights, given or learned' })
+  parseSkipInsights(): boolean {
+    return true;
+  }
+
+  async run([count]: string[], options: { skipInsights?: boolean } = {}): Promise<void> {
     const books = countFrom(count);
 
     for (let imported = 0; imported < books; imported++) {
-      if (!await this.importNextBook()) {
+      if (!await this.importNextBook(options.skipInsights === true)) {
         console.log(`no more OCR'd books waiting to be imported (imported ${ imported } of ${ books })`);
         break;
       }
@@ -56,7 +63,7 @@ export class ProcessOcredBooksCommand extends CommandRunner {
   }
 
   // Import the next book waiting; false when none is
-  private async importNextBook(): Promise<boolean> {
+  private async importNextBook(skipInsights: boolean): Promise<boolean> {
     const queued = await QueuedBookImportsQueries.findNextQueuedBook(this.db, 'inProgress');
 
     if (!queued) {
@@ -78,7 +85,7 @@ export class ProcessOcredBooksCommand extends CommandRunner {
       else {
         // the book's id is the OCR folder name, surya's key for it
         const pages     = build_pages(suryaPages).pages;
-        const extracted = await extractFootnoteCitations(this.db, bookId, suryaPages);
+        const extracted = await extractFootnoteCitations(this.db, bookId, suryaPages, { skipInsights });
 
         await executeActions(this.db, importOcredBookActions(queued, bookId, pages, extracted));
         return true;

@@ -7,10 +7,11 @@
 // pointed at the books in the collection they cite. Issues not OCR'd yet, and
 // those imported already (their book is saved), are passed over.
 //   npm run cli -- import-journal-issues [folders...] [--limit <n>] [--dir <folder>]
-//     [--reimport] [--dry-run]
+//     [--reimport] [--dry-run] [--skip-insights]
 // folders: the journals' folders (all when none are given). The issues' titles
 // come from archive.org's metadata, kept in output/journal_issue_metadata.json.
-// Needs OPENROUTER_KEY.
+// --skip-insights: extract without the insights (see footnotesPrompt), for
+// shorter requests. Needs OPENROUTER_KEY.
 import { Inject } from '@nestjs/common';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -38,7 +39,9 @@ const METADATA_CACHE = 'output/journal_issue_metadata.json';
 
 type Metadata = { identifier: string, title: string, date: string } | null;
 
-type Options = { limit?: number, dir?: string, reimport?: boolean, dryRun?: boolean };
+type Options = {
+  limit?: number, dir?: string, reimport?: boolean, dryRun?: boolean, skipInsights?: boolean,
+};
 
 @Command({
   name:        'import-journal-issues',
@@ -79,6 +82,11 @@ export class ImportJournalIssuesCommand extends CommandRunner {
     return true;
   }
 
+  @Option({ flags: '--skip-insights', description: 'extract citations without insights, given or learned' })
+  parseSkipInsights(): boolean {
+    return true;
+  }
+
   async run(folders: string[], options: Options = {}): Promise<void> {
     const unknown = folders.filter((f) => !JOURNALS.some((j) => j.folder === f));
     if (unknown.length > 0) {
@@ -111,7 +119,7 @@ export class ImportJournalIssuesCommand extends CommandRunner {
         }
         else {
           count++;
-          await this.importIssue(journal.name, name, results, periods[i] ?? null, options.dryRun === true);
+          await this.importIssue(journal.name, name, results, periods[i] ?? null, options);
         }
       }
 
@@ -122,7 +130,7 @@ export class ImportJournalIssuesCommand extends CommandRunner {
   }
 
   private async importIssue(
-    journal: string, name: string, resultsFile: string, fromName: Period | null, dryRun: boolean,
+    journal: string, name: string, resultsFile: string, fromName: Period | null, options: Options,
   ) {
     const surya: SuryaBook     = JSON.parse(await fs.readFile(resultsFile, 'utf8'));
     const [bookId, suryaPages] = Object.entries(surya)[0] ?? [];
@@ -148,9 +156,11 @@ export class ImportJournalIssuesCommand extends CommandRunner {
       console.log(`${ bookId }: "${ issue.title }", ${ period.start } to ${ period.end }, `
         + `${ suryaPages.length } pages (${ footnotePages } with footnotes)`);
 
-      if (!dryRun) {
+      if (!options.dryRun) {
         const pages     = build_pages(suryaPages).pages;
-        const extracted = await extractFootnoteCitations(this.db, bookId, suryaPages);
+        const extracted = await extractFootnoteCitations(this.db, bookId, suryaPages, {
+          skipInsights: options.skipInsights === true,
+        });
         const results   = await executeActions(this.db, importJournalIssueActions(issue, pages, extracted));
 
         if (results['saveCitations']?.success) {

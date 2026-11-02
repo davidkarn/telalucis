@@ -7,7 +7,7 @@ import type { FatherWork } from './fathers_citations.ts';
 const BOETHIUS = /^(?:st\.?\s+)?boethius\.?$/i;
 
 // "Thomas Aquinas", "St. Thomas", "S. Thom.", "Aquinas"
-const AQUINAS = /^(?:(?:st\.?|s\.|saint)\s+)?(?:thom(?:as|\.)?(?:\s+(?:of\s+)?aquinas)?|aquinas)\.?$/i;
+export const AQUINAS = /^(?:(?:st\.?|s\.|saint)\s+)?(?:thom(?:as|\.)?(?:\s+(?:of\s+)?aquinas)?|aquinas)\.?$/i;
 
 // The Consolation, cited by book, and by prose section ("iii, 11": book 3, prose 11, the scholastics
 // numbering its prose sections); its pages are its prose sections and metres (poems), so the
