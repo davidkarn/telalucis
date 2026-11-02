@@ -5,7 +5,7 @@
 //
 // 1. gets the author its title says, when it has none (fillCitationAuthors);
 // 2. if it cites the Summa, or a work cited by its Latin aliases (the
-//    Fathers', Aristotle's, Boethius's, the Contra Gentiles: see
+//    Fathers', Aristotle's, Boethius's, the Contra Gentiles, Dionysius's: see
 //    core/fathers_citations.ts), is pointed at it with its places read again,
 //    as summa_update_incoming_citations.ts and
 //    fathers_update_incoming_citations.ts do (a Summa citation's from its
@@ -20,6 +20,7 @@ import type { PlaceGroup } from './citation_groups.ts';
 import { fillCitationAuthors } from './citation_authors.ts';
 import { matchCitedBooks } from './cited_books.ts';
 import { ARISTOTLE_WORKS } from './aristotle_citations.ts';
+import { DIONYSIUS_WORKS } from './dionysius_citations.ts';
 import {
   citedFatherWork, divisionTypes, FATHER_WORKS, locationText, parseFatherLocation, placeOnPage,
   type FatherWork,
@@ -30,7 +31,7 @@ import { SUMMA_BOOK_ID, type CitationPart } from './summa_thml.ts';
 
 // The works cited by aliases, tried in this order
 export const ALIAS_WORKS: FatherWork[] = [
-  ...FATHER_WORKS, ...ARISTOTLE_WORKS, ...BOETHIUS_WORKS, ...CONTRA_GENTILES_WORKS,
+  ...FATHER_WORKS, ...ARISTOTLE_WORKS, ...BOETHIUS_WORKS, ...CONTRA_GENTILES_WORKS, ...DIONYSIUS_WORKS,
 ];
 
 export type RelinkCitation = {

@@ -10,10 +10,11 @@
 //
 // Usage (from src/):
 //   npx tsx book_importers/fathers_update_incoming_citations.ts
-//     [--works fathers|aristotle|boethius|contra-gentiles] [--dry-run]
+//     [--works fathers|aristotle|boethius|contra-gentiles|dionysius] [--dry-run]
 //   --works  whose citations to link: the Fathers' (the default, core/fathers_citations.ts),
 //            Aristotle's (core/aristotle_citations.ts), or Boethius's Consolation or Aquinas's
-//            Summa Contra Gentiles (core/medieval_citations.ts)
+//            Summa Contra Gentiles (core/medieval_citations.ts), or Dionysius's
+//            (core/dionysius_citations.ts)
 // DATABASE_URL comes from the environment or .env. Re-running reads the locations again.
 import 'dotenv/config';
 import { Kysely, PostgresDialect } from 'kysely';
@@ -26,6 +27,7 @@ import {
   type FatherWork,
 } from '../core/fathers_citations.ts';
 import { ARISTOTLE_WORKS } from '../core/aristotle_citations.ts';
+import { DIONYSIUS_WORKS } from '../core/dionysius_citations.ts';
 import { BOETHIUS_WORKS, CONTRA_GENTILES_WORKS } from '../core/medieval_citations.ts';
 import { findCitationsByAuthor, relinkCitations } from '../model/incoming_citations.ts';
 import { findCitedPages } from '../model/book_pages_to_citations.ts';
@@ -40,6 +42,7 @@ const LINKED: Record<string, { works: FatherWork[], authors: string }> = {
   'aristotle':       { works: ARISTOTLE_WORKS, authors: 'aristot|philosopher' },
   'boethius':        { works: BOETHIUS_WORKS, authors: 'boet' },
   'contra-gentiles': { works: CONTRA_GENTILES_WORKS, authors: 'thom|aquin' },
+  'dionysius':       { works: DIONYSIUS_WORKS, authors: 'dion|denys|denis|areop' },
 };
 if (LINKED[WORKS] === undefined) {
   throw new Error(`--works must be one of ${ Object.keys(LINKED).join(', ') }`);

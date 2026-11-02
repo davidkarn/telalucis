@@ -542,6 +542,19 @@ export type Work = {
   pages: WorkPage[],
 };
 
+// A work's div as its pages (see workPlans), numbered from 1, with their
+// footnotes' citations on them
+export const workPages = (div: Div, title: string, bookId: string): WorkPage[] => (
+  workPlans(div, title, bookId).map((p, i) => ({
+    pageNumber: i + 1,
+    ...p,
+    blocks:     p.blocks.map((b) => ({
+      ...b,
+      citations: b.citations.map((c) => ({ ...c, source: { ...c.source, footnotePage: i + 1 } })),
+    })),
+  }))
+);
+
 // The works of a volume ("anf01") as books, in reading order, with their
 // pages numbered from 1 and their footnotes' citations on their pages, by
 // their authors ("Unknown" when not in VOLUME_AUTHORS). Works
@@ -557,14 +570,7 @@ export const volumeWorks = (volume: string, xml: string): Work[] => {
     const id    = seen > 1 ? `${ base }-${ seen }` : base;
     ids.set(base, seen);
 
-    const pages = workPlans(found.div, title, id).map((p, i) => ({
-      pageNumber: i + 1,
-      ...p,
-      blocks:     p.blocks.map((b) => ({
-        ...b,
-        citations: b.citations.map((c) => ({ ...c, source: { ...c.source, footnotePage: i + 1 } })),
-      })),
-    }));
+    const pages = workPages(found.div, title, id);
 
     return pages.length === 0 ? [] : [{
       id,
