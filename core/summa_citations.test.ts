@@ -128,3 +128,30 @@ describe('parseSummaCitation: part boundaries', () => {
     ]);
   });
 });
+
+describe('parseSummaCitation: German forms', () => {
+  it('reads "S. Th." and a part numbered before a question', () => {
+    expect(places('S. Th. 1, q. 91, a. 2.')).toEqual(['book 1, question 91, article 2']);
+    expect(places('S. Th. 3, q. 8, a. 1, ad 2.')).toEqual(['book 4, question 8, article 1, ad 2']);
+    expect(places('1, q. 75, a. 4')).toEqual(['book 1, question 75, article 4']);
+    expect(places('S. Thomas, 1. p. q. 34, art. 2. ad 3.')).toEqual(['book 1, question 34, article 2, ad 3']);
+  });
+
+  it('reads "1. 2" as I-II and "2. 2" as II-II', () => {
+    expect(places('S. Th. 1. 2, q. 3, a. 1.')).toEqual(['book 2, question 3, article 1']);
+    expect(places('1, 2, q. 94, a. 2.')).toEqual(['book 2, question 94, article 2']);
+    expect(places('S. Th. 2. 2, q. 3')).toEqual(['book 3, question 3']);
+  });
+
+  it('does not read "2" alone before a question, or a question number as a part', () => {
+    expect(places('S. Th. 2, q. 3')).toEqual([]);
+    expect(places('S. Th. 1, q. 75, a. 1; q. 76, a. 3.')).toEqual([
+      'book 1, question 75, article 1', 'book 1, question 76, article 3',
+    ]);
+  });
+
+  it('takes "Ib." for Ibid.', () => {
+    expect(isIbid('Ib. a. 3, q. 2.')).toBe(true);
+    expect(places('Ib. q. 92, a. 1.', { book: 1, question: 91 })).toEqual(['book 1, question 92, article 1']);
+  });
+});

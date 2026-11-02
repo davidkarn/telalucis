@@ -147,8 +147,9 @@ export const parseSummaCitation = (raw: string, previous?: SummaPlace): Citation
   const text = (title ? raw.slice(title.index! + title[0].length) : raw)
     .replace(/^\W*ib(?:id)?\b\.?,?/i, '')
     .replace(/[–—]/g, '-');
-  // right after a title (the first, or a later one: "Cp. Sum. theol., 111, 16, 1")
-  const opening = (at: number) => /(?:^|theol(?:ogica|ogiae)?\.?|\bs\.\s*th\b\.?|summa\b\.?)[\s,]*$/i
+  // right after a title (the first, or a later one: "Cp. Sum. theol., 111, 16, 1"), or his name
+  // where the title is left out ("S. Thomas, 1. p. q. 34")
+  const opening = (at: number) => /(?:^|theol(?:ogica|ogiae)?\.?|\bs\.\s*th\b\.?|summa\b\.?|\bthom(?:as)?\b\.?)[\s,]*$/i
     .test(text.slice(0, at));
 
   // the places cited: each starts at a part, or at the beginning with the inherited part
@@ -173,9 +174,10 @@ export const parseSummaCitation = (raw: string, previous?: SummaPlace): Citation
   }
   places.push({ book, from, to: text.length });
 
-  // a place may cite several questions of its part ("1a-2a: LXXII: 1, 3. LXXV: 3")
+  // a place may cite several questions of its part ("1a-2a: LXXII: 1, 3. LXXV: 3", "1, q. 75,
+  // a. 1; q. 76")
   const segments = places.flatMap((p) => text.slice(p.from, p.to)
-    .split(/(?<!\b(?:q|qu|a|art|ad))\.\s+(?=[ivxlc\d]+\s*:\s*[ivxlc\d]+\b)/i)
+    .split(/(?<!\b(?:q|qu|a|art|ad))\.\s+(?=[ivxlc\d]+\s*:\s*[ivxlc\d]+\b)|;\s*(?=(?:q|qu|quaest)\b\.?\s*[ivxlc\d])/i)
     .map((words) => ({ book: p.book, words })));
 
   return segments.flatMap((p) => {

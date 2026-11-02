@@ -8,7 +8,8 @@
 //    Fathers', Aristotle's, Boethius's, the Contra Gentiles: see
 //    core/fathers_citations.ts), is pointed at it with its places read again,
 //    as summa_update_incoming_citations.ts and
-//    fathers_update_incoming_citations.ts do; one whose places can't be read,
+//    fathers_update_incoming_citations.ts do (a Summa citation's from its
+//    location when its raw text gives none); one whose places can't be read,
 //    or are on no page of the work, is left unlinked;
 // 3. else is matched by author and title (matchCitedBooks), keeping its
 //    locations.
@@ -85,6 +86,16 @@ const aliasPlaces = (c: RelinkCitation, work: FatherWork, pages: WorkPages): Pla
     .flatMap((parts) => (parts === undefined ? [] : [{ raw, parts }]));
 };
 
+// Whether a place read as the Summa's (book, question, ...) is a question of
+// it: on its pages when they're given (a misread "Ib. I 267" isn't: the First
+// Part has 119 questions). Its other parts are kept as written.
+const isSummaQuestion = (place: CitationPart[], pages: WorkPages): boolean => {
+  const rows = pages.get(SUMMA_BOOK_ID) ?? [];
+  return rows.length === 0 || rows.some((r) => (
+    r.parts[0]?.value === place[0]?.value && r.parts[1]?.value === place[1]?.value
+  ));
+};
+
 // What to link of the citations (every citation, linked or not, in reading
 // order: by source book, footnote page, then id, as an "Ibid." needs), to
 // these books. pages: the pages of the Summa and the alias works among the
@@ -108,8 +119,12 @@ export const relinkPlan = (
     const work    = isSumma ? undefined : citedFatherWork(c.author, c.title, c.location, aliases);
 
     if (isSumma) {
-      const before = previous?.bookId === c.source_book_id ? previous.place : undefined;
-      const groups = parseSummaCitation(c.raw, isIbid(c.raw) ? before : undefined);
+      const before  = previous?.bookId === c.source_book_id ? previous.place : undefined;
+      const fromRaw = parseSummaCitation(c.raw, isIbid(c.raw) ? before : undefined);
+      // the place may be only in the location, the raw text a quotation
+      const groups = (fromRaw.length > 0 || c.location.trim().length === 0
+        ? fromRaw
+        : parseSummaCitation(c.location)).filter((g) => isSummaQuestion(g, pages));
 
       if (groups.length > 0) {
         previous = { bookId: c.source_book_id, place: lastPlace(groups) };

@@ -40,6 +40,30 @@ describe('relinkPlan', () => {
     expect(plan.links).toEqual([]);
   });
 
+  it('leaves out a Summa place that is no question of it', () => {
+    const pages: WorkPages = new Map([...PAGES, ['summa-theologiae', [{ pageId: 1,
+                                                                        parts:  [
+                                                                          { type: 'book', value: 1 }, { type: 'question', value: 2 }, { type: 'article', value: 3 },
+                                                                        ] }]]]);
+    const plan             = relinkPlan([
+      cite('a', 'St. Thomas', 'Summa Theologica', 'Summa Theol., I, q. 2.'),
+      cite('a', 'St. Thomas', 'Summa Theologica', 'Summa Theol., I, q. 267.'),
+    ], BOOKS, pages);
+    expect(plan.located[0]!.citations.map((c) => c.groups[0]!.parts)).toEqual([
+      [{ type: 'book', value: 1 }, { type: 'question', value: 2 }],
+    ]);
+    expect(plan.unplaced).toBe(1);
+  });
+
+  it('reads a Summa citation\'s place from its location when its raw text has none', () => {
+    const plan = relinkPlan([
+      cite('a', 'St. Thomas', 'Summa Theologica', 'Manifestum est quod homo non est anima tantum.', { location: '1, q. 75, a. 4' }),
+    ], BOOKS, PAGES);
+    expect(plan.located[0]!.citations[0]!.groups[0]!.parts).toEqual([
+      { type: 'book', value: 1 }, { type: 'question', value: 75 }, { type: 'article', value: 4 },
+    ]);
+  });
+
   it('reads an alias work\'s places on its pages, leaving those on no page unlinked', () => {
     const plan = relinkPlan([
       cite('a', 'Augustine', 'De Civ. Dei', 'De Civ. Dei, xiv, 2', { location: 'xiv, 2' }),
