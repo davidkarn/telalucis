@@ -26,7 +26,7 @@ const MAX_CITATIONS_BEFORE_COLLAPSING = 3;
 const NO_CITATIONS: Citation[] = [];
 
 export const BookPageView = ({
-  book, index, pageId, hrefForPage, hrefForCitingBook, hrefToClose, showCitedBy,
+  book, index, pageId, hrefForPage, hrefForCitingBook, hrefForCitedBook, hrefToClose, showCitedBy,
   pageResult, citationsResult
 }: {
   book: Book,
@@ -35,6 +35,9 @@ export const BookPageView = ({
   // a page of the volume open, or of `volume`
   hrefForPage: (pageId: number, volume?: number) => string,
   hrefForCitingBook: (bookId: string, pageId: number) => string,
+  // a book a footnote cites, opened alone in place of the books open: at the page cited, else
+  // its first
+  hrefForCitedBook: (bookId: string, pageId: number | null) => string,
   hrefToClose?: string,
   // the "Cited by" aside, shown only in the rightmost of several open columns
   showCitedBy: boolean,
@@ -165,7 +168,7 @@ export const BookPageView = ({
               ))
               .otherwise(() => (
                 __('article', {className: 'page'},
-                  bodyBlocks.map((block, i) => __(Block, {key: i, block}))
+                  bodyBlocks.map((block, i) => __(Block, {key: i, block, hrefForCitedBook}))
                 )
               ))
           ),
@@ -350,18 +353,32 @@ const citingAuthorsSummaryForAFew = (
 };
 
 
-function Block({block}: {block: PageBlock}) {
+// A block, its footnotes' citations listed under it: each citing a book in the collection a
+// link to it (hrefForCitedBook)
+function Block({block, hrefForCitedBook}: {
+  block: PageBlock,
+  hrefForCitedBook?: (bookId: string, pageId: number | null) => string,
+}) {
   return (
     __('div', {className: 'block block-' + block.label},
       __('div', {dangerouslySetInnerHTML: {__html: block.html}}),
       block.citations.length > 0 && __('ul', {className: 'citations'},
-        block.citations.map(c => (
-          __('li', {key: c.id},
-            c.author && __('span', {className: 'author'}, c.author, ', '),
-            __('cite', {}, c.title),
-            c.locationsCited.length > 0 && ', ' + formatLocations(c.locationsCited)
-          )
-        ))
+        block.citations.map(c => {
+          const text = [
+            c.author && __('span', {key: 'author', className: 'author'}, c.author, ', '),
+            __('cite', {key: 'title'}, c.title),
+            c.locationsCited.length > 0 && ', ' + formatLocations(c.locationsCited),
+          ];
+          return __('li', {key: c.id},
+            c.cited && hrefForCitedBook
+              ? __(Link, {
+                  to:        hrefForCitedBook(c.cited.bookId, c.cited.pageId),
+                  className: 'cited-book-link',
+                  title:     c.cited.pageId === null ? 'Open this book' : 'Open the page cited',
+                }, text)
+              : text
+          );
+        })
       )
     )
   );

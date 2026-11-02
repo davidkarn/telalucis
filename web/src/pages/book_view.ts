@@ -85,6 +85,10 @@ export default function BookView() {
               hrefForCitingBook: (bookId: string, pageId: number) => (
                 openBooksPath(withBookOpened(books, column, { bookId, pageId }))
               ),
+              // the cited book alone, in place of every book open
+              hrefForCitedBook: (bookId: string, pageId: number | null) => (
+                openBooksPath([pageId === null ? { bookId } : { bookId, pageId }])
+              ),
               hrefToClose: books.length > 1
                 ? openBooksPath(withBookClosed(books, column))
                 : undefined,
@@ -96,7 +100,7 @@ export default function BookView() {
 }
 
 function BookColumn({
-  open, active, collapsed, expand, hrefForPage, hrefForCitingBook, hrefToClose,
+  open, active, collapsed, expand, hrefForPage, hrefForCitingBook, hrefForCitedBook, hrefToClose,
 }: {
   open: OpenBook,
   // the main column, which shows its page's citations
@@ -106,6 +110,7 @@ function BookColumn({
   expand: () => void,
   hrefForPage: (pageId: number, volume: number) => string,
   hrefForCitingBook: (bookId: string, pageId: number) => string,
+  hrefForCitedBook: (bookId: string, pageId: number | null) => string,
   hrefToClose?: string,
 }) {
   const navigate = useNavigate();
@@ -186,6 +191,7 @@ function BookColumn({
                   pageResult,
                   citationsResult,
                   hrefForCitingBook,
+                  hrefForCitedBook,
                   hrefToClose,
                   showCitedBy,
                 })

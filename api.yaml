@@ -1038,7 +1038,27 @@ components:
               citations:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Citation'
+                  $ref: '#/components/schemas/FootnoteCitation'
+    FootnoteCitation:
+      description: >-
+        a citation in a page's footnotes, with the book in the collection it points at and the
+        page of it cited (pageId null when none is found); cited is null when it points at no
+        book shown (none, its own, or a withheld one)
+      allOf:
+        - $ref: '#/components/schemas/Citation'
+        - type: object
+          required: [cited]
+          properties:
+            cited:
+              type: object
+              nullable: true
+              required: [bookId, pageId]
+              properties:
+                bookId:
+                  type: string
+                pageId:
+                  type: number
+                  nullable: true
     PageCitations:
       description: >-
         the citations in other books that point to a page, the books they're in, and the words of

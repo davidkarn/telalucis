@@ -82,10 +82,17 @@ export type Citation = {
 // this citation's footnote)
 export type CitationSourcePage = { citationId: string, sourcePageText: string };
 
+// A citation in a page's footnotes, with the book in the collection it points
+// at and the page of it cited (pageId null when none is found); cited is null
+// when it points at no book shown
+export type FootnoteCitation = Citation & {
+  cited: { bookId: string, pageId: number | null } | null,
+};
+
 export type PageBlock = {
   label: 'SectionHeader' | 'Text' | 'PageHeader' | 'PageFooter' | 'Footnote',
   html: string,
-  citations: Citation[],
+  citations: FootnoteCitation[],
 };
 
 export type BookPage = {

@@ -6,6 +6,7 @@ import { citation_columns, to_citation_dto, type CitationDto } from './citations
 import { citablePageNumber } from '../core/page_insights';
 import { citationsOfPage, citedCountsByPage, findBooks } from '../model/page_insights';
 import { findCitedPages } from '../model/book_pages_to_citations';
+import { CitedPageQueries } from '../model/cited_pages';
 import { contentsOf, type ContentsEntry } from '../core/contents';
 import {
   pageOrderOf, selectVolume, volumeName, volumesOf, type PageOrderEntry, type Volume,
@@ -64,7 +65,13 @@ export type BookPageForApi = {
   bookId: string,
   pageNumber: number,
   printedPageNumber: string,
-  blocks: { label: string, html: string, citations: CitationDto[] }[],
+  blocks: { label: string, html: string, citations: FootnoteCitationDto[] }[],
+};
+
+// A citation in a page's footnotes, with the book it points at and the page of
+// it cited (see model/cited_pages.ts): null when it points at no book shown
+export type FootnoteCitationDto = CitationDto & {
+  cited: { bookId: string, pageId: number | null } | null,
 };
 
 // GET /books/{bookId}/pages/{pageId}/citations: the citations in other books that point at the
@@ -288,6 +295,9 @@ export class BooksService {
         .where('citations.page_block_id', 'in', blocks.map((b) => b.id))
         .orderBy('citations.id')
         .execute();
+      const cited = new Map((await CitedPageQueries.findCitedPages(
+        this.db, blockCitations.map((c) => c.id),
+      )).map((c) => [c.citationId, { bookId: c.bookId, pageId: c.pageId }]));
 
       return {
         bookId,
@@ -298,7 +308,7 @@ export class BooksService {
           html:      b.html,
           citations: blockCitations
             .filter((c) => c.page_block_id === b.id)
-            .map(to_citation_dto),
+            .map((c) => ({ ...to_citation_dto(c), cited: cited.get(c.id) ?? null })),
         })),
       };
     }

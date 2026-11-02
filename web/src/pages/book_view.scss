@@ -130,6 +130,19 @@
             li::before {
                 content: '↳ ';
             }
+
+            // a citation of a book in the collection, opening it beside this one
+            .cited-book-link {
+                color: inherit;
+                text-decoration: underline;
+                text-decoration-color: var(--border);
+                text-underline-offset: 2px;
+
+                &:hover {
+                    color: var(--text-h);
+                    text-decoration-color: currentColor;
+                }
+            }
         }
     }
 
