@@ -219,6 +219,13 @@ const findBookIds = async(db: Kysely<Database>): Promise<Set<string>> => (
   new Set((await db.selectFrom('books').select('id').execute()).map((b) => b.id))
 );
 
+// Delete a book, and with it its pages, blocks and citations, its row in the
+// queue of books to import (queued_book_imports.imported_book_id), and the
+// links to it of other books' citations (set to null)
+const deleteBook = (db: Kysely<Database>, bookId: string) => (
+  db.deleteFrom('books').where('id', '=', bookId).execute()
+);
+
 // coverPhotoPath: relative to the frontend's root ("covers/<file>")
 const setCoverPhotoPath = (db: Kysely<Database>, bookId: string, coverPhotoPath: string) => (
   db.updateTable('books')
@@ -228,6 +235,6 @@ const setCoverPhotoPath = (db: Kysely<Database>, bookId: string, coverPhotoPath:
 );
 
 export const BookScopes = { sortedForDisplay, scopedToQuery, sortedBy, byAuthor };
-export const BookActions = { saveBook, setCoverPhotoPath };
+export const BookActions = { saveBook, setCoverPhotoPath, deleteBook };
 export const BookSelectors = { citedByCount, citationsFromCount, unmatchedFromCount, pageCount };
 export const BookQueries = { findOtherBookNames, findBookNames, findBookIds };
