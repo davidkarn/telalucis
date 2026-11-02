@@ -6,7 +6,8 @@
 // The raw text comes in many forms: "St. Thomas, Summa Theol., 2a 2ae, qu. 186, art. 7.",
 // "S. Theol., 1a, qu. 3, art. 7.", "Sum. theol., ii-ii, 184, 3.", "Summa Theologica, 1a: XLIX: 2.",
 // "Summa Theol., Supplement., qu. 95, art. 2.", "Ibid., q. 90, a. 1.", and OCR misreadings of these
-// ("ia zae", "Ia IIac", "1-11").
+// ("ia zae", "Ia IIac", "1-11"). German books write "S. Th. 1, q. 75, a. 1" (1 the First Part),
+// "1. 2" and "2. 2" for I-II and II-II, "1. p." for the First Part, and "Ib." for "Ibid.".
 import type { CitationPart } from './summa_thml.ts';
 
 // A citation of the Summa by its title and author: "Summa Theologica" (or "Summa Theo- logica",
@@ -32,9 +33,17 @@ const PART_FORMS: [RegExp, number][] = [
 ];
 
 // Parts written as bare numbers ("Sum. theol., 1, 86, 3."), with OCR's "12" for "1a" and "111" for
-// "iii": read only right after the title and before two more numbers, as they'd be a question
-// anywhere else
+// "iii": read only right after the title and before two more numbers, or a question ("S. Th. 1,
+// q. 75", "1. 2, q. 3" for I-II, "1. p. q. 34"), as they'd be a question anywhere else. "2" alone
+// before a question isn't read: II-II or I-II?
+const BEFORE_QUESTION                  = '(?=\\s*[,.]?\\s*qu?\\b)';
 const NUMBER_FORMS: [RegExp, number][] = [
+  [new RegExp(`\\b1\\s*[.,]?\\s*2${ BEFORE_QUESTION }`, 'iy'), 2],
+  [new RegExp(`\\b2\\s*[.,]?\\s*2${ BEFORE_QUESTION }`, 'iy'), 3],
+  [/\b1\s*\.?\s*p\b\.?/iy, 1],
+  [/\b3\s*\.?\s*p\b\.?/iy, 4],
+  [new RegExp(`\\b1${ BEFORE_QUESTION }`, 'iy'), 1],
+  [new RegExp(`\\b3${ BEFORE_QUESTION }`, 'iy'), 4],
   [/\b(?:1|12)(?=\s*[,:]\s*[\divxlc]+\s*[,:]\s*[\divxlc]+\b)/iy, 1],
   [/\b2(?=\s*[,:]\s*[\divxlc]+\s*[,:]\s*[\divxlc]+\b)/iy, 3],
   [/\b(?:3|111)(?=\s*[,:]\s*[\divxlc]+\s*[,:]\s*[\divxlc]+\b)/iy, 4],
@@ -122,7 +131,7 @@ const readLocation = (text: string): { question?: number, article?: number, ad?:
 };
 
 // Where the Summa is named in a raw citation, and where its title ends
-const TITLE = /(?:summa[m]?|sum\.?|s\.)\s*theol(?:ogica|ogiae)?\.?,?|summa\b\.?,?/i;
+const TITLE = /(?:summa[m]?|sum\.?|s\.)\s*theol(?:ogica|ogiae)?\.?,?|\bs\.\s*th\b\.?,?|summa\b\.?,?/i;
 
 // The place a citation refers back to with "Ibid.": the last place of the citation before it
 export type SummaPlace = { book: number, question: number };
@@ -136,10 +145,10 @@ export const parseSummaCitation = (raw: string, previous?: SummaPlace): Citation
   const title         = raw.match(TITLE);
   // the words after the title, or after "Ibid." when the title isn't repeated
   const text = (title ? raw.slice(title.index! + title[0].length) : raw)
-    .replace(/^\W*ibid\b\.?,?/i, '')
+    .replace(/^\W*ib(?:id)?\b\.?,?/i, '')
     .replace(/[–—]/g, '-');
   // right after a title (the first, or a later one: "Cp. Sum. theol., 111, 16, 1")
-  const opening = (at: number) => /(?:^|theol(?:ogica|ogiae)?\.?|summa\b\.?)[\s,]*$/i
+  const opening = (at: number) => /(?:^|theol(?:ogica|ogiae)?\.?|\bs\.\s*th\b\.?|summa\b\.?)[\s,]*$/i
     .test(text.slice(0, at));
 
   // the places cited: each starts at a part, or at the beginning with the inherited part
@@ -190,8 +199,8 @@ export const parseSummaCitation = (raw: string, previous?: SummaPlace): Citation
   });
 };
 
-// Whether a raw citation refers back to the one before it ("Ibid., q. 90, a. 1.")
-export const isIbid = (raw: string): boolean => /^\W*ibid\b/i.test(raw);
+// Whether a raw citation refers back to the one before it ("Ibid., q. 90, a. 1.", "Ib. a. 2.")
+export const isIbid = (raw: string): boolean => /^\W*ib(?:id)?\b/i.test(raw);
 
 // The last place in some location groups, for the citation after them to refer back to
 export const lastPlace = (groups: CitationPart[][]): SummaPlace | undefined => {
