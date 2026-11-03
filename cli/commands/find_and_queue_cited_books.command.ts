@@ -1,10 +1,11 @@
 // For the next imported book (queued, status imported): point its citations at the books in the
 // collection they cite, and look for the other cited works on archive.org, downloading and queueing
 // those found for OCR. Marks it importedAndCrawled. See core/cited_books.ts.
-//   npm run cli -- find-and-queue-cited-books
+//   npm run cli -- find-and-queue-cited-books [--count <count>]
+// --count: how many books to crawl, one after another, 1 when not given.
 import { Inject } from '@nestjs/common';
 import type { Kysely } from 'kysely';
-import { Command, CommandRunner } from 'nest-commander';
+import { Command, CommandRunner, Option } from 'nest-commander';
 import { DB } from '../../api/database.module.ts';
 import type { Database } from '../../api/database.ts';
 import { citedTitle, citationShouldBeSkipped } from '../../core/citation_matching.ts';
@@ -21,6 +22,9 @@ import { executeActions } from '../../actions/app_actions.ts';
 // After this many archive.org searches fail in a row, the rest aren't tried
 const MAX_CONSECUTIVE_ARCHIVE_ERRORS = 5;
 
+// Books crawled when no count is given
+const DEFAULT_COUNT = 1;
+
 type CitationRow = Awaited<ReturnType<typeof findCitationsInBook>>[number];
 
 @Command({
@@ -32,11 +36,35 @@ export class FindAndQueueCitedBooksCommand extends CommandRunner {
     super();
   }
 
-  async run(): Promise<void> {
+  @Option({ flags: '-c, --count <count>', description: `how many books to crawl (${ DEFAULT_COUNT } when not given)` })
+  parseCount(value: string): number {
+    const count = Number(value);
+
+    if (!Number.isInteger(count) || count < 1) {
+      throw new Error(`count must be a whole number, 1 or more, not ${ value }`);
+    }
+    else {
+      return count;
+    }
+  }
+
+  async run(_args: string[], options: { count?: number } = {}): Promise<void> {
+    const books = options.count ?? DEFAULT_COUNT;
+
+    for (let crawled = 0; crawled < books; crawled++) {
+      if (!await this.crawlNextBook()) {
+        console.log(`no imported book waiting to be crawled (crawled ${ crawled } of ${ books })`);
+        break;
+      }
+    }
+  }
+
+  // Crawl the citations of the next imported book waiting; false when none is
+  private async crawlNextBook(): Promise<boolean> {
     const book = await QueuedBookImportsQueries.findNextQueuedBook(this.db, 'imported');
 
     if (!book) {
-      console.log('no imported book waiting to be crawled');
+      return false;
     }
     else if (!book.imported_book_id) {
       throw new Error(`queued book ${ book.id } is imported but has no imported_book_id`);
@@ -58,6 +86,7 @@ export class FindAndQueueCitedBooksCommand extends CommandRunner {
       await QueuedBookImportsActions.setQueuedBookStatus(this.db, book.id, 'importedAndCrawled');
 
       log({ numRefsSaved, queuedResults, archiveSearchFailures: archiveCopies.failed.length });
+      return true;
     }
   }
 

@@ -1,7 +1,7 @@
 // The command line tools (from src/):  npm run cli -- <command> [args]
 //   ocr-queued-books               OCR each queued book's PDF with surya
 //   process-ocred-books            import the next OCR'd book and its footnotes' citations
-//   find-and-queue-cited-books     link the next imported book's citations; queue what it cites
+//   find-and-queue-cited-books     link the next imported books' citations (--count, 1); queue what they cite
 //   consolidate-footnote-insights  merge the footnote extraction insights
 //   save-cover <bookId>            save a book's cover image from its PDF
 //   check-copyright                judge whether the books not checked yet are in the public domain

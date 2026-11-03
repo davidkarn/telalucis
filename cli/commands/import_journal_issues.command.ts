@@ -1,6 +1,7 @@
 // Import the journal issues downloaded from archive.org and OCR'd with surya
 // (../thomist, ../the_new_scholasticism, ../the_modern_schoolman,
-// ../franciscan_studies; see core/journal_issues.ts): each article a book of
+// ../franciscan_studies, ../theological_studies, ../irish_theological_quarterly;
+// see core/journal_issues.ts): each article a book of
 // its own, by its author and with its title, its pages numbered as the
 // journal prints them, and each department (book reviews, notices) a book by
 // "Various" (see core/journal_articles.ts). An LLM names an issue's articles

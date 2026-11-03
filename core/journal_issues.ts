@@ -1,5 +1,6 @@
 // Journal issues downloaded from archive.org (../thomist, ../the_new_scholasticism,
-// ../the_modern_schoolman, ../franciscan_studies), each a PDF OCR'd with surya
+// ../the_modern_schoolman, ../franciscan_studies, ../theological_studies,
+// ../irish_theological_quarterly; see ../download_journal.sh), each a PDF OCR'd with surya
 // into <folder>/results/surya/<name>/results.json: which journal each is
 // from, its title, and the period it covers. Pure functions;
 // cli/commands/import_journal_issues.command.ts reads the files and saves
@@ -18,6 +19,8 @@ export const JOURNALS: { folder: string, name: string }[] = [
   { folder: 'the_new_scholasticism', name: 'The New Scholasticism' },
   { folder: 'the_modern_schoolman', name: 'The Modern Schoolman' },
   { folder: 'franciscan_studies', name: 'Franciscan Studies' },
+  { folder: 'theological_studies', name: 'Theological Studies' },
+  { folder: 'irish_theological_quarterly', name: 'The Irish Theological Quarterly' },
 ];
 
 // What a file's name says of its issue: the date as written ("1951-07",
