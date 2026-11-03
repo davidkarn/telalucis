@@ -135,6 +135,22 @@ export class AdminController {
     return { meta: { count }, items };
   }
 
+  // Move a queued book to the top of the queue: it's taken next of those with its status
+  @Post('queued-books/:id/move-to-top')
+  @HttpCode(200)
+  @UseGuards(AdminGuard)
+  async moveQueuedBookToTop(@Param('id') id: string) {
+    if (!/^\d+$/.test(id)) {
+      throw new BadRequestException('id must be a queued book\'s number');
+    }
+    else if (!await this.admin.moveQueuedBookToTop(id)) {
+      throw new NotFoundException(`No queued book ${ id }`);
+    }
+    else {
+      return { id };
+    }
+  }
+
   // A page of the books with their latest copyright status checks, searched by title and author,
   // filtered by status (or never checked) and sorted by title, status or when last checked
   @Get('copyright')

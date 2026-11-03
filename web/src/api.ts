@@ -397,8 +397,8 @@ export const fetchAdminBooks = (opts: {
   return requestJson('GET', `/admin/books?${params}`);
 };
 
-// The AdminQueuedBook schema: a book queued for import, id its place in the queue, and the book it
-// was imported as, once it is
+// The AdminQueuedBook schema: a book queued for import, id its place in the queue (after those
+// moved to the top), and the book it was imported as, once it is
 export type AdminQueuedBook = {
   id: string,
   title: string,
@@ -407,7 +407,8 @@ export type AdminQueuedBook = {
   archiveUrl: string | null,
   importedBookId: string | null,
   importedBookTitle: string | null,
-  createdAt: string,  // ISO 8601: when it was queued
+  prioritizedAt: string | null,  // ISO 8601: when it was moved to the top of the queue, if it was
+  createdAt: string,  // when it was queued
   updatedAt: string,  // when it last changed (its status, most often)
 };
 
@@ -428,6 +429,11 @@ export const fetchAdminQueuedBooks = (opts: {
 
   return requestJson('GET', `/admin/queued-books?${params}`);
 };
+
+// Move a queued book to the top of the queue: it's taken next of those with its status
+export const moveQueuedBookToTop = (id: string): Promise<{ id: string }> => (
+  requestJson('POST', `/admin/queued-books/${encodeURIComponent(id)}/move-to-top`)
+);
 
 // From the most to the least likely to be in the public domain (core/copyright_status.ts)
 export const COPYRIGHT_STATUSES = [

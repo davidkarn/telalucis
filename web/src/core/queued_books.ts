@@ -16,3 +16,7 @@ export const STATUS_LABELS: Record<QueueStatus, string> = {
   importedAndCrawled: 'Crawled',
   complete:           'Complete',
 };
+
+// The statuses a command takes books from in queue order (ocr-queued-books, process-ocred-books,
+// find-and-queue-cited-books), so a book with one can be moved to the top of the queue
+export const TAKEN_IN_ORDER: QueueStatus[] = ['queued', 'inProgress', 'imported'];

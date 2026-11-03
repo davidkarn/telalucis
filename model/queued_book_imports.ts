@@ -10,22 +10,24 @@ import { likePattern, type DbSelectQuery } from './model_utils.ts';
 export type QueuedBook = Selectable<QueuedBookImportsTable>;
 export type { QueueStatus };
 
+// Queue order, the order books are taken in: those moved to the top first, the one moved last
+// first; then the rest by id, the order they were queued in
+const inQueueOrder = <O>(query: DbSelectQuery<'queued_book_imports', O>) => query
+  .orderBy('queued_book_imports.prioritized_at', (ob) => ob.desc().nullsLast())
+  .orderBy('queued_book_imports.id');
+
 // The first book queued with this status, if any
 const findNextQueuedBook = (db: Kysely<Database>, status: QueueStatus) => (
-  db.selectFrom('queued_book_imports')
-    .selectAll()
+  inQueueOrder(db.selectFrom('queued_book_imports').selectAll())
     .where('status', '=', status)
-    .orderBy('id')
     .limit(1)
     .executeTakeFirst()
 );
 
 // The first `limit` books queued with this status, in the order they'll be taken
 const findNextQueuedBooks = (db: Kysely<Database>, status: QueueStatus, limit: number) => (
-  db.selectFrom('queued_book_imports')
-    .selectAll()
+  inQueueOrder(db.selectFrom('queued_book_imports').selectAll())
     .where('status', '=', status)
-    .orderBy('id')
     .limit(limit)
     .execute()
 );
@@ -48,6 +50,17 @@ const setQueuedBookStatus = (db: Kysely<Database>, id: string, status: QueueStat
     .where('id', '=', id)
     .execute()
 );
+
+// Move a queued book to the top of the queue: it's taken next of those with its status. False
+// when there's no such book.
+const moveQueuedBookToTop = async(db: Kysely<Database>, id: string): Promise<boolean> => {
+  const result = await db.updateTable('queued_book_imports')
+    .set({ prioritized_at: new Date() })
+    .where('id', '=', id)
+    .executeTakeFirst();
+
+  return result.numUpdatedRows > 0n;
+};
 
 // A queued book imported as the book bookId
 const markQueuedBookImported = (db: Kysely<Database>, id: string, bookId: string) => (
@@ -126,21 +139,15 @@ export type QueuedBookSort = typeof QUEUED_BOOK_SORTS[number];
 
 const sortedBy = <O>(sort: QueuedBookSort) => (query: DbSelectQuery<'queued_book_imports', O>) => {
   if (sort === 'created') {
-    return query
-      .orderBy('queued_book_imports.created_at', 'desc')
-      .orderBy('queued_book_imports.id');
+    return inQueueOrder(query.orderBy('queued_book_imports.created_at', 'desc'));
   }
   else if (sort === 'updated') {
-    return query
-      .orderBy('queued_book_imports.updated_at', 'desc')
-      .orderBy('queued_book_imports.id');
+    return inQueueOrder(query.orderBy('queued_book_imports.updated_at', 'desc'));
   }
   else {
-    return query
-      .orderBy(sql`array_position(
-        ${ sql.val(QUEUE_STATUSES) }::text[], queued_book_imports.status
-      )`)
-      .orderBy('queued_book_imports.id');
+    return inQueueOrder(query.orderBy(sql`array_position(
+      ${ sql.val(QUEUE_STATUSES) }::text[], queued_book_imports.status
+    )`));
   }
 };
 
@@ -149,4 +156,6 @@ export const QueuedBookImportsScopes = { matchingSearch, withStatus, sortedBy };
 export const QueuedBookImportsQueries = {
   findNextQueuedBook, findNextQueuedBooks, countByStatus, findQueuedBookNames, findQueuedUrls,
 };
-export const QueuedBookImportsActions = { queueBook, setQueuedBookStatus, markQueuedBookImported };
+export const QueuedBookImportsActions = {
+  queueBook, setQueuedBookStatus, markQueuedBookImported, moveQueuedBookToTop,
+};

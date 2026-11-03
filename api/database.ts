@@ -104,6 +104,7 @@ export interface QueuedBookImportsTable {
   pdf_url: string | null,
   status: 'queued' | 'pending' | 'inProgress' | 'processingContents' | 'imported' | 'importedAndCrawled' | 'complete',
   imported_book_id: string | null,
+  prioritized_at: Date | null,    // when moved to the top of the queue; null if never
   created_at: Generated<Date>,
   updated_at: Generated<Date>,    // kept by a trigger: any update sets it
 }

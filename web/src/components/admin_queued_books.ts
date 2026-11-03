@@ -2,14 +2,17 @@
 // status in the order a book goes through them, or, from a column's header, by when they were
 // added or last updated, the latest first; then in queue order. Searchable by title and author,
 // and filtered by status. The search, filter, sort and page are kept in the URL
-// (?q=&status=&sort=&page=).
+// (?q=&status=&sort=&page=). A book waiting for a command can be moved to the top of the queue, to
+// be taken next of those with its status.
 import { createElement as __ } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { match } from 'ts-pattern'
-import type { AdminQueuedBookList, QueuedBookSort, QueueStatus } from '../api'
+import {
+  moveQueuedBookToTop, type AdminQueuedBook, type AdminQueuedBookList, type QueuedBookSort, type QueueStatus,
+} from '../api'
 import { adminQueuedBooksQuery } from '../queries'
-import { QUEUE_STATUSES, STATUS_LABELS } from '../core/queued_books'
+import { QUEUE_STATUSES, STATUS_LABELS, TAKEN_IN_ORDER } from '../core/queued_books'
 import { formatDateTime } from '../lib'
 import Pager from './pager'
 import { AdminSearch } from './admin_search'
@@ -143,51 +146,83 @@ function QueuedBookTable({list, page, query, sort, onSort, onPage}: {
               header('Imported as'),
               header('Added', 'created', 'Sort by when they were added, the latest first'),
               header('Updated', 'updated', 'Sort by when they last changed, the latest first'),
+              __('th', {scope: 'col'}, __('span', {className: 'visually-hidden'}, 'Queue')),
             )
           ),
           __('tbody', {},
-            list.items.map((b) => (
-              __('tr', {key: b.id},
-                __('td', {className: 'numeric queue-id'}, b.id),
-                __('td', {className: 'queue-status'},
-                  __('span', {className: 'status-badge status-' + b.status},
-                    STATUS_LABELS[b.status]
-                  )
-                ),
-                __('td', {className: 'queued-title'},
-                  b.archiveUrl
-                    ? __('a', {
-                      href:   b.archiveUrl,
-                      target: '_blank',
-                      rel:    'noreferrer',
-                      title:  'On archive.org',
-                    }, b.title)
-                    : b.title
-                ),
-                __('td', {className: 'queued-author'}, b.author),
-                __('td', {className: 'imported-as'},
-                  b.importedBookId === null
-                    ? __('span', {className: 'muted'}, '—')
-                    : __(Link, {to: `/books/${ encodeURIComponent(b.importedBookId) }`},
-                      b.importedBookTitle ?? b.importedBookId
-                    )
-                ),
-                __('td', {className: 'queue-time'},
-                  __('time', {dateTime: b.createdAt, title: b.createdAt},
-                    formatDateTime(b.createdAt)
-                  )
-                ),
-                __('td', {className: 'queue-time'},
-                  __('time', {dateTime: b.updatedAt, title: b.updatedAt},
-                    formatDateTime(b.updatedAt)
-                  )
-                ),
-              )
-            ))
+            list.items.map((b) => __(QueuedBookRow, {key: b.id, book: b}))
           )
         )
       ),
       pageCount > 1 && __(Pager, {page, pageCount, onPage})
+    )
+  );
+}
+
+// A queued book's row, with a button moving it to the top of the queue when a command takes books
+// with its status in queue order
+function QueuedBookRow({book: b}: {book: AdminQueuedBook}) {
+  const queryClient = useQueryClient();
+
+  const moveToTop = useMutation({
+    mutationFn: () => moveQueuedBookToTop(b.id),
+    onSuccess:  () => Promise.all([
+      queryClient.invalidateQueries({queryKey: ['admin', 'queuedBooks']}),
+      queryClient.invalidateQueries({queryKey: ['admin', 'dashboard']}),
+    ]),
+  });
+
+  return (
+    __('tr', {className: b.prioritizedAt === null ? '' : 'prioritized'},
+      __('td', {className: 'numeric queue-id'},
+        b.prioritizedAt !== null && __('span', {
+          className: 'top-badge',
+          title:     `Moved to the top of the queue ${ formatDateTime(b.prioritizedAt) }`,
+        }, 'Top'),
+        b.id
+      ),
+      __('td', {className: 'queue-status'},
+        __('span', {className: 'status-badge status-' + b.status},
+          STATUS_LABELS[b.status]
+        )
+      ),
+      __('td', {className: 'queued-title'},
+        b.archiveUrl
+          ? __('a', {
+            href:   b.archiveUrl,
+            target: '_blank',
+            rel:    'noreferrer',
+            title:  'On archive.org',
+          }, b.title)
+          : b.title
+      ),
+      __('td', {className: 'queued-author'}, b.author),
+      __('td', {className: 'imported-as'},
+        b.importedBookId === null
+          ? __('span', {className: 'muted'}, '—')
+          : __(Link, {to: `/books/${ encodeURIComponent(b.importedBookId) }`},
+            b.importedBookTitle ?? b.importedBookId
+          )
+      ),
+      __('td', {className: 'queue-time'},
+        __('time', {dateTime: b.createdAt, title: b.createdAt},
+          formatDateTime(b.createdAt)
+        )
+      ),
+      __('td', {className: 'queue-time'},
+        __('time', {dateTime: b.updatedAt, title: b.updatedAt},
+          formatDateTime(b.updatedAt)
+        )
+      ),
+      __('td', {className: 'queue-actions'},
+        TAKEN_IN_ORDER.includes(b.status) && __('button', {
+          type:     'button',
+          disabled: moveToTop.isPending,
+          title:    `Take it next of the books ${ STATUS_LABELS[b.status].toLowerCase() }`,
+          onClick:  () => moveToTop.mutate(),
+        }, moveToTop.isPending ? 'Moving…' : 'Move to top'),
+        moveToTop.isError && __('p', {className: 'error'}, moveToTop.error.message)
+      ),
     )
   );
 }

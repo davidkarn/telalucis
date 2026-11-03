@@ -4,7 +4,7 @@ import { DB } from './database.module';
 import type { Database } from './database';
 import { NEXT_UP_STATUS, statusCounts, type QueueStatus } from '../core/queued_books';
 import {
-  QueuedBookImportsQueries, QueuedBookImportsScopes, type QueuedBookSort,
+  QueuedBookImportsActions, QueuedBookImportsQueries, QueuedBookImportsScopes, type QueuedBookSort,
 } from '../model/queued_book_imports';
 import { byScore, isGivenToModel, MAX_PROMPT_SCORE } from '../core/footnote_extraction';
 import { FootnoteExtractionInsightQueries } from '../model/footnote_extraction_insights';
@@ -68,6 +68,7 @@ export type AdminBook = {
 };
 
 // The AdminQueuedBook schema in api.yaml. importedBookId: the book it was imported as, once it is.
+// prioritizedAt: when it was moved to the top of the queue, if it was.
 export type AdminQueuedBook = {
   id: string,
   title: string,
@@ -76,7 +77,8 @@ export type AdminQueuedBook = {
   archiveUrl: string | null,
   importedBookId: string | null,
   importedBookTitle: string | null,
-  createdAt: string,  // ISO 8601
+  prioritizedAt: string | null,  // ISO 8601
+  createdAt: string,
   updatedAt: string,
 };
 
@@ -243,7 +245,7 @@ export class AdminService {
         'queued_book_imports.id', 'queued_book_imports.title', 'queued_book_imports.author',
         'queued_book_imports.status', 'queued_book_imports.archive_url',
         'queued_book_imports.imported_book_id', 'imported.title as imported_title',
-        'queued_book_imports.created_at', 'queued_book_imports.updated_at',
+        'queued_book_imports.prioritized_at', 'queued_book_imports.created_at', 'queued_book_imports.updated_at',
       ])
       .execute();
 
@@ -260,11 +262,17 @@ export class AdminService {
         archiveUrl:        r.archive_url,
         importedBookId:    r.imported_book_id,
         importedBookTitle: r.imported_title ?? null,
+        prioritizedAt:     r.prioritized_at === null ? null : r.prioritized_at.toISOString(),
         createdAt:         r.created_at.toISOString(),
         updatedAt:         r.updated_at.toISOString(),
       })),
       count: Number(total.count),
     };
+  }
+
+  // Move a queued book to the top of the queue; false when there's no such book
+  moveQueuedBookToTop(id: string): Promise<boolean> {
+    return QueuedBookImportsActions.moveQueuedBookToTop(this.db, id);
   }
 
   // A page of the books with their latest copyright status checks, those whose title or author

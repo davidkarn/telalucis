@@ -677,7 +677,7 @@ paths:
           description: >-
             status (the default): by status in the order a book goes through them; created: by when
             they were queued, the latest first; updated: by when they last changed, the latest
-            first. Then in queue order.
+            first. Then in queue order: those moved to the top first, then by id.
           in: query
           required: false
           schema:
@@ -859,6 +859,38 @@ paths:
                       $ref: '#/components/schemas/AdminBookCopyright'
         '401':
           description: not signed in
+  /admin/queued-books/{id}/move-to-top:
+    post:
+      tags:
+        - Admin
+      summary: >-
+        Move a queued book to the top of the queue: it's taken next of the books with its status
+        (those moved to the top go first, the one moved last first, then the rest by id). Needs the
+        session cookie from POST /admin/login.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: moved
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                properties:
+                  id:
+                    type: string
+        '400':
+          description: id isn't a number
+        '401':
+          description: not signed in
+        '404':
+          description: no such queued book
   /admin/copyright/{bookId}:
     post:
       tags:
@@ -955,11 +987,14 @@ components:
         - archiveUrl
         - importedBookId
         - importedBookTitle
+        - prioritizedAt
         - createdAt
         - updatedAt
       properties:
         id:
-          description: its place in the queue
+          description: >-
+            its place in the queue, after those moved to the top (see
+            /admin/queued-books/{id}/move-to-top)
           type: string
         title:
           type: string
@@ -974,6 +1009,10 @@ components:
           type: [string, 'null']
         importedBookTitle:
           type: [string, 'null']
+        prioritizedAt:
+          description: when it was moved to the top of the queue; null if never
+          type: [string, 'null']
+          format: date-time
         createdAt:
           description: when it was queued (for those queued before this was kept, when it started)
           type: string
