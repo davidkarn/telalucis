@@ -404,15 +404,18 @@ export const newInsights = (learned: ScoredInsight[], saved: string[]): ScoredIn
 };
 
 // The Footnote block a citation belongs to: the one on its page where its marker starts a footnote
-// ("<sup>12</sup>", or "12 " at the start of a line), else, for a footnote continued from the page
-// before (no marker), the page's first Footnote block. blocks: the page's, in reading order.
+// ("<sup>12</sup>", or "12 " at the start of a line; a symbol may run into the text: "*Abelard"),
+// else, for a footnote continued from the page before (no marker), the page's first Footnote
+// block. blocks: the page's, in reading order.
 export const footnoteBlockFor = <B extends { html: string }>(
   blocks: B[], identifier: string
 ): B | undefined => {
   if (identifier.length > 0) {
     const marker = identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const sup    = new RegExp('<sup>\\s*' + marker + '\\s*</sup>');
-    const line   = new RegExp('(^|\\n)\\s*' + marker + '[\\s.)]');
+    // a number is set off from the text ("1" isn't the start of "12"); a symbol needn't be
+    const after  = /[\p{L}\p{N}]/u.test(identifier) ? '[\\s.)]' : '';
+    const line   = new RegExp('(^|\\n)\\s*' + marker + after);
 
     return blocks.find((b) => (
       sup.test(b.html) || line.test(strip_tags(b.html.replace(/<\/p>|<br\s*\/?>/gi, '\n')))

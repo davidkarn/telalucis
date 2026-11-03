@@ -27,15 +27,16 @@ export type FatherWork = {
   types?: string[],
 };
 
-// Augustine, not "Pseudo-Augustine" or Aemilius de Augustinis
-const AUGUSTINE = /^(?:st\.?\s+|saint\s+)?augustin(?:e|us)?\.?(?:\s+of\s+hippo)?$/i;
+// Augustine ("Aug." too), not "Pseudo-Augustine" or Aemilius de Augustinis
+const AUGUSTINE = /^(?:st\.?\s+|saint\s+)?(?:augustin(?:e|us)?|aug)\.?(?:\s+of\s+hippo)?$/i;
 const DAMASCENE = /^(?:st\.?\s+|saint\s+)?(?:john\s+)?(?:damascene|of\s+damascus)\.?$/i;
 
 // Each alias's title pattern is tried in this order, so a longer title comes before one it starts
 // with ("De Fide et Symbolo" before "De Symbolo")
 export const FATHER_WORKS: FatherWork[] = [
-  { bookId: 'npnf103-on-the-holy-trinity', author: AUGUSTINE, title: /^de trin/i },
-  { bookId: 'npnf102-city-of-god', author: AUGUSTINE, title: /^(?:de civ|city of god)/i },
+  { bookId: 'npnf103-on-the-holy-trinity', author: AUGUSTINE, title: /^(?:de trin|on the trinity)/i },
+  // "De Civ. Dei", "City of God", "D. C. D."
+  { bookId: 'npnf102-city-of-god', author: AUGUSTINE, title: /^(?:de civ|city of god|d\.\s*c\.\s*d\b)/i },
   // "Tract. in Ep. Joan.", "In prim. canon. Joan. Tract.": the homilies on the first Epistle
   {
     bookId: 'npnf107-ten-homilies-on-the-first-epistle-of-john',

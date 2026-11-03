@@ -194,6 +194,14 @@ describe('footnoteBlockFor', () => {
     expect(footnoteBlockFor(blocks, '*')?.id).toBe('c');
   });
 
+  it('finds a symbol run into the text of its footnote, but not a number', () => {
+    const run = [{ id: 'd', html: '<p>*Abelard when treating of creation.</p>' },
+                 { id: 'e', html: '<p>†Contra Maxim. 2, 10.</p><p>12Pohle.</p>' }];
+    expect(footnoteBlockFor(run, '*')?.id).toBe('d');
+    expect(footnoteBlockFor(run, '†')?.id).toBe('e');
+    expect(footnoteBlockFor(run, '1')).toBeUndefined();
+  });
+
   it("takes a continued footnote's first block, and is undefined for a marker found nowhere", () => {
     expect(footnoteBlockFor(blocks, '')?.id).toBe('a');
     expect(footnoteBlockFor(blocks, '99')).toBeUndefined();
