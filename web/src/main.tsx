@@ -9,6 +9,9 @@ import BookView from './pages/book_view.ts'
 import AdminPage from './pages/admin.ts'
 import AuthorsPage from './pages/authors.ts'
 import AuthorPage from './pages/author.ts'
+import JournalsPage from './pages/journals.ts'
+import JournalPage from './pages/journal.ts'
+import JournalIssuePage from './pages/journal_issue.ts'
 
 createRoot(document.getElementById('root')!).render(
   __(StrictMode, {},
@@ -19,6 +22,10 @@ createRoot(document.getElementById('root')!).render(
           __(Route, {path: '/authors', element: __(AuthorsPage)}),
           // one author's books
           __(Route, {path: '/authors/:authorId', element: __(AuthorPage)}),
+          __(Route, {path: '/journals', element: __(JournalsPage)}),
+          // a journal's issues, and an issue's articles
+          __(Route, {path: '/journals/:journalId', element: __(JournalPage)}),
+          __(Route, {path: '/journals/:journalId/issues/:issueId', element: __(JournalIssuePage)}),
           // one or more open books: /books/<id>[/pages/<n>]/books/<id>[/pages/<n>]... (see core/open_books.ts)
           __(Route, {path: '/books/*', element: __(BookView)}),
           // the admin panel and its tabs: /tl-admin[/<tab>]

@@ -2,7 +2,8 @@ import { QueryClient, queryOptions } from '@tanstack/react-query'
 import {
   fetchAdminBooks, fetchAdminCitationInsights, fetchAdminCitations, fetchAdminDashboard,
   fetchAdminBookCopyrights, fetchAdminQueuedBooks, fetchAdminSession,
-  fetchAuthor, fetchAuthors, fetchBook, fetchBooks, fetchCitationSourcePage, fetchPage, fetchPageCitations,
+  fetchAuthor, fetchAuthors, fetchJournal, fetchJournalIssue, fetchJournalIssues, fetchJournals,
+  fetchBook, fetchBooks, fetchCitationSourcePage, fetchPage, fetchPageCitations,
   fetchPageOrder,
   fetchPageInsights,
 } from './api'
@@ -21,12 +22,34 @@ export const queryClient = new QueryClient({
 });
 
 
-// authorId: only that author's books
+// authorId: only that author's books; journalIssueId: only that journal issue's articles
 export const booksQuery = (
-  opts: { offset: number, length: number, query: string, authorId?: string }
+  opts: { offset: number, length: number, query: string, authorId?: string, journalIssueId?: string }
 ) => queryOptions({
   queryKey: ['books', opts],
   queryFn:  () => fetchBooks(opts),
+});
+
+export const journalsQuery = () => queryOptions({
+  queryKey: ['journals'],
+  queryFn:  fetchJournals,
+});
+
+export const journalQuery = (journalId: string) => queryOptions({
+  queryKey: ['journal', journalId],
+  queryFn:  () => fetchJournal(journalId),
+});
+
+export const journalIssuesQuery = (journalId: string, opts: { offset: number, length: number }) => (
+  queryOptions({
+    queryKey: ['journalIssues', journalId, opts],
+    queryFn:  () => fetchJournalIssues(journalId, opts),
+  })
+);
+
+export const journalIssueQuery = (journalId: string, issueId: string) => queryOptions({
+  queryKey: ['journalIssue', journalId, issueId],
+  queryFn:  () => fetchJournalIssue(journalId, issueId),
 });
 
 export const authorsQuery = (opts: { offset: number, length: number, query: string }) => (

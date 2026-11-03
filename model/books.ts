@@ -1,5 +1,5 @@
 // Saving a whole book: its books row, pages and page blocks.
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import type { Database } from '../api/database.ts';
 import type { Page } from '../types.ts';
 import { placesOf } from '../core/citation_groups.ts';
@@ -21,6 +21,17 @@ const chunks = <T>(rows: T[]): T[][] => (
 // The books of one author (authors.id)
 const byAuthor = <O>(authorId: string | undefined) => (query: DbSelectQuery<'books', O>) => (
   authorId === undefined ? query : query.where('books.author_id', '=', authorId)
+);
+
+// The articles of a journal issue (see model/journals.ts)
+const inJournalIssue = <O>(journalIssueId: string | undefined) => (query: DbSelectQuery<'books', O>) => (
+  journalIssueId === undefined ? query : query.where('books.journal_issue_id', '=', journalIssueId)
+);
+
+// A journal issue's articles in the order they're printed: by the page they
+// start on, the end of their ids ("..._p45"); other books after them
+const sortedByJournalPage = <O>() => (query: DbSelectQuery<'books', O>) => (
+  query.orderBy(sql`nullif(substring(books.id from '_p([0-9]+)$'), '')::int nulls last`)
 );
 
 const sortedForDisplay = <O>() => (query: DbSelectQuery<'books', O>) => (
@@ -234,7 +245,9 @@ const setCoverPhotoPath = (db: Kysely<Database>, bookId: string, coverPhotoPath:
     .execute()
 );
 
-export const BookScopes = { sortedForDisplay, scopedToQuery, sortedBy, byAuthor };
+export const BookScopes = {
+  sortedForDisplay, scopedToQuery, sortedBy, byAuthor, inJournalIssue, sortedByJournalPage,
+};
 export const BookActions = { saveBook, setCoverPhotoPath, deleteBook };
 export const BookSelectors = { citedByCount, citationsFromCount, unmatchedFromCount, pageCount };
 export const BookQueries = { findOtherBookNames, findBookNames, findBookIds };

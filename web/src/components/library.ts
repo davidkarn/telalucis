@@ -12,12 +12,14 @@ import { LoadingSpinner } from './loading_spinner'
 const PAGE_LENGTH = 20
 
 // A page of books, searchable (?q=) and paged (?page=): the whole library, or with authorId, one
-// author's books. heading: the page's title, and subheading what's under it; searchLabel: the
-// search box's placeholder, what it searches.
-export const Library = ({heading, subheading, authorId, searchLabel}: {
+// author's books, or with journalIssueId, a journal issue's articles (counted as articles).
+// heading: the page's title, and subheading what's under it; searchLabel: the search box's
+// placeholder, what it searches.
+export const Library = ({heading, subheading, authorId, journalIssueId, searchLabel}: {
   heading: React.ReactNode,
   subheading?: React.ReactNode,
   authorId?: string,
+  journalIssueId?: string,
   searchLabel: string,
 }) => {
   const navigate                        = useNavigate();
@@ -32,6 +34,7 @@ export const Library = ({heading, subheading, authorId, searchLabel}: {
       length: PAGE_LENGTH,
       query,
       ...(authorId === undefined ? {} : {authorId}),
+      ...(journalIssueId === undefined ? {} : {journalIssueId}),
     }),
     placeholderData: keepPreviousData,
   });
@@ -41,6 +44,7 @@ export const Library = ({heading, subheading, authorId, searchLabel}: {
   const loading = booksResult.isFetching;
 
   const pageCount = books ? Math.ceil(books.meta.count / PAGE_LENGTH) : 0;
+  const things    = journalIssueId === undefined ? 'books' : 'articles';
   const goToPage  = (n: number) => {
     setSearchParams(
       query ? {q: query, page: String(n)} : {page: String(n)}
@@ -66,14 +70,14 @@ export const Library = ({heading, subheading, authorId, searchLabel}: {
                 __('div', {className: 'showing-info'},
                   match<boolean, string>(true)
                     .with(books.meta.count === 0, () => (
-                      query ? 'No books match “' + query + '”.' : 'No books.'
+                      query ? 'No ' + things + ' match “' + query + '”.' : 'No ' + things + '.'
                     ))
-                    .with(books.items.length === 0, () => 'No books on this page.')
+                    .with(books.items.length === 0, () => 'No ' + things + ' on this page.')
                     .otherwise(() => (
                       'Showing ' + ((page - 1) * PAGE_LENGTH + 1)
                         + '–' + ((page - 1) * PAGE_LENGTH + books.items.length)
                         + ' of ' + books.meta.count
-                        + (query ? ' books matching “' + query + '”.' : ' books.')
+                        + (query ? ' ' + things + ' matching “' + query + '”.' : ' ' + things + '.')
                     ))
                 )
               ),

@@ -89,20 +89,24 @@ export type PageCitationsForApi = {
 export class BooksService {
   constructor(@Inject(DB) private readonly db: Kysely<Database>) {}
 
-  // authorId: only that author's books. Books likely under copyright are left out (see
-  // shownInSearches in core/copyright_status.ts).
+  // authorId: only that author's books. journalIssueId: only that journal issue's articles, in
+  // the order they're printed. Books likely under copyright are left out (see shownInSearches in
+  // core/copyright_status.ts).
   async search(opts: {
     offset: number,
     length: number,
     query?: string | undefined,
-    authorId?: string | undefined }
+    authorId?: string | undefined,
+    journalIssueId?: string | undefined }
   ): Promise<{ items: BookSummary[], count: number }> {
     const rows = await withScopes(
       this.db.selectFrom('books'), [
         BookScopes.scopedToQuery(opts.query),
         BookScopes.byAuthor(opts.authorId),
+        BookScopes.inJournalIssue(opts.journalIssueId),
         CopyrightStatusCheckScopes.shownInSearches(),
         DbScopes.offsetAndLimitScope(opts.offset, opts.length),
+        ...(opts.journalIssueId === undefined ? [] : [BookScopes.sortedByJournalPage()]),
         BookScopes.sortedForDisplay()
       ])
       .select((eb) => [
@@ -120,6 +124,7 @@ export class BooksService {
       this.db.selectFrom('books'), [
         BookScopes.scopedToQuery(opts.query),
         BookScopes.byAuthor(opts.authorId),
+        BookScopes.inJournalIssue(opts.journalIssueId),
         CopyrightStatusCheckScopes.shownInSearches(),
       ])
       .select((eb) => eb.fn.countAll<string>().as('count'))

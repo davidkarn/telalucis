@@ -8,6 +8,7 @@ type NavLink = { href: string, label: string };
 const SECTIONS: NavLink[] = [
   { href: '/', label: 'Library' },
   { href: '/authors', label: 'By author' },
+  { href: '/journals', label: 'Journals' },
 ];
 
 // Works and authors to go straight to, on the right. The ids are the authors table's rows for

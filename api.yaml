@@ -44,6 +44,15 @@ paths:
          schema:
           type: string
           pattern: '^[1-9][0-9]*$'
+       - name: journalIssueId
+         description: >-
+           only the articles of this journal issue (an id from GET /journals/{journalId}/issues),
+           in the order they're printed
+         in: query
+         required: false
+         schema:
+          type: string
+          pattern: '^[1-9][0-9]*$'
       summary: Search books
       responses:
         '200':
@@ -128,6 +137,122 @@ paths:
                 $ref: '#/components/schemas/AuthorSummary'
         '404':
           description: no author with that id has a book in the collection
+  /journals:
+    get:
+      tags:
+        - Journals
+      summary: Every journal, by name
+      responses:
+        '200':
+          description: the journals
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [meta, items]
+                properties:
+                  meta:
+                    type: object
+                    properties:
+                      count:
+                        type: number
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JournalSummary'
+  /journals/{journalId}:
+    get:
+      tags:
+        - Journals
+      summary: A journal
+      parameters:
+        - name: journalId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[1-9][0-9]*$'
+      responses:
+        '200':
+          description: the journal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalSummary'
+        '404':
+          description: no journal with that id
+  /journals/{journalId}/issues:
+    get:
+      tags:
+        - Journals
+      summary: A page of a journal's issues, in date order
+      parameters:
+        - name: journalId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[1-9][0-9]*$'
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 0
+        - name: length
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: the issues, and how many there are in all
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [meta, items]
+                properties:
+                  meta:
+                    type: object
+                    properties:
+                      count:
+                        type: number
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JournalIssueSummary'
+        '404':
+          description: no journal with that id
+  /journals/{journalId}/issues/{issueId}:
+    get:
+      tags:
+        - Journals
+      summary: One of a journal's issues (its articles are GET /books?journalIssueId=)
+      parameters:
+        - name: journalId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[1-9][0-9]*$'
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[1-9][0-9]*$'
+      responses:
+        '200':
+          description: the issue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalIssueSummary'
+        '404':
+          description: the journal has no issue with that id
   /books/{bookId}:
     get:
       tags:
@@ -1231,6 +1356,55 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ContentsEntry'
+    JournalSummary:
+      description: >-
+        a journal, how many issues and articles it has (those shown), and the years its issues
+        span (null when it has none)
+      type: object
+      required: [id, name, issueCount, articleCount, firstYear, lastYear]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        issueCount:
+          type: number
+        articleCount:
+          type: number
+        firstYear:
+          type: number
+          nullable: true
+        lastYear:
+          type: number
+          nullable: true
+    JournalIssueSummary:
+      description: >-
+        an issue of a journal, the period it covers, its volume and number as its file names them
+        (null when they don't; number may be "5-6", "contents", "index", "supplement"), and how
+        many articles it has
+      type: object
+      required: [id, journalId, journalName, startDate, endDate, volume, number, articleCount]
+      properties:
+        id:
+          type: string
+        journalId:
+          type: string
+        journalName:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        volume:
+          type: string
+          nullable: true
+        number:
+          type: string
+          nullable: true
+        articleCount:
+          type: number
     AuthorSummary:
       type: object
       required:

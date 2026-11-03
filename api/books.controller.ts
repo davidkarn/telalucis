@@ -12,12 +12,15 @@ export class BooksController {
     @Query('length') length?: unknown,
     @Query('query') query?: unknown,
     @Query('authorId') authorId?: unknown,
+    @Query('journalIssueId') journalIssueId?: unknown,
   ) {
     const author           = string_param('authorId', authorId);
+    const issue            = string_param('journalIssueId', journalIssueId);
     const { items, count } = await this.books.search({
       ...paging_params(offset, length),
       query:    string_param('query', query),
       authorId: author === undefined ? undefined : id_param('authorId', author),
+      journalIssueId: issue === undefined ? undefined : id_param('journalIssueId', issue),
     });
 
     return { meta: { count }, items };

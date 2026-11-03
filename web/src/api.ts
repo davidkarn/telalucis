@@ -17,6 +17,25 @@ export type AuthorSummary = { id: string, name: string, bookCount: number, cited
 
 export type AuthorList = { meta: { count: number }, items: AuthorSummary[] };
 
+// The JournalSummary schema in ../api.yaml: a journal, how many issues and articles it has, and the
+// years its issues span (null when it has none)
+export type JournalSummary = {
+  id: string, name: string, issueCount: number, articleCount: number,
+  firstYear: number | null, lastYear: number | null,
+};
+
+export type JournalList = { meta: { count: number }, items: JournalSummary[] };
+
+// The JournalIssueSummary schema in ../api.yaml: an issue of a journal, the period it covers
+// ("1939-04-01" to "1939-05-31"), its volume and number (null when not known; number may be
+// "5-6", "contents", "index", "supplement"), and how many articles it has
+export type JournalIssueSummary = {
+  id: string, journalId: string, journalName: string, startDate: string, endDate: string,
+  volume: string | null, number: string | null, articleCount: number,
+};
+
+export type JournalIssueList = { meta: { count: number }, items: JournalIssueSummary[] };
+
 // GET /books/{bookId}: every page in reading order. pageId is the scan's page number; printedPageNumber
 // is the number printed on the page, '' when it has none. citedByCount: citations in other books that cite
 // this page (its foreignCitations); null until counted (GET /books/{bookId}'s placeholder, see
@@ -130,18 +149,39 @@ const getJson = async <T>(path: string): Promise<T> => {
   }
 };
 
-// query: search titles and authors; authorId: only that author's books
+// query: search titles and authors; authorId: only that author's books; journalIssueId: only that
+// journal issue's articles, in the order they're printed
 export const fetchBooks = async (
-  opts: { offset?: number, length?: number, query?: string, authorId?: string } = {}
+  opts: {
+    offset?: number, length?: number, query?: string, authorId?: string, journalIssueId?: string,
+  } = {}
 ): Promise<BookList> => {
   const params = new URLSearchParams();
   if (opts.offset !== undefined) params.set('offset', String(opts.offset));
   if (opts.length !== undefined) params.set('length', String(opts.length));
   if (opts.query) params.set('query', opts.query);
   if (opts.authorId !== undefined) params.set('authorId', opts.authorId);
+  if (opts.journalIssueId !== undefined) params.set('journalIssueId', opts.journalIssueId);
 
   return getJson(`/books?${params}`);
 };
+
+export const fetchJournals = (): Promise<JournalList> => getJson('/journals');
+
+export const fetchJournal = (journalId: string): Promise<JournalSummary> => (
+  getJson(`/journals/${encodeURIComponent(journalId)}`)
+);
+
+// A page of a journal's issues, in date order
+export const fetchJournalIssues = (
+  journalId: string, opts: { offset: number, length: number }
+): Promise<JournalIssueList> => (
+  getJson(`/journals/${encodeURIComponent(journalId)}/issues?offset=${opts.offset}&length=${opts.length}`)
+);
+
+export const fetchJournalIssue = (journalId: string, issueId: string): Promise<JournalIssueSummary> => (
+  getJson(`/journals/${encodeURIComponent(journalId)}/issues/${encodeURIComponent(issueId)}`)
+);
 
 // query: only authors going by a name containing it
 export const fetchAuthors = (
