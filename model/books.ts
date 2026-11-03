@@ -19,8 +19,13 @@ const chunks = <T>(rows: T[]): T[][] => (
 );
 
 // The books of one author (authors.id)
+// The books of an author, one of them or the only one (book_authors)
 const byAuthor = <O>(authorId: string | undefined) => (query: DbSelectQuery<'books', O>) => (
-  authorId === undefined ? query : query.where('books.author_id', '=', authorId)
+  authorId === undefined ? query : query.where(({ exists, selectFrom }) => exists(
+    selectFrom('book_authors').select('book_authors.book_id')
+      .whereRef('book_authors.book_id', '=', 'books.id')
+      .where('book_authors.author_id', '=', authorId)
+  ))
 );
 
 // The articles of a journal issue (see model/journals.ts)
@@ -113,8 +118,8 @@ const pageCount = (eb: DbExprBuilder<'books'>, name: string = 'page_count') => (
 // (a range is a row per place; see core/citation_groups.ts).
 // translator: who translated it; left as it was when not given (importers that don't know one).
 // journal_issue_id: the journal issue it's in (an article, or an issue saved whole); likewise.
-// Its author_id is the author its author names, added when no author goes by that name yet (see
-// model/authors.ts).
+// Its authors (book_authors) are those its author names ("X and Y" two), each added when no
+// author goes by that name yet (see model/authors.ts).
 const saveBook = (
   db: Kysely<Database>,
   book: {
@@ -123,19 +128,20 @@ const saveBook = (
   },
   pages: Page[],
 ) => db.transaction().execute(async(trx) => {
-  const authorId = await AuthorActions.findOrCreateAuthor(trx, book.author);
+  const authorIds = await AuthorActions.findOrCreateAuthors(trx, book.author);
 
   await trx.insertInto('books')
-    .values({ ...book, author_id: authorId })
+    .values(book)
     .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
       title:     eb.ref('excluded.title'),
       author:    eb.ref('excluded.author'),
-      author_id: eb.ref('excluded.author_id'),
       url:       eb.ref('excluded.url'),
       ...(book.translator === undefined ? {} : { translator: eb.ref('excluded.translator') }),
       ...(book.journal_issue_id === undefined ? {} : { journal_issue_id: eb.ref('excluded.journal_issue_id') }),
     })))
     .execute();
+
+  await AuthorActions.replaceBookAuthors(trx, book.id, authorIds);
 
   await trx.deleteFrom('pages').where('book_id', '=', book.id).execute();
 

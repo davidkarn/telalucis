@@ -10,7 +10,6 @@ export interface BooksTable {
   url: string | null,
   cover_photo_path: string | null,
   translator: string | null,      // who translated it, for a book read in translation
-  author_id: string | null,       // its author (authors); null for one with none ("Anonymous")
   journal_issue_id: string | null, // the journal issue it's an article in; null for a book
 }
 
@@ -188,6 +187,15 @@ export interface AuthorsTable {
   updated_at: Generated<Date>,    // kept by a trigger: any update sets it
 }
 
+// A book's authors, in order (position, from 0): none for a book with none
+// ("Anonymous"). migrations/0028_create_book_authors.ts
+export interface BookAuthorsTable {
+  book_id: string,
+  author_id: string,
+  position: number,
+  created_at: Generated<Date>,
+}
+
 export interface AlternateAuthorNamesTable {
   id: Generated<string>,          // bigserial
   author_id: string,
@@ -240,6 +248,7 @@ export interface Database {
   copyright_status_check: CopyrightStatusCheckTable,
   book_part_names: BookPartNamesTable,
   authors: AuthorsTable,
+  book_authors: BookAuthorsTable,
   alternate_author_names: AlternateAuthorNamesTable,
   alternate_book_names: AlternateBookNamesTable,
   journals: JournalsTable,

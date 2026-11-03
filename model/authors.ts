@@ -1,8 +1,9 @@
-// Authors (authors) and the names they go by (alternate_author_names; see
-// core/authors.ts and migrations/0020_create_authors.ts)
+// Authors (authors), the names they go by (alternate_author_names) and their
+// books (book_authors; see core/authors.ts, migrations/0020_create_authors.ts
+// and migrations/0028_create_book_authors.ts)
 import { sql, type Kysely } from 'kysely';
 import type { Database } from '../api/database.ts';
-import { namesAnAuthor } from '../core/authors.ts';
+import { authorNames } from '../core/authors.ts';
 import { likePattern, type DbExprBuilder, type DbSelectQuery } from './model_utils.ts';
 import { CopyrightStatusCheckSql } from './copyright_status_checks.ts';
 
@@ -27,9 +28,9 @@ const matchingName = <O>(searchQuery: string | undefined) => (
 // Authors with a book in the collection shown in its searches (not likely under copyright)
 const withBooks = <O>() => (query: DbSelectQuery<'authors', O>) => (
   query.where(({ exists, selectFrom }) => exists(
-    selectFrom('books').select('books.id')
-      .whereRef('books.author_id', '=', 'authors.id')
-      .where(CopyrightStatusCheckSql.isShownInSearches('books.id'))
+    selectFrom('book_authors').select('book_authors.book_id')
+      .whereRef('book_authors.author_id', '=', 'authors.id')
+      .where(CopyrightStatusCheckSql.isShownInSearches('book_authors.book_id'))
   ))
 );
 
@@ -39,10 +40,10 @@ const sortedByName = <O>() => (query: DbSelectQuery<'authors', O>) => (
 
 // The author's books shown in the collection's searches (not likely under copyright)
 const bookCount = (eb: DbExprBuilder<'authors'>) => (
-  eb.selectFrom('books')
+  eb.selectFrom('book_authors')
     .select(eb.fn.countAll<string>().as('n'))
-    .whereRef('books.author_id', '=', 'authors.id')
-    .where(CopyrightStatusCheckSql.isShownInSearches('books.id'))
+    .whereRef('book_authors.author_id', '=', 'authors.id')
+    .where(CopyrightStatusCheckSql.isShownInSearches('book_authors.book_id'))
     .as('book_count')
 );
 
@@ -52,10 +53,10 @@ const citedByCount = (eb: DbExprBuilder<'authors'>) => (
   eb.selectFrom('citations')
     .select(eb.fn.countAll<string>().as('n'))
     .where('citations.reference_book_id', 'in', sql<string>`(
-      select books.id from books where books.author_id = authors.id
+      select ba.book_id from book_authors ba where ba.author_id = authors.id
       union select alternate_ids.alternate_id from alternate_ids
-        join books on books.id = alternate_ids.book_id
-      where books.author_id = authors.id)`)
+        join book_authors ba on ba.book_id = alternate_ids.book_id
+      where ba.author_id = authors.id)`)
     .as('cited_by_count')
 );
 
@@ -83,18 +84,37 @@ const createAuthor = async(db: Kysely<Database>, name: string): Promise<string> 
   return author.id;
 };
 
-// The id of the author a book's author (books.author) names: the one going by
-// that name, else a new one named it. null when it names none ("Anonymous").
-const findOrCreateAuthor = async(db: Kysely<Database>, name: string): Promise<string | null> => {
-  if (!namesAnAuthor(name)) {
-    return null;
+// The ids of the authors a book's author (books.author) names, in order: each
+// name's (see authorNames), the one going by it, else a new one named it.
+// A name some author goes by as a whole is theirs, not split: one matched by
+// hand ("Denzinger, Heinrich, 1819-1883; Stahl, Ignaz, 1839-1902"). None for
+// "Anonymous".
+const findOrCreateAuthors = async(db: Kysely<Database>, author: string): Promise<string[]> => {
+  const whole = await findAuthorId(db, author);
+
+  if (whole !== null) {
+    return [whole];
   }
   else {
-    return await findAuthorId(db, name) ?? await createAuthor(db, name.trim());
+    const ids: string[] = [];
+    for (const name of authorNames(author)) {
+      ids.push(await findAuthorId(db, name) ?? await createAuthor(db, name));
+    }
+    return ids.filter((id, i) => ids.indexOf(id) === i);
+  }
+};
+
+// Make a book's authors these, in order
+const replaceBookAuthors = async(db: Kysely<Database>, bookId: string, authorIds: string[]) => {
+  await db.deleteFrom('book_authors').where('book_id', '=', bookId).execute();
+  if (authorIds.length > 0) {
+    await db.insertInto('book_authors')
+      .values(authorIds.map((authorId, position) => ({ book_id: bookId, author_id: authorId, position })))
+      .execute();
   }
 };
 
 export const AuthorScopes = { matchingName, withBooks, sortedByName };
 export const AuthorSelectors = { bookCount, citedByCount };
 export const AuthorQueries = { findAuthorId };
-export const AuthorActions = { findOrCreateAuthor };
+export const AuthorActions = { findOrCreateAuthors, replaceBookAuthors };
