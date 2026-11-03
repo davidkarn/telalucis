@@ -117,4 +117,31 @@ const replaceBookAuthors = async(db: Kysely<Database>, bookId: string, authorIds
 export const AuthorScopes = { matchingName, withBooks, sortedByName };
 export const AuthorSelectors = { bookCount, citedByCount };
 export const AuthorQueries = { findAuthorId };
-export const AuthorActions = { findOrCreateAuthors, replaceBookAuthors };
+// Merge authors who are one person ("M. J. Adler" into "Mortimer J. Adler"), in one
+// transaction: the others' books and names become the kept one's, and the others are deleted. A
+// book of both keeps the kept one's place among its authors. name: what to call the kept one, its
+// name as it is when not given; it's among its names either way.
+const mergeAuthors = (
+  db: Kysely<Database>, keepId: string, otherIds: string[], name?: string,
+) => db.transaction().execute(async(trx) => {
+  const others = otherIds.filter((id) => id !== keepId);
+  if (others.length > 0) {
+    await sql`insert into book_authors (book_id, author_id, position)
+      select book_id, ${ keepId }, position from book_authors
+      where author_id in (${ sql.join(others) })
+      on conflict (book_id, author_id) do nothing`.execute(trx);
+    await trx.updateTable('alternate_author_names')
+      .set({ author_id: keepId })
+      .where('author_id', 'in', others)
+      .execute();
+    await trx.deleteFrom('authors').where('id', 'in', others).execute();
+  }
+
+  if (name !== undefined) {
+    await trx.updateTable('authors').set({ name }).where('id', '=', keepId).execute();
+    await sql`insert into alternate_author_names (author_id, name) values (${ keepId }, ${ name })
+      on conflict ((lower(name))) do nothing`.execute(trx);
+  }
+});
+
+export const AuthorActions = { findOrCreateAuthors, replaceBookAuthors, mergeAuthors };
