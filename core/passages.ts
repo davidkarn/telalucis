@@ -5,6 +5,7 @@
 // unless one alone is too long; a paragraph broken by a page (or a word by a line-end hyphen) is
 // joined again. Pure functions; model/passages.ts reads the blocks and saves the passages.
 import { squash, strip_tags } from './book_pages.ts';
+import { continuesParagraph, joinedParagraphs } from './book_text.ts';
 import type { PageBlock } from '../types.ts';
 
 // A passage's length in words: it's ended once it has TARGET_WORDS, before a paragraph taking it
@@ -45,15 +46,6 @@ export const wordCount = (text: string) => (text.length === 0 ? 0 : text.split('
 // A block's text: its footnote markers (<sup>) left out, its lines run together
 export const blockText = (html: string): string => squash(strip_tags(html.replace(/<sup>.*?<\/sup>/gis, ' ')));
 
-// Whether the paragraph after `text` carries it on: text doesn't end a sentence ("…the power of" /
-// "God exceeds…" across a page)
-const continues = (text: string) => !/[.!?:;"”’)\]]$/.test(text);
-
-// text and next joined: a word broken by a line-end hyphen ("contin-" "uation") made whole
-const joined = (text: string, next: string) => (
-  /\p{Ll}-$/u.test(text) && /^\p{Ll}/u.test(next) ? text.slice(0, -1) + next : `${ text } ${ next }`
-);
-
 // The body's paragraphs and headings in order, a paragraph broken by a page (or a block) one again
 const bodyUnits = (pages: PassageSourcePage[]): Unit[] => pages
   .flatMap((page) => page.blocks
@@ -64,8 +56,8 @@ const bodyUnits = (pages: PassageSourcePage[]): Unit[] => pages
   .filter((u) => u.text.length > 0)
   .reduce<Unit[]>((units, u) => {
     const last = units.at(-1);
-    return last && !last.heading && !u.heading && continues(last.text)
-      ? [...units.slice(0, -1), { ...last, endPageNumber: u.endPageNumber, text: joined(last.text, u.text) }]
+    return last && !last.heading && !u.heading && continuesParagraph(last.text)
+      ? [...units.slice(0, -1), { ...last, endPageNumber: u.endPageNumber, text: joinedParagraphs(last.text, u.text) }]
       : [...units, u];
   }, []);
 

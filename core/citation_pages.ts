@@ -7,7 +7,7 @@ export type SourceBlock = { id: string, label: string, html: string };
 
 // The footnote marker a paragraph starts with ("<p><sup>18</sup> ...", "<p>18 ...", "<p>1) ...", "<p>* ..."),
 // without trailing ")" or "."; null for a paragraph that continues the footnote before it
-const paragraph_marker = (p: string): string | null => {
+export const paragraph_marker = (p: string): string | null => {
   const m      = p.match(/^\s*<p>\s*(?:<sup>\s*([^<]+?)\s*<\/sup>|(\d{1,3}\)?|[*†‡])\s)/i);
   const marker = m?.[1] ?? m?.[2];
 
