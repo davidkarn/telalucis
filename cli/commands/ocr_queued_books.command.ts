@@ -1,5 +1,6 @@
-// OCR every queued book's downloaded PDF with surya, one after another, marking each inProgress for
-// process-ocred-books to import. Stops at the first book surya fails on.
+// OCR every queued book's PDF with surya, one after another (downloading it first when it's
+// missing), marking each inProgress for process-ocred-books to import. Stops at the first book whose
+// download or OCR fails.
 //   npm run cli -- ocr-queued-books
 import { Inject } from '@nestjs/common';
 import type { Kysely } from 'kysely';
