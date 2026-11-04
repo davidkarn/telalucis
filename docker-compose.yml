@@ -11,8 +11,12 @@ x-database-url: &database-url
   DATABASE_URL: postgres://tela_lucis:${POSTGRES_PASSWORD:-tela_lucis}@db:5432/tela_lucis
 
 services:
+  # Postgres with pgvector, for the passages' embeddings (docker/postgres.Dockerfile)
   db:
-    image: postgres:16-alpine
+    image: tela-lucis-postgres
+    build:
+      context: .
+      dockerfile: docker/postgres.Dockerfile
     restart: unless-stopped
     environment:
       POSTGRES_USER: tela_lucis

@@ -11,6 +11,7 @@ import { FillSourceSnippetsCommand } from './commands/fill_source_snippets.comma
 import { ImportAquinasCommand } from './commands/import_aquinas.command.ts';
 import { ImportJournalIssuesCommand } from './commands/import_journal_issues.command.ts';
 import { RelinkCitationsCommand } from './commands/relink_citations.command.ts';
+import { IndexPassagesCommand } from './commands/index_passages.command.ts';
 
 // The commands of cli/main.ts, sharing the API's database connection
 @Module({
@@ -26,6 +27,7 @@ import { RelinkCitationsCommand } from './commands/relink_citations.command.ts';
     ImportAquinasCommand,
     ImportJournalIssuesCommand,
     RelinkCitationsCommand,
+    IndexPassagesCommand,
     ReplCommand,
   ],
 })

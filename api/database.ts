@@ -190,6 +190,23 @@ export interface AuthorsTable {
 
 // A book's authors, in order (position, from 0): none for a book with none
 // ("Anonymous"). migrations/0028_create_book_authors.ts
+// A book's body text in passages, for searching by meaning and by words (see core/passages.ts and
+// migrations/0030_create_passages.ts). search and embedding are written in SQL: search is
+// generated from text; embedding is a pgvector halfvec, read and written as its text, "[0.1,...]".
+export interface PassagesTable {
+  id: Generated<string>,          // bigserial
+  book_id: string,
+  page_number: number,            // the page it starts on
+  end_page_number: number,        // the page it ends on
+  position: number,               // its place among its book's passages, from 0
+  text: string,
+  word_count: number,
+  search: ColumnType<string, never, never>,
+  embedding: string | null,
+  embedding_model: string | null,
+  created_at: Generated<Date>,
+}
+
 export interface BookAuthorsTable {
   book_id: string,
   author_id: string,
@@ -254,4 +271,5 @@ export interface Database {
   alternate_book_names: AlternateBookNamesTable,
   journals: JournalsTable,
   journal_issues: JournalIssuesTable,
+  passages: PassagesTable,
 }
