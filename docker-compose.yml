@@ -4,11 +4,12 @@
 #   docker compose run --rm api npm run cli -- <command>   (the CLI commands)
 #
 # Settings come from .env: OPENROUTER_KEY, ADMIN_USERNAME, ADMIN_PASSWORD, and optionally
-# POSTGRES_PASSWORD and WEB_PORT. DATABASE_URL is set here, pointing at the db service (the one in
-# .env is for running outside Docker).
+# POSTGRES_PASSWORD and WEB_PORT. DATABASE_URL and REDIS_URL are set here, pointing at the db and
+# redis services (those in .env are for running outside Docker).
 
 x-database-url: &database-url
   DATABASE_URL: postgres://tela_lucis:${POSTGRES_PASSWORD:-tela_lucis}@db:5432/tela_lucis
+  REDIS_URL: redis://redis:6379
 
 services:
   # Postgres with pgvector, for the passages' embeddings (docker/postgres.Dockerfile)
@@ -26,6 +27,19 @@ services:
       - db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tela_lucis -d tela_lucis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # the queue of .mobi e-books to make (BullMQ; lib/ebook_queue.ts), kept on disk
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -61,6 +75,26 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  # makes the .mobi e-books the API's readers ask for, into ./output/ebooks, which the api service
+  # serves them from (the ebook-worker command; Calibre is in this image only)
+  ebook-worker:
+    image: tela-lucis-worker
+    build:
+      context: .
+      target: worker
+    restart: unless-stopped
+    environment:
+      <<: *database-url
+    volumes:
+      - ./output:/app/output
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
 
   web:
     image: tela-lucis-web
@@ -77,3 +111,4 @@ services:
 
 volumes:
   db-data:
+  redis-data:

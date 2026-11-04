@@ -293,6 +293,78 @@ paths:
                 $ref: '#/components/schemas/BookSummary'
         '404':
           description: no book with this id, or no such volume
+  /books/{bookId}/ebook.epub:
+    get:
+      tags:
+        - Books
+      summary: >-
+        The book as an EPUB e-book: a title page, its contents, a section per part (or heading),
+        and its footnotes as pop-up notes. Made when asked for (a second for the longest book).
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: the EPUB, as an attachment named after the book's title
+          content:
+            application/epub+zip:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: no such book
+        '451':
+          description: the book is withheld, likely being under copyright
+  /books/{bookId}/ebook.mobi:
+    post:
+      tags:
+        - Books
+      summary: >-
+        Ask for the book as a .mobi e-book (older Kindles): converted from its EPUB in the
+        background, one book at a time, and kept until the book changes. Asked again, says how it's
+        going; once ready, GET downloads it. A failure is told once; asking again tries again.
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: how it's going
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobiStatus'
+        '404':
+          description: no such book
+        '451':
+          description: the book is withheld, likely being under copyright
+    get:
+      tags:
+        - Books
+      summary: The book's .mobi, once POST has made it ready
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: the .mobi, as an attachment named after the book's title
+          content:
+            application/x-mobipocket-ebook:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: no such book, or its .mobi isn't ready
+        '451':
+          description: the book is withheld, likely being under copyright
   /books/{bookId}/pageOrder:
     get:
       tags:
@@ -1203,6 +1275,30 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/FootnoteCitation'
+    MobiStatus:
+      description: >-
+        ready: GET /books/{bookId}/ebook.mobi downloads it; queued: waiting behind `ahead` books;
+        converting: being made (a minute for the longest book); failed: why (asking again tries
+        again)
+      oneOf:
+        - type: object
+          required: [status]
+          properties:
+            status: { type: string, enum: [ready] }
+        - type: object
+          required: [status, ahead]
+          properties:
+            status: { type: string, enum: [queued] }
+            ahead: { type: integer }
+        - type: object
+          required: [status]
+          properties:
+            status: { type: string, enum: [converting] }
+        - type: object
+          required: [status, error]
+          properties:
+            status: { type: string, enum: [failed] }
+            error: { type: string }
     FootnoteCitation:
       description: >-
         a citation in a page's footnotes, with the book in the collection it points at and the

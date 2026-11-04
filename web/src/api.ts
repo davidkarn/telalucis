@@ -314,6 +314,24 @@ const requestJson = async <T>(method: 'GET' | 'POST', path: string, body?: unkno
   }
 };
 
+// A book's e-book files: its EPUB, made when asked for, and its .mobi (for older Kindles), made in
+// the background: POST asks for it, GET downloads it once it's ready
+export const ebookUrl = (bookId: string, format: 'epub' | 'mobi') => (
+  `/api/books/${encodeURIComponent(bookId)}/ebook.${format}`
+);
+
+// The MobiStatus schema: ready to download, waiting behind `ahead` others, being converted, or
+// failed (asking again tries again)
+export type MobiStatus =
+  | { status: 'ready' }
+  | { status: 'queued', ahead: number }
+  | { status: 'converting' }
+  | { status: 'failed', error: string };
+
+export const requestMobi = (bookId: string): Promise<MobiStatus> => (
+  requestJson('POST', `/books/${encodeURIComponent(bookId)}/ebook.mobi`)
+);
+
 export const fetchAdminSession = (): Promise<AdminSession> => requestJson('GET', '/admin/session');
 
 export const adminLogin = (username: string, password: string): Promise<AdminSession> =>

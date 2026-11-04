@@ -18,6 +18,7 @@ import { TableOfContents } from './table_of_contents';
 import { pagesOnly, pageVolumes } from '../core/page_order'
 import { chapterOfPage, citingAuthorsSummaryForMany, verseRows } from '../core/bible_page'
 import { LoadingSpinner } from './loading_spinner'
+import { EbookDownloads } from './ebook_downloads'
 
 const MAX_CITATIONS_BEFORE_COLLAPSING = 3;
 
@@ -151,7 +152,8 @@ export const BookPageView = ({
               __('div', {className: 'book-title-row'},
                 __('h1', {className: 'book-title'}, book.title),                
               ),
-              __('div', {className: 'book-author'}, book.author)
+              __('div', {className: 'book-author'}, book.author),
+              __(EbookDownloads, {bookId: book.id})
             ),
             match({isBible: book.isBible, empty: page.blocks.length === 0})
               .with({empty: true}, () => (

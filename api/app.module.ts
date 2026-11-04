@@ -9,6 +9,8 @@ import { BooksService } from './books.service';
 import { CitationSourcePagesController, CitationsController } from './citations.controller';
 import { CitationsService } from './citations.service';
 import { DatabaseModule } from './database.module';
+import { EbooksController } from './ebooks.controller';
+import { EbooksService } from './ebooks.service';
 import { InsightsController } from './insights.controller';
 import { InsightsService } from './insights.service';
 import { JournalsController } from './journals.controller';
@@ -18,8 +20,11 @@ import { JournalsService } from './journals.service';
   imports:     [DatabaseModule],
   controllers: [
     AdminController, AuthorsController, BooksController, CitationsController, CitationSourcePagesController,
-    InsightsController, JournalsController,
+    EbooksController, InsightsController, JournalsController,
   ],
-  providers:   [AdminGuard, AdminService, AuthorsService, BooksService, CitationsService, InsightsService, JournalsService],
+  providers:   [
+    AdminGuard, AdminService, AuthorsService, BooksService, CitationsService, EbooksService, InsightsService,
+    JournalsService,
+  ],
 })
 export class AppModule {}

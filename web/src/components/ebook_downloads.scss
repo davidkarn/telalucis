@@ -1,0 +1,38 @@
+// a book's e-book downloads, under its author
+.ebook-downloads {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+
+    svg {
+        width: 0.875rem;
+        height: 0.875rem;
+    }
+
+    a,
+    button {
+        padding: 0;
+        border: none;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-decoration: underline;
+        cursor: pointer;
+
+        &:hover {
+            color: var(--text);
+        }
+
+        &:disabled {
+            cursor: default;
+            opacity: 0.6;
+        }
+    }
+
+    .mobi-status {
+        font-style: italic;
+    }
+}
