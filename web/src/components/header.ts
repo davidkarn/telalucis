@@ -51,7 +51,7 @@ export const Header = () => {
     __('header', {className: 'site-header'},
       __(Link, {to: '/'},
         __('div', {className: 'site-name'},
-          __('img', {src: '/logo-small.png', id: 'site-logo'}),
+          __('img', {src: '/logo.svg', id: 'site-logo', alt: ''}),
           __('div', {}, "Tela Lucis"),
         )
       ),

@@ -4,5 +4,5 @@
 output
 node_modules
 web/node_modules
-web/public
+web/public/covers
 .DS_Store
