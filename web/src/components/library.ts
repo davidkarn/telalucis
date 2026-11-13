@@ -23,7 +23,7 @@ export const Library = ({heading, subheading, authorId, journalIssueId, searchLa
   searchLabel: string,
 }) => {
   const navigate                        = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams]                  = useSearchParams();
 
   const query = useSearchQuery();
   const page  = Math.max(1, Number(searchParams.get('page')) || 1);
@@ -45,13 +45,9 @@ export const Library = ({heading, subheading, authorId, journalIssueId, searchLa
 
   const pageCount = books ? Math.ceil(books.meta.count / PAGE_LENGTH) : 0;
   const things    = journalIssueId === undefined ? 'books' : 'articles';
-  const goToPage  = (n: number) => {
-    setSearchParams(
-      query ? {q: query, page: String(n)} : {page: String(n)}
-    );
-
-    window.scrollTo({top: 0});
-  };
+  const pageHref  = (n: number) => '?' + new URLSearchParams(
+    query ? {q: query, page: String(n)} : {page: String(n)}
+  ).toString();
 
   return (
     __('section', {className: 'page-body' + (loading && books ? ' loading' : '')},
@@ -108,7 +104,7 @@ export const Library = ({heading, subheading, authorId, journalIssueId, searchLa
                 )
               )),
             ),
-            __(Pager, {page, pageCount, onPage: goToPage})
+            __(Pager, {page, pageCount, hrefFor: pageHref})
           )
         ))
     )

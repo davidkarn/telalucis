@@ -10,6 +10,7 @@
 //   import-journal-issues          import the OCR'd journal issues (../thomist ...), with their citations
 //   relink-citations [bookIds...]  link the citations of books in the collection not linked to them
 //   index-passages [bookIds...]    cut the books' text into passages and embed them, for searching
+//   search-passages [question]     search the passages for a question, or measure the search (--eval)
 //   ebook-worker                   make the .mobi e-books readers ask for, until stopped (needs Redis)
 //   repl                           a REPL with the database and the models (also: npm run repl)
 // A book found on archive.org goes through them in that order (see model/queued_book_imports.ts).

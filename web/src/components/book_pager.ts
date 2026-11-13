@@ -1,5 +1,5 @@
 import { useRef, createElement as __, useState, memo } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import type { PageOrderEntry, VolumeSummary } from '../api'
 import { entryLabel } from '../core/contents'
 import { pagesOnly, pageVolumes } from '../core/page_order'
@@ -17,7 +17,6 @@ const BookPager = memo(({pages, allPagesListed, volume, volumes, hrefForPage}: {
   volumes: VolumeSummary[],
   hrefForPage: (pageId: number, volume?: number) => string,
 }) => {
-  const navigate    = useNavigate();
   const volumeOf    = pageVolumes(pages, volumes);
 
   const wrapper             = useRef<HTMLDivElement>(null);
@@ -50,12 +49,13 @@ const BookPager = memo(({pages, allPagesListed, volume, volumes, hrefForPage}: {
   const line = (page: PageOrderEntry) => {
     const cited = page.citedByCount ?? 0;
     return (
-      __('div', {
+      __(Link, {
         key: page.pageId,
+        to: hrefForPage(page.pageId, volumeOf.get(page.pageId)),
+        'aria-label': 'Page ' + page.printedPageNumber,
         className: 'line' + (
           cited > 0 ? (cited > 4 ? ' with-many-citations' : ' with-citations') : ''
         ),
-        onClick: () => navigate(hrefForPage(page.pageId, volumeOf.get(page.pageId)))
       },
         __('span', {},
           page.printedPageNumber

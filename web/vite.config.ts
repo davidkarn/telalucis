@@ -11,6 +11,12 @@ export default defineConfig({
         target: process.env.API_URL ?? 'http://localhost:3000',
         rewrite: path => path.replace(/^\/api/, ''),
       },
+      // robots.txt and the sitemaps, as nginx passes them (the pages' HTML for search engines
+      // is the API's /seo/html/<path>; the dev server serves the app itself)
+      '^/(robots\\.txt|sitemap\\.xml|sitemaps/[^/]+\\.xml)$': {
+        target: process.env.API_URL ?? 'http://localhost:3000',
+        rewrite: path => '/seo' + path,
+      },
     },
   },
 })

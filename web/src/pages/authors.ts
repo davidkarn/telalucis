@@ -20,7 +20,7 @@ const PAGE_LENGTH = 25
 // (AuthorPage).
 export default function AuthorsPage() {
   const navigate                        = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams]                  = useSearchParams();
   const query                           = useSearchQuery();
   const page                            = Math.max(1, Number(searchParams.get('page')) || 1);
 
@@ -34,10 +34,9 @@ export default function AuthorsPage() {
   useDocumentTitle('Tela Lucis - By author');
 
   const pageCount = authors ? Math.ceil(authors.meta.count / PAGE_LENGTH) : 0;
-  const goToPage  = (n: number) => {
-    setSearchParams(query ? {q: query, page: String(n)} : {page: String(n)});
-    window.scrollTo({top: 0});
-  };
+  const pageHref  = (n: number) => '?' + new URLSearchParams(
+    query ? {q: query, page: String(n)} : {page: String(n)}
+  ).toString();
 
   return (
     __('main', {className: 'home authors'},
@@ -93,7 +92,7 @@ export default function AuthorsPage() {
                 ))
               )
             )),
-          __(Pager, {page, pageCount, onPage: goToPage})
+          __(Pager, {page, pageCount, hrefFor: pageHref})
         )
       )
     )

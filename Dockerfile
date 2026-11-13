@@ -7,6 +7,18 @@
 
 ARG NODE_VERSION=22.17.1
 
+# --- building the web app ---
+FROM node:${NODE_VERSION}-slim AS web-build
+WORKDIR /app/web
+
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+
+# the web app imports ../lib/lib.ts (components/pager.ts)
+COPY lib /app/lib
+COPY web ./
+RUN npx vite build
+
 # --- the API, its CLI commands and the migrations ---
 FROM node:${NODE_VERSION}-slim AS api
 WORKDIR /app
@@ -26,6 +38,9 @@ COPY core ./core
 COPY lib ./lib
 COPY migrations ./migrations
 COPY model ./model
+# the built app's index.html, which the API fills in with each public page's title, description
+# and content for search engines (api/seo.service.ts)
+COPY --from=web-build /app/web/dist/index.html ./web/dist/index.html
 
 USER node
 EXPOSE 3000
@@ -48,18 +63,6 @@ COPY --from=api /app /app
 
 USER node
 CMD ["npx", "tsx", "cli/main.ts", "ebook-worker"]
-
-# --- building the web app ---
-FROM node:${NODE_VERSION}-slim AS web-build
-WORKDIR /app/web
-
-COPY web/package.json web/package-lock.json ./
-RUN npm ci
-
-# the web app imports ../lib/lib.ts (components/pager.ts)
-COPY lib /app/lib
-COPY web ./
-RUN npx vite build
 
 # --- the web app, served by nginx ---
 FROM nginx:1.29-alpine AS web

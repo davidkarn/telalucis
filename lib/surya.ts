@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { SURYA_RESULTS_DIR, ocrFolderName, pdfPath, suryaResultsPath } from '../core/book_files.ts';
+import { downloadPdf } from './pdf_download.ts';
 
 // SURYA_OCR_BIN, else surya's pipx install, else surya_ocr on the PATH
 const SURYA_DEFAULT = path.join(os.homedir(), '.local/bin/surya_ocr');
@@ -34,8 +35,8 @@ const run = (command: string, args: string[]) => new Promise<void>((resolve, rej
   ));
 });
 
-// OCR the downloaded PDF at pdfUrl, unless it has valid results already. Returns the results'
-// path. Throws if the PDF isn't downloaded yet or surya fails. surya is left running
+// OCR the PDF at pdfUrl, unless it has valid results already, downloading it first if it isn't
+// yet. Returns the results' path. Throws if the download or surya fails. surya is left running
 // (--keep_server), so the next book doesn't wait ~1-2 minutes for the model to load.
 export const ocrWithSurya = async(pdfUrl: string): Promise<string> => {
   const pdf     = pdfPath(pdfUrl);
@@ -44,10 +45,12 @@ export const ocrWithSurya = async(pdfUrl: string): Promise<string> => {
   if (await hasValidResults(results)) {
     return results;
   }
-  else if (!await fs.access(pdf).then(() => true, () => false)) {
-    throw new Error(`PDF not downloaded yet: ${ pdf }`);
-  }
   else {
+    if (!await fs.access(pdf).then(() => true, () => false)) {
+      console.log(`downloading ${ pdfUrl }`);
+      await downloadPdf(pdfUrl, pdf);
+    }
+
     // surya names its output folder after the input file's name up to the first ".": give it a
     // link named after ocrFolderName, which has none
     const tmp  = await fs.mkdtemp(path.join(os.tmpdir(), 'surya-'));

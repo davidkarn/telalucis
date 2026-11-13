@@ -1,4 +1,5 @@
 import { createElement as __, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { Menu, X } from 'lucide-react';
 import './header.scss';
 
@@ -19,8 +20,9 @@ const FEATURED: NavLink[] = [
   { href: '/books/douay-rheims', label: 'Douay-Rheims' },
 ];
 
-const navLinks = (links: NavLink[]) => links.map((link) => (
-  __('a', {key: link.href, className: 'navbar-link', href: link.href}, link.label)
+// Links going to the page in the app (no reload); onFollow: called when one is followed
+const navLinks = (links: NavLink[], onFollow?: () => void) => links.map((link) => (
+  __(Link, {key: link.href, className: 'navbar-link', to: link.href, onClick: onFollow}, link.label)
 ));
 
 // The site's name and its navbar; on a narrow screen, the links are in a menu opened by a
@@ -47,7 +49,7 @@ export const Header = () => {
 
   return (
     __('header', {className: 'site-header'},
-      __('a', {href: '/'},
+      __(Link, {to: '/'},
         __('div', {className: 'site-name'},
           __('img', {src: '/logo-small.png', id: 'site-logo'}),
           __('div', {}, "Tela Lucis"),
@@ -69,9 +71,9 @@ export const Header = () => {
           onClick:         () => setMenuOpen(!menuOpen),
         }, menuOpen ? __(X, {}) : __(Menu, {})),
         menuOpen && __('nav', {className: 'navbar-dropdown'},
-          navLinks(SECTIONS),
+          navLinks(SECTIONS, () => setMenuOpen(false)),
           __('hr', {}),
-          navLinks(FEATURED),
+          navLinks(FEATURED, () => setMenuOpen(false)),
         )
       )
     )

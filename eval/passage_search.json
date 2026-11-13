@@ -1,0 +1,59 @@
+{
+  "about": "Questions whose answers are known, for measuring the passage search (npm run cli -- search-passages --eval eval/passage_search.json). A result answers a question when its pages include a page of one of the expected books cited by the expected parts (all of them, outermost first; book_pages_to_citations).",
+  "questions": [
+    { "question": "Is the existence of God self-evident?",
+      "expect": [
+        { "bookId": "summa-theologiae", "parts": [["book", 1], ["question", 2], ["article", 1]] },
+        { "bookId": "summa-contra-gentiles-pegis", "parts": [["book", 1], ["chapter", 10]] },
+        { "bookId": "summa-contra-gentiles-pegis", "parts": [["book", 1], ["chapter", 11]] },
+        { "bookId": "aquinas-de-veritate", "parts": [["question", 10], ["article", 12]] } ] },
+    { "question": "Utrum Deum esse sit per se notum",
+      "expect": [ { "bookId": "summa-theologiae", "parts": [["book", 1], ["question", 2], ["article", 1]] } ] },
+    { "question": "Can the existence of God be demonstrated from his effects?",
+      "expect": [
+        { "bookId": "summa-theologiae", "parts": [["book", 1], ["question", 2], ["article", 2]] },
+        { "bookId": "summa-contra-gentiles-pegis", "parts": [["book", 1], ["chapter", 12]] } ] },
+    { "question": "What are the five ways of proving that God exists?",
+      "expect": [ { "bookId": "summa-theologiae", "parts": [["book", 1], ["question", 2], ["article", 3]] } ] },
+    { "question": "Can God do better than what he does?",
+      "expect": [
+        { "bookId": "summa-theologiae", "parts": [["book", 1], ["question", 25], ["article", 6]] },
+        { "bookId": "hugh-of-st-victor-de-sacramentis", "parts": [["book", 1], ["part", 2], ["chapter", 22]] } ] },
+    { "question": "Does God know future contingent things?",
+      "expect": [
+        { "bookId": "summa-theologiae", "parts": [["book", 1], ["question", 14], ["article", 13]] },
+        { "bookId": "summa-contra-gentiles-pegis", "parts": [["book", 1], ["chapter", 67]] },
+        { "bookId": "aquinas-de-veritate", "parts": [["question", 2], ["article", 12]] } ] },
+    { "question": "Is the intellectual soul united to the body as its form?",
+      "expect": [
+        { "bookId": "summa-theologiae", "parts": [["book", 1], ["question", 76], ["article", 1]] },
+        { "bookId": "summa-contra-gentiles-pegis", "parts": [["book", 2], ["chapter", 68]] } ] },
+    { "question": "Is the human soul incorruptible?",
+      "expect": [ { "bookId": "summa-theologiae", "parts": [["book", 1], ["question", 75], ["article", 6]] } ] },
+    { "question": "Does man have free will?",
+      "expect": [ { "bookId": "summa-theologiae", "parts": [["book", 1], ["question", 83], ["article", 1]] } ] },
+    { "question": "Did the world always exist, or did it have a beginning in time?",
+      "expect": [
+        { "bookId": "summa-theologiae", "parts": [["book", 1], ["question", 46], ["article", 1]] },
+        { "bookId": "summa-theologiae", "parts": [["book", 1], ["question", 46], ["article", 2]] } ] },
+    { "question": "Is evil a nature or a privation of good?",
+      "expect": [
+        { "bookId": "summa-theologiae", "parts": [["book", 1], ["question", 48], ["article", 1]] },
+        { "bookId": "npnf101-the-confessions", "parts": [["book", 7], ["chapter", 12]] },
+        { "bookId": "npnf102-city-of-god", "parts": [["book", 11], ["chapter", 9]] },
+        { "bookId": "npnf102-city-of-god", "parts": [["book", 11], ["chapter", 22]] } ] },
+    { "question": "Does man's happiness consist in seeing the divine essence?",
+      "expect": [ { "bookId": "summa-theologiae", "parts": [["book", 2], ["question", 3], ["article", 8]] } ] },
+    { "question": "Is lying always a sin?",
+      "expect": [ { "bookId": "summa-theologiae", "parts": [["book", 3], ["question", 110], ["article", 3]] } ] },
+    { "question": "What then is time? If no one asks me, I know",
+      "expect": [ { "bookId": "npnf101-the-confessions", "parts": [["book", 11], ["chapter", 14]] } ] },
+    { "question": "Two loves have made two cities: love of self and love of God",
+      "expect": [ { "bookId": "npnf102-city-of-god", "parts": [["book", 14], ["chapter", 28]] } ] },
+    { "question": "Why was it necessary for God to become man to make satisfaction for sin?",
+      "expect": [
+        { "bookId": "anselm-cur-deus-homo", "parts": [["book", 1]] },
+        { "bookId": "anselm-cur-deus-homo", "parts": [["book", 2]] },
+        { "bookId": "summa-theologiae", "parts": [["book", 4], ["question", 1], ["article", 2]] } ] }
+  ]
+}

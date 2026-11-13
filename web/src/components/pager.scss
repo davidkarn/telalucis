@@ -14,8 +14,10 @@ $ash-brown: #604F42ff;
     align-self:stretch;
     height: 2rem;
 
-    button {
+    button, a, span.disabled {
         display: inline-flex;
+        box-sizing: border-box;
+        text-decoration: none;
         align-items: center;
         justify-content: center;
         min-width: 2.25rem;
@@ -30,7 +32,7 @@ $ash-brown: #604F42ff;
         font-family: pt sans, sans serif;
         cursor: pointer;
 
-        &:disabled {
+        &:disabled, &.disabled {
             opacity: 0.35;
             cursor: default;
         }
@@ -41,7 +43,7 @@ $ash-brown: #604F42ff;
             cursor: pointer;
         }
 
-        &.current, &:disabled {
+        &.current, &:disabled, &.disabled {
             cursor: default;
         }
     }

@@ -113,6 +113,8 @@
 
     .line {
         display: flex;
+        color: inherit;
+        text-decoration: none;
         align-items: center;
         cursor: pointer;
         flex-grow: 1;

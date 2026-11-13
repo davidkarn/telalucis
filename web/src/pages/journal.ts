@@ -18,7 +18,7 @@ const PAGE_LENGTH = 24
 export default function JournalPage() {
   const navigate                        = useNavigate();
   const journalId                       = useParams().journalId ?? '';
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams]                  = useSearchParams();
   const page                            = Math.max(1, Number(searchParams.get('page')) || 1);
 
   const journal = useQuery(journalQuery(journalId)).data ?? null;
@@ -32,10 +32,7 @@ export default function JournalPage() {
   useDocumentTitle(journal === null ? null : 'Tela Lucis - ' + journal.name);
 
   const pageCount = issues ? Math.ceil(issues.meta.count / PAGE_LENGTH) : 0;
-  const goToPage  = (n: number) => {
-    setSearchParams({page: String(n)});
-    window.scrollTo({top: 0});
-  };
+  const pageHref  = (n: number) => '?' + new URLSearchParams({page: String(n)}).toString();
 
   return (
     __('main', {className: 'home journal'},
@@ -85,7 +82,7 @@ export default function JournalPage() {
                 })
               )
             )),
-          __(Pager, {page, pageCount, onPage: goToPage})
+          __(Pager, {page, pageCount, hrefFor: pageHref})
         )
       )
     )

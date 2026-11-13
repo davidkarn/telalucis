@@ -13,6 +13,7 @@ import { ImportJournalIssuesCommand } from './commands/import_journal_issues.com
 import { RelinkCitationsCommand } from './commands/relink_citations.command.ts';
 import { IndexPassagesCommand } from './commands/index_passages.command.ts';
 import { EbookWorkerCommand } from './commands/ebook_worker.command.ts';
+import { SearchPassagesCommand } from './commands/search_passages.command.ts';
 
 // The commands of cli/main.ts, sharing the API's database connection
 @Module({
@@ -30,6 +31,7 @@ import { EbookWorkerCommand } from './commands/ebook_worker.command.ts';
     RelinkCitationsCommand,
     IndexPassagesCommand,
     EbookWorkerCommand,
+    SearchPassagesCommand,
     ReplCommand,
   ],
 })

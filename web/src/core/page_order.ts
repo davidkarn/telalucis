@@ -16,3 +16,37 @@ export const pageVolumes = (
   const volume = volumes.findLast((v) => v.firstPageId <= page.pageId && page.pageId <= v.lastPageId);
   return volume === undefined ? [] : [[page.pageId, volume.volume] as const];
 }));
+
+// A page as a title names it, as the API's pages for search engines do (core/seo.ts): "p. 12",
+// "p. xiv"; a page named by its part as it is ("Book II, Chapter 6"); "page 3" without a number
+export const pageLabel = (page: Pick<PageOrderEntry, 'pageId' | 'printedPageNumber'>): string => {
+  const printed = page.printedPageNumber.trim();
+
+  if (printed.length === 0) {
+    return 'page ' + page.pageId;
+  }
+  else if (/^(\d+|[ivxlcdm]+)$/i.test(printed)) {
+    return 'p. ' + printed;
+  }
+  else {
+    return printed;
+  }
+};
+
+// The title of a book open to a page: "Politics - Aristotle, p. 12"; without the page when it
+// isn't open to one, or the page isn't among those listed
+export const bookPageTitle = (
+  book: { title: string, author: string, pageOrder: PageOrderEntry[] }, pageId: number | undefined,
+): string => {
+  const heading = book.author.length > 0 ? `${ book.title } - ${ book.author }` : book.title;
+  const page    = pageId === undefined
+    ? undefined
+    : pagesOnly(book.pageOrder).find((p) => p.pageId === pageId);
+
+  if (page === undefined) {
+    return heading;
+  }
+  else {
+    return heading + ', ' + pageLabel(page);
+  }
+};

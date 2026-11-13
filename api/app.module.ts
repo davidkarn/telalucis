@@ -15,16 +15,18 @@ import { InsightsController } from './insights.controller';
 import { InsightsService } from './insights.service';
 import { JournalsController } from './journals.controller';
 import { JournalsService } from './journals.service';
+import { SeoController } from './seo.controller';
+import { SeoService } from './seo.service';
 
 @Module({
   imports:     [DatabaseModule],
   controllers: [
     AdminController, AuthorsController, BooksController, CitationsController, CitationSourcePagesController,
-    EbooksController, InsightsController, JournalsController,
+    EbooksController, InsightsController, JournalsController, SeoController,
   ],
   providers:   [
     AdminGuard, AdminService, AuthorsService, BooksService, CitationsService, EbooksService, InsightsService,
-    JournalsService,
+    JournalsService, SeoService,
   ],
 })
 export class AppModule {}

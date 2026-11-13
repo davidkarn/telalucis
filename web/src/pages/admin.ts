@@ -12,6 +12,7 @@ import { adminLogin, adminLogout, ApiError, type AdminDashboard, type CitationIn
 import { adminCitationInsightsQuery, adminDashboardQuery, adminSessionQuery } from '../queries'
 import { STATUS_LABELS } from '../core/queued_books'
 import { Header } from '../components/header'
+import { useDocumentTitle } from '../lib'
 import { AdminCitations } from '../components/admin_citations'
 import { AdminBooks } from '../components/admin_books'
 import { AdminQueuedBooks } from '../components/admin_queued_books'
@@ -21,6 +22,7 @@ import { LoadingSpinner } from '../components/loading_spinner'
 
 export default function AdminPage() {
   const session = useQuery(adminSessionQuery());
+  useDocumentTitle('Tela Lucis - Admin');
 
   return (
     __('main', {className: 'admin'},

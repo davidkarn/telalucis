@@ -1020,6 +1020,81 @@ paths:
           description: not signed in
         '503':
           description: the admin panel is closed (ADMIN_USERNAME and ADMIN_PASSWORD are not set)
+  /seo/robots.txt:
+    get:
+      tags:
+        - SEO
+      summary: >-
+        The site's robots.txt (nginx serves it at /robots.txt): the admin panel and the API
+        disallowed, and the sitemap. URLs use PUBLIC_ORIGIN, else the request's host and scheme.
+      responses:
+        '200':
+          content:
+            text/plain:
+              schema:
+                type: string
+  /seo/sitemap.xml:
+    get:
+      tags:
+        - SEO
+      summary: >-
+        The sitemap index (nginx serves it at /sitemap.xml), listing /sitemaps/books.xml,
+        authors.xml, journals.xml and pages-1.xml, pages-2.xml... (40,000 pages each)
+      responses:
+        '200':
+          content:
+            application/xml:
+              schema:
+                type: string
+  /seo/sitemaps/{name}:
+    get:
+      tags:
+        - SEO
+      summary: >-
+        One sitemap (nginx serves it at /sitemaps/{name}): the books shown (not withheld as likely
+        under copyright), the authors with such books, the journals and their issues, or a run of
+        the shown books' pages
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^(books|authors|journals|pages-[1-9][0-9]*)\.xml$'
+      responses:
+        '200':
+          content:
+            application/xml:
+              schema:
+                type: string
+        '404':
+          description: no such sitemap
+  /seo/html/{path}:
+    get:
+      tags:
+        - SEO
+      summary: >-
+        The web app's page at /{path} (nginx passes /, /books/..., /authors/... and
+        /journals/... here): the built index.html with the page's title, description, robots
+        directives, canonical URL, Open Graph tags and JSON-LD, and its content in #root, which
+        the app replaces when it starts. Several books open side by side are noindex, without a
+        canonical URL. The robots directives are also in X-Robots-Tag.
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: no such book, page, author, journal or issue (the app, noindex)
+        '451':
+          description: the book is withheld, likely being under copyright (the app, noindex)
 components:
   schemas:
     AdminBookCopyright:

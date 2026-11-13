@@ -11,7 +11,7 @@ import BookPager from '../components/book_pager';
 import { Header } from '../components/header';
 import { BookPageView } from '../components/book_page';
 import { openBooksPath, parseOpenBooks, withBookClosed, withBookOpened, withPage, type OpenBook } from '../core/open_books';
-import { pagesOnly } from '../core/page_order'
+import { bookPageTitle, pagesOnly } from '../core/page_order'
 import { collapsedColumns, gridColumns } from '../core/column_layout'
 import { LoadingSpinner } from '../components/loading_spinner'
 
@@ -47,7 +47,7 @@ export default function BookView() {
   useDocumentTitle(
     leftmostQuery.data === undefined
       ? null
-      : `${ leftmostQuery.data.title } - ${ leftmostQuery.data.author }`
+      : bookPageTitle(leftmostQuery.data, leftmost?.pageId)
   );
 
   // the main column: the one expanded by clicking it while collapsed, as long
