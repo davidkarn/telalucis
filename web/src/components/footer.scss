@@ -1,0 +1,21 @@
+footer.site-footer {
+    display: flex;
+    justify-content: center;
+    padding: 1.5rem 1rem 2rem;
+    border-top: 1px solid var(--light-accent);
+    font-family: pt sans, sans-serif;
+    font-size: 0.875rem;
+
+    a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        color: var(--text-muted);
+        text-decoration: none;
+
+        &:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+    }
+}

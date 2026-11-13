@@ -12,6 +12,7 @@ import AuthorPage from './pages/author.ts'
 import JournalsPage from './pages/journals.ts'
 import JournalPage from './pages/journal.ts'
 import JournalIssuePage from './pages/journal_issue.ts'
+import { Footer } from './components/footer.ts'
 
 createRoot(document.getElementById('root')!).render(
   __(StrictMode, {},
@@ -30,7 +31,8 @@ createRoot(document.getElementById('root')!).render(
           __(Route, {path: '/books/*', element: __(BookView)}),
           // the admin panel and its tabs: /tl-admin[/<tab>]
           __(Route, {path: '/tl-admin/*', element: __(AdminPage)}),
-        )
+        ),
+        __(Footer, {}),
       )
     )
   ),
