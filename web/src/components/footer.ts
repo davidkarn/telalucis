@@ -32,7 +32,7 @@ export const Footer = () => {
       __('footer', {className: 'site-footer'},
         __('a', {href: SOURCE_URL, rel: 'noopener'},
           githubMark(),
-          'Source on GitHub',
+          'GitHub',
         )
       )
     );
