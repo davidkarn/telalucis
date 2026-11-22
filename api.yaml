@@ -634,6 +634,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CurrentUser'
+    patch:
+      tags:
+        - Auth
+      summary: >-
+        Change the name the signed-in user goes by (trimmed, runs of spaces made one). Signing in
+        again with Google doesn't change it back.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+        '400':
+          description: the name is empty, longer than 100 characters, or holds control characters
+        '401':
+          description: not signed in
   /auth/logout:
     post:
       tags:
@@ -1369,7 +1398,9 @@ components:
         emailVerified:
           type: boolean
         name:
-          description: their Google name, or their email when they have none
+          description: >-
+            the name they go by: their Google name when they first signed in (their email when
+            they had none), until they change it
           type: string
         pictureUrl:
           type: string

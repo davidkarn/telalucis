@@ -36,12 +36,13 @@ export const adminGoogleEmails = (env: Record<string, string | undefined>): stri
 );
 
 // Whether a signed-in reader is an admin: their Google email is verified and
-// listed in ADMIN_GOOGLE_EMAILS
+// listed in ADMIN_GOOGLE_EMAILS. No one (null, as passport leaves req.user
+// after signing out, or undefined) isn't.
 export const isAdminUser = (
-  user: { email: string, emailVerified: boolean } | undefined,
+  user: { email: string, emailVerified: boolean } | null | undefined,
   env: Record<string, string | undefined>,
 ): boolean => (
-  user !== undefined && user.emailVerified
+  user !== undefined && user !== null && user.emailVerified
     && adminGoogleEmails(env).includes(user.email.trim().toLowerCase())
 );
 
@@ -92,3 +93,27 @@ export const safeReturnTo = (returnTo: unknown): string => (
 export const signInFailedPath = (returnTo: string): string => (
   returnTo + (returnTo.includes('?') ? '&' : '?') + 'signIn=failed'
 );
+
+export const MAX_USER_NAME_LENGTH = 100;
+
+// The name a user asked to go by, trimmed and its runs of spaces made one; an
+// error instead when it's empty, too long or holds control characters
+export const userNameEdit = (name: unknown): { name: string } | { error: string } => {
+  const trimmed = typeof name === 'string' ? name.trim().replace(/\s+/g, ' ') : '';
+
+  if (typeof name !== 'string') {
+    return { error: 'name must be a string' };
+  }
+  else if (trimmed.length === 0) {
+    return { error: "name can't be empty" };
+  }
+  else if ([...trimmed].length > MAX_USER_NAME_LENGTH) {
+    return { error: `name can't be longer than ${ MAX_USER_NAME_LENGTH } characters` };
+  }
+  else if (/\p{Cc}/u.test(name.replace(/[\t\n\r]/g, ' '))) {
+    return { error: "name can't hold control characters" };
+  }
+  else {
+    return { name: trimmed };
+  }
+};

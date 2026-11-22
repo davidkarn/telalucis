@@ -2,9 +2,16 @@
 // core/user_auth.ts). /auth/google starts it, Google sends the browser back to
 // /auth/google/callback (at /api/... through nginx), which goes back to where
 // it started.
-import { Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException, Body, Controller, Get, HttpCode, Inject, Patch, Post, Req, Res,
+  UnauthorizedException, UseGuards,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { googleAuthConfig, isAdminUser, signInFailedPath } from '../core/user_auth';
+import type { Kysely } from 'kysely';
+import { googleAuthConfig, isAdminUser, signInFailedPath, userNameEdit } from '../core/user_auth';
+import { UserActions, UserSelectors } from '../model/users';
+import { DB } from './database.module';
+import type { Database } from './database';
 import {
   GoogleCallbackGuard, GoogleSignInGuard, type GoogleCallbackRequest,
 } from './google_auth.guard';
@@ -18,6 +25,8 @@ const currentUser = (req: Request) => ({
 
 @Controller('auth')
 export class AuthController {
+  constructor(@Inject(DB) private readonly db: Kysely<Database>) {}
+
   // Redirects to Google (the guard does); returnTo: the path to come back to
   @Get('google')
   @UseGuards(GoogleSignInGuard)
@@ -34,6 +43,30 @@ export class AuthController {
   @Get('me')
   me(@Req() req: Request) {
     return currentUser(req);
+  }
+
+  // Changes the signed-in user's name: 401 when signed out, 400 for a name that won't do
+  @Patch('me')
+  async update(@Req() req: Request, @Body() body: { name?: unknown } | undefined) {
+    const edit = userNameEdit(body?.name);
+
+    if (req.user === undefined) {
+      throw new UnauthorizedException('Sign in first');
+    }
+    else if ('error' in edit) {
+      throw new BadRequestException(edit.error);
+    }
+    else {
+      const updated = await UserActions.updateUserName(this.db, req.user.id, edit.name);
+
+      if (updated === undefined) {
+        throw new UnauthorizedException('Sign in first');
+      }
+      else {
+        req.user = UserSelectors.sessionUserOf(updated);
+        return currentUser(req);
+      }
+    }
   }
 
   // Signs out, ending the session

@@ -297,7 +297,7 @@ export class ApiError extends Error {
   }
 }
 
-const requestJson = async <T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> => {
+const requestJson = async <T>(method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown): Promise<T> => {
   const res = await fetch(`/api${path}`, {
     method,
     ...(body === undefined ? {} : {
@@ -344,6 +344,11 @@ export type CurrentUser = { user: User | null, isAdmin: boolean, googleSignInAva
 export const fetchCurrentUser = (): Promise<CurrentUser> => requestJson('GET', '/auth/me');
 
 export const signOut = (): Promise<CurrentUser> => requestJson('POST', '/auth/logout');
+
+// Changes the name the signed-in reader goes by
+export const updateMyName = (name: string): Promise<CurrentUser> => (
+  requestJson('PATCH', '/auth/me', { name })
+);
 
 // Where to send the browser to sign in with Google, coming back to returnTo (a path on this site)
 export const googleSignInUrl = (returnTo: string) => (

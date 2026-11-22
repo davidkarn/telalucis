@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import {
   adminGoogleEmails, DEFAULT_GOOGLE_CALLBACK, googleAuthConfig, googleUserFields, isAdminUser,
-  safeReturnTo, signInFailedPath,
+  MAX_USER_NAME_LENGTH, safeReturnTo, signInFailedPath, userNameEdit,
 } from './user_auth.ts';
 
 describe('googleAuthConfig', () => {
@@ -29,6 +29,7 @@ describe('adminGoogleEmails and isAdminUser', () => {
     expect(isAdminUser({ email: 'ann@example.com', emailVerified: false }, env)).toBe(false);
     expect(isAdminUser({ email: 'dan@example.com', emailVerified: true }, env)).toBe(false);
     expect(isAdminUser(undefined, env)).toBe(false);
+    expect(isAdminUser(null, env)).toBe(false);
   });
 });
 
@@ -74,5 +75,20 @@ describe('signInFailedPath', () => {
   it('adds the flag to the query', () => {
     expect(signInFailedPath('/tl-admin')).toBe('/tl-admin?signIn=failed');
     expect(signInFailedPath('/books?x=1')).toBe('/books?x=1&signIn=failed');
+  });
+});
+
+describe('userNameEdit', () => {
+  it('trims and collapses spaces', () => {
+    expect(userNameEdit('  Ann   Lee \n')).toEqual({ name: 'Ann Lee' });
+  });
+
+  it('refuses an empty, overlong, non-string or control-character name', () => {
+    expect(userNameEdit('   ')).toHaveProperty('error');
+    expect(userNameEdit('x'.repeat(MAX_USER_NAME_LENGTH + 1))).toHaveProperty('error');
+    expect(userNameEdit('x'.repeat(MAX_USER_NAME_LENGTH))).toEqual({ name: 'x'.repeat(MAX_USER_NAME_LENGTH) });
+    expect(userNameEdit(3)).toHaveProperty('error');
+    expect(userNameEdit(undefined)).toHaveProperty('error');
+    expect(userNameEdit('Ann\u0000Lee')).toHaveProperty('error');
   });
 });

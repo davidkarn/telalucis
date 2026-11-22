@@ -1,0 +1,82 @@
+main.account {
+    .account-card {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        max-width: 28rem;
+        margin: 3rem auto;
+        padding: 1.5rem;
+        background: white;
+        border: 1px solid var(--light-accent);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+
+        hr {
+            margin: 0;
+        }
+    }
+
+    .account-who {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        min-width: 0;
+
+        h1 {
+            margin: 0;
+            font-family: playfair display, serif;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            overflow-wrap: anywhere;
+        }
+
+        .muted {
+            overflow-wrap: anywhere;
+        }
+    }
+
+    .account-avatar {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 50%;
+        object-fit: cover;
+        background: var(--light-accent);
+        color: var(--primary-color);
+        font-family: pt sans;
+        font-size: 1.5rem;
+    }
+
+    form.account-name {
+        display: flex;
+        flex-direction: column;
+        gap: 0.625rem;
+
+        label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            font-size: 0.875rem;
+        }
+
+        input {
+            padding: 0.375rem 0.5rem;
+            border: 1px solid var(--light-accent);
+            border-radius: 6px;
+        }
+
+        .account-name-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+    }
+
+    .account-actions {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+    }
+}

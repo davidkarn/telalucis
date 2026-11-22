@@ -28,8 +28,8 @@ const findSessionUser = async(db: Kysely<Database>, id: string): Promise<Session
   return user === undefined ? undefined : sessionUserOf(user);
 };
 
-// The user for a Google account signing in: made the first time, its email,
-// name and picture refreshed every time after
+// The user for a Google account signing in: made the first time, its email and
+// picture refreshed every time after (not its name, which they may have changed)
 const upsertGoogleUser = (db: Kysely<Database>, fields: GoogleUserFields): Promise<User> => (
   db.insertInto('users')
     .values({
@@ -42,7 +42,6 @@ const upsertGoogleUser = (db: Kysely<Database>, fields: GoogleUserFields): Promi
     .onConflict((oc) => oc.column('google_id').doUpdateSet((eb) => ({
       email:             eb.ref('excluded.email'),
       email_verified:    eb.ref('excluded.email_verified'),
-      name:              eb.ref('excluded.name'),
       picture_url:       eb.ref('excluded.picture_url'),
       last_signed_in_at: new Date(),
     })))
@@ -50,8 +49,13 @@ const upsertGoogleUser = (db: Kysely<Database>, fields: GoogleUserFields): Promi
     .executeTakeFirstOrThrow()
 );
 
+// Changes the name a user goes by; their updated row, undefined when there's no such user
+const updateUserName = (db: Kysely<Database>, id: string, name: string) => (
+  db.updateTable('users').set({ name }).where('id', '=', id).returningAll().executeTakeFirst()
+);
+
 export const UserQueries = { findUserById, findSessionUser };
 
 export const UserSelectors = { sessionUserOf };
 
-export const UserActions = { upsertGoogleUser };
+export const UserActions = { upsertGoogleUser, updateUserName };

@@ -28,6 +28,10 @@ header.site-header {
         }
     }
 
+    .separator + .nav-separator {
+        display: none;
+    }
+
     .separator {
         margin-left: 0.5rem;
         display: flex;
@@ -56,11 +60,6 @@ header.site-header {
         &:hover, &:focus {
             font-weight: bold;
         }
-    }
-
-    .navbar-user {
-        display: flex;
-        align-items: center;
     }
 
     // the links in a menu, on a narrow screen
@@ -107,17 +106,13 @@ header.site-header {
 
     @media (max-width: 700px) {
         nav.navbar,
-        .separator {
+        .nav-separator,
+        .separator:has(+ .nav-separator) {
             display: none;
-        }
-
-        .navbar-user {
-            margin-left: auto;
         }
 
         .navbar-menu {
             display: block;
-            margin-left: 0;
         }
     }
 }
