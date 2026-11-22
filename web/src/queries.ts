@@ -1,7 +1,7 @@
 import { QueryClient, queryOptions } from '@tanstack/react-query'
 import {
   fetchAdminBooks, fetchAdminCitationInsights, fetchAdminCitations, fetchAdminDashboard,
-  fetchAdminBookCopyrights, fetchAdminQueuedBooks, fetchAdminSession,
+  fetchAdminBookCopyrights, fetchAdminQueuedBooks, fetchAdminSession, fetchCurrentUser,
   fetchAuthor, fetchAuthors, fetchJournal, fetchJournalIssue, fetchJournalIssues, fetchJournals,
   fetchBook, fetchBooks, fetchCitationSourcePage, fetchPage, fetchPageCitations,
   fetchPageOrder,
@@ -111,6 +111,14 @@ export const pageInsightsQuery = (bookId: string, pageId: number) => queryOption
 export const citationSourcePageQuery = (citationId: string) => queryOptions({
   queryKey: ['citation', citationId, 'sourcePage'],
   queryFn:  () => fetchCitationSourcePage(citationId),
+});
+
+// The signed-in reader, if any: fetched once a page load, and again after signing out
+export const currentUserQuery = () => queryOptions({
+  queryKey:  ['auth', 'me'],
+  queryFn:   fetchCurrentUser,
+  staleTime: Infinity,
+  retry:     false,
 });
 
 // The admin panel: fetched again whenever it's opened, as the queue changes while the CLI runs

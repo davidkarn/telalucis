@@ -1,6 +1,7 @@
 import { createElement as __, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { Menu, X } from 'lucide-react';
+import { UserMenu } from './user_menu';
 import './header.scss';
 
 type NavLink = { href: string, label: string };
@@ -25,8 +26,8 @@ const navLinks = (links: NavLink[], onFollow?: () => void) => links.map((link) =
   __(Link, {key: link.href, className: 'navbar-link', to: link.href, onClick: onFollow}, link.label)
 ));
 
-// The site's name and its navbar; on a narrow screen, the links are in a menu opened by a
-// button, closed by a press outside it
+// The site's name, its navbar and the signed-in reader (UserMenu); on a narrow screen, the links
+// are in a menu opened by a button, closed by a press outside it
 export const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menu                    = useRef<HTMLDivElement>(null);
@@ -61,6 +62,7 @@ export const Header = () => {
         __('div', {className: 'spacer'}),
         navLinks(FEATURED),
       ),
+      __('div', {className: 'navbar-user'}, __(UserMenu, {})),
       __('div', {className: 'navbar-menu', ref: menu},
         __('button', {
           type:            'button',

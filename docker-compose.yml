@@ -4,7 +4,8 @@
 #   docker compose run --rm api npm run cli -- <command>   (the CLI commands)
 #
 # Settings come from .env: OPENROUTER_KEY, ADMIN_USERNAME, ADMIN_PASSWORD, and optionally
-# POSTGRES_PASSWORD and WEB_PORT. DATABASE_URL and REDIS_URL are set here, pointing at the db and
+# POSTGRES_PASSWORD and WEB_PORT, and for signing in with Google, GOOGLE_CLIENT_ID,
+# GOOGLE_CLIENT_SECRET, SESSION_SECRET and ADMIN_GOOGLE_EMAILS (see core/user_auth.ts). DATABASE_URL and REDIS_URL are set here, pointing at the db and
 # redis services (those in .env are for running outside Docker).
 
 x-database-url: &database-url

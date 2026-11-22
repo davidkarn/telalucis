@@ -23,7 +23,7 @@ import { executeActions } from '../../actions/app_actions.ts';
 const MAX_CONSECUTIVE_ARCHIVE_ERRORS = 5;
 
 // Books crawled when no count is given
-const DEFAULT_COUNT = 1;
+const DEFAULT_COUNT = 50;
 
 type CitationRow = Awaited<ReturnType<typeof findCitationsInBook>>[number];
 

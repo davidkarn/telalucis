@@ -268,7 +268,8 @@ export const fetchPageInsights = async (bookId: string, pageId: number): Promise
 
 // The admin panel (/tl-admin): the AdminSession, QueueStatus and AdminDashboard schemas in
 // ../api.yaml. Signing in sets an HttpOnly session cookie, which the browser sends with these.
-export type AdminSession = { signedIn: boolean };
+// passwordSignIn and googleSignIn: the ways of signing in that are set up
+export type AdminSession = { signedIn: boolean, passwordSignIn: boolean, googleSignIn: boolean };
 
 export type QueueStatus =
   'pending' | 'queued' | 'inProgress' | 'processingContents' | 'imported' | 'importedAndCrawled' | 'complete';
@@ -330,6 +331,23 @@ export type MobiStatus =
 
 export const requestMobi = (bookId: string): Promise<MobiStatus> => (
   requestJson('POST', `/books/${encodeURIComponent(bookId)}/ebook.mobi`)
+);
+
+// Readers signed in with Google: the User and CurrentUser schemas in ../api.yaml. The session is
+// an HttpOnly cookie the browser sends with every request.
+export type User = {
+  id: string, email: string, emailVerified: boolean, name: string, pictureUrl: string | null,
+};
+
+export type CurrentUser = { user: User | null, isAdmin: boolean, googleSignInAvailable: boolean };
+
+export const fetchCurrentUser = (): Promise<CurrentUser> => requestJson('GET', '/auth/me');
+
+export const signOut = (): Promise<CurrentUser> => requestJson('POST', '/auth/logout');
+
+// Where to send the browser to sign in with Google, coming back to returnTo (a path on this site)
+export const googleSignInUrl = (returnTo: string) => (
+  `/api/auth/google?returnTo=${encodeURIComponent(returnTo)}`
 );
 
 export const fetchAdminSession = (): Promise<AdminSession> => requestJson('GET', '/admin/session');

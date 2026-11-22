@@ -579,11 +579,80 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Citation'
+  /auth/google:
+    get:
+      tags:
+        - Auth
+      summary: >-
+        Sign in with Google: redirects to Google's consent screen, which sends the browser back to
+        /auth/google/callback. Starts a session (the tl_session cookie: HttpOnly, SameSite=Lax),
+        which holds the OAuth state and PKCE verifier meanwhile.
+      parameters:
+        - name: returnTo
+          description: the path on this site to go back to once signed in ("/" when not one)
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '302':
+          description: to Google
+        '503':
+          description: signing in with Google is off (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are not set)
+  /auth/google/callback:
+    get:
+      tags:
+        - Auth
+      summary: >-
+        Where Google sends the browser back to: makes or refreshes the user for the Google account,
+        signs them in (a new tl_session, good for 30 days) and redirects to the returnTo given to
+        /auth/google, or, when they declined or the exchange failed, to it with ?signIn=failed.
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '302':
+          description: back to returnTo
+        '503':
+          description: signing in with Google is off
+  /auth/me:
+    get:
+      tags:
+        - Auth
+      summary: The signed-in user, if any, whether they're an admin, and whether signing in with Google is on.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Sign out, ending the session.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
   /admin/session:
     get:
       tags:
         - Admin
-      summary: Whether this browser is signed in to the admin panel (its session cookie is valid).
+      summary: >-
+        Whether this browser is signed in to the admin panel: its admin session cookie is valid, or
+        it's signed in with Google as a verified email in ADMIN_GOOGLE_EMAILS. Also the ways of
+        signing in that are set up.
       responses:
         '200':
           content:
@@ -591,7 +660,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdminSession'
         '503':
-          description: the admin panel is closed (ADMIN_USERNAME and ADMIN_PASSWORD are not set)
+          description: >-
+            the admin panel is closed (neither ADMIN_USERNAME and ADMIN_PASSWORD, nor GOOGLE_CLIENT_ID,
+            GOOGLE_CLIENT_SECRET and ADMIN_GOOGLE_EMAILS, are set)
   /admin/login:
     post:
       tags:
@@ -623,12 +694,14 @@ paths:
         '401':
           description: wrong username or password
         '503':
-          description: the admin panel is closed (ADMIN_USERNAME and ADMIN_PASSWORD are not set)
+          description: signing in with a password is off (ADMIN_USERNAME and ADMIN_PASSWORD are not set)
   /admin/logout:
     post:
       tags:
         - Admin
-      summary: Sign out of the admin panel, ending the session cookie.
+      summary: >-
+        Sign out of the admin panel, ending the admin session cookie, and the Google sign-in when
+        signed in with Google.
       responses:
         '200':
           content:
@@ -1268,8 +1341,55 @@ components:
       type: object
       required:
         - signedIn
+        - passwordSignIn
+        - googleSignIn
       properties:
         signedIn:
+          type: boolean
+        passwordSignIn:
+          description: signing in with ADMIN_USERNAME and ADMIN_PASSWORD is set up
+          type: boolean
+        googleSignIn:
+          description: signing in with a Google account in ADMIN_GOOGLE_EMAILS is set up
+          type: boolean
+    User:
+      description: a reader signed in with Google
+      type: object
+      required:
+        - id
+        - email
+        - emailVerified
+        - name
+        - pictureUrl
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        emailVerified:
+          type: boolean
+        name:
+          description: their Google name, or their email when they have none
+          type: string
+        pictureUrl:
+          type: string
+          nullable: true
+    CurrentUser:
+      type: object
+      required:
+        - user
+        - isAdmin
+        - googleSignInAvailable
+      properties:
+        user:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/User'
+        isAdmin:
+          description: their email is verified and in ADMIN_GOOGLE_EMAILS
+          type: boolean
+        googleSignInAvailable:
+          description: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set
           type: boolean
     QueueStatus:
       type: string

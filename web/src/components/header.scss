@@ -58,6 +58,11 @@ header.site-header {
         }
     }
 
+    .navbar-user {
+        display: flex;
+        align-items: center;
+    }
+
     // the links in a menu, on a narrow screen
     .navbar-menu {
         display: none;
@@ -106,8 +111,13 @@ header.site-header {
             display: none;
         }
 
+        .navbar-user {
+            margin-left: auto;
+        }
+
         .navbar-menu {
             display: block;
+            margin-left: 0;
         }
     }
 }

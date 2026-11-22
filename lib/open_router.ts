@@ -29,19 +29,19 @@ export const isLocalModel = (model: string): boolean => model.startsWith(LOCAL_M
 const endpoint = (model: string) => (
   isLocalModel(model)
     ? {
-      url:     `${ process.env.LOCAL_LLM_URL ?? 'http://localhost:8080/v1' }/chat/completions`,
-      model:   model.slice(LOCAL_MODEL_PREFIX.length),
-      headers: {},
-    }
+        url:     `${ process.env.LOCAL_LLM_URL ?? 'http://localhost:8080/v1' }/chat/completions`,
+        model:   model.slice(LOCAL_MODEL_PREFIX.length),
+        headers: {},
+      }
     : {
-      url:     'https://openrouter.ai/api/v1/chat/completions',
-      model,
-      headers: {
-        Authorization:  'Bearer ' + process.env.OPENROUTER_KEY,
-        'HTTP-Referer': 'https://webdever.net',
-        'X-Title':      'Webdever',
-      },
-    }
+        url:     'https://openrouter.ai/api/v1/chat/completions',
+        model,
+        headers: {
+          Authorization:  'Bearer ' + process.env.OPENROUTER_KEY,
+          'HTTP-Referer': 'https://webdever.net',
+          'X-Title':      'Webdever',
+        },
+      }
 );
 
 export const makeOpenRouterRequest = (

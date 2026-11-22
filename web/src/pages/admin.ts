@@ -2,14 +2,20 @@
 // of the import queue (/tl-admin), the queued books (/tl-admin/queued-books),
 // the books (/tl-admin/books), their copyright statuses (/tl-admin/copyright),
 // the citations (/tl-admin/citations) and the citation extraction insights
-// (/tl-admin/citation-insights). Signing in sets an HttpOnly session cookie
-// (see core/admin_auth.ts in the API).
+// (/tl-admin/citation-insights). Signing in, with the admin password or a
+// Google account listed in ADMIN_GOOGLE_EMAILS, sets an HttpOnly session cookie
+// (see core/admin_auth.ts and core/user_auth.ts in the API).
 import { createElement as __, useState } from 'react'
-import { NavLink, Route, Routes } from 'react-router'
+import { NavLink, Route, Routes, useSearchParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { match, P } from 'ts-pattern'
-import { adminLogin, adminLogout, ApiError, type AdminDashboard, type CitationInsights } from '../api'
-import { adminCitationInsightsQuery, adminDashboardQuery, adminSessionQuery } from '../queries'
+import {
+  adminLogin, adminLogout, ApiError, googleSignInUrl, type AdminDashboard, type AdminSession,
+  type CitationInsights,
+} from '../api'
+import {
+  adminCitationInsightsQuery, adminDashboardQuery, adminSessionQuery, currentUserQuery,
+} from '../queries'
 import { STATUS_LABELS } from '../core/queued_books'
 import { Header } from '../components/header'
 import { useDocumentTitle } from '../lib'
@@ -32,21 +38,27 @@ export default function AdminPage() {
           .with({status: 'pending'}, () => __(LoadingSpinner, {}))
           .with({status: 'error', error: P.when((e) => e instanceof ApiError && e.status === 503)}, () => (
             __('p', {className: 'muted'},
-              'The admin panel is closed: set ADMIN_USERNAME and ADMIN_PASSWORD in the API\'s .env.'
+              'The admin panel is closed: set ADMIN_USERNAME and ADMIN_PASSWORD, or GOOGLE_CLIENT_ID, ',
+              'GOOGLE_CLIENT_SECRET and ADMIN_GOOGLE_EMAILS, in the API\'s .env.'
             )
           ))
           .with({status: 'error'}, (s) => __('p', {className: 'error'}, "Couldn't reach the API: ", s.error.message))
           .with({data: {signedIn: true}}, () => __(AdminTabs, {}))
-          .otherwise(() => __(SignIn, {}))
+          .with({status: 'success'}, (s) => __(SignIn, {session: s.data}))
+          .exhaustive()
       )
     )
   );
 }
 
-function SignIn() {
+// Signing in with the password, with Google, or both, as set up. Back from Google signed in
+// but not as an admin (or having declined), says so.
+function SignIn({session}: {session: AdminSession}) {
   const queryClient             = useQueryClient();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [searchParams]          = useSearchParams();
+  const googleFailed            = searchParams.get('signIn') === 'failed';
 
   const login = useMutation({
     mutationFn: () => adminLogin(username, password),
@@ -62,6 +74,39 @@ function SignIn() {
       },
     },
       __('h1', {}, 'Admin'),
+      session.googleSignIn && __('a', {className: 'google-sign-in', href: googleSignInUrl('/tl-admin')},
+        'Sign in with Google'
+      ),
+      googleFailed && __('p', {className: 'error'}, "Couldn't sign in with Google."),
+      session.googleSignIn && !googleFailed && __(NotAnAdminNote, {}),
+      session.passwordSignIn && __(PasswordFields, {username, setUsername, password, setPassword}),
+      login.isError && __('p', {className: 'error'}, login.error.message),
+      session.passwordSignIn && __('button', {type: 'submit', disabled: login.isPending},
+        login.isPending ? 'Signing in' : 'Sign in'
+      )
+    )
+  );
+}
+
+// Signed in with Google, but not with an email in ADMIN_GOOGLE_EMAILS
+function NotAnAdminNote() {
+  const current = useQuery(currentUserQuery());
+
+  return current.data?.user
+    ? __('p', {className: 'muted'},
+      `Signed in as ${current.data.user.email}, which isn't an admin's account.`
+    )
+    : null;
+}
+
+type PasswordFieldsProps = {
+  username: string, setUsername: (v: string) => void,
+  password: string, setPassword: (v: string) => void,
+};
+
+function PasswordFields({username, setUsername, password, setPassword}: PasswordFieldsProps) {
+  return (
+    __('div', {className: 'password-fields'},
       __('label', {},
         'Username',
         __('input', {
@@ -80,9 +125,7 @@ function SignIn() {
           value:        password,
           onChange:     (e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value),
         })
-      ),
-      login.isError && __('p', {className: 'error'}, login.error.message),
-      __('button', {type: 'submit', disabled: login.isPending}, login.isPending ? 'Signing in' : 'Sign in')
+      )
     )
   );
 }
@@ -102,7 +145,10 @@ function AdminTabs() {
 
   const logout = useMutation({
     mutationFn: adminLogout,
-    onSuccess:  () => queryClient.invalidateQueries({queryKey: ['admin']}),
+    onSuccess:  () => Promise.all([
+      queryClient.invalidateQueries({queryKey: ['admin']}),
+      queryClient.invalidateQueries({queryKey: ['auth']}),
+    ]),
   });
 
   return (

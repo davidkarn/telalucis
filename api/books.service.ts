@@ -300,7 +300,7 @@ export class BooksService {
         .where('citations.page_block_id', 'in', blocks.map((b) => b.id))
         .orderBy('citations.id')
         .execute();
-      const cited = new Map((await CitedPageQueries.findCitedPages(
+      const cited          = new Map((await CitedPageQueries.findCitedPages(
         this.db, blockCitations.map((c) => c.id),
       )).map((c) => [c.citationId, { bookId: c.bookId, pageId: c.pageId }]));
 

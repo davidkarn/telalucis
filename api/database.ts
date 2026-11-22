@@ -250,6 +250,19 @@ export interface JournalIssuesTable {
   updated_at: Generated<Date>,    // kept by a trigger: any update sets it
 }
 
+// A reader signed in with Google (see core/user_auth.ts). google_id is the account's "sub".
+export interface UsersTable {
+  id: Generated<string>,          // bigserial
+  google_id: string,
+  email: string,
+  email_verified: boolean,
+  name: string,
+  picture_url: string | null,
+  last_signed_in_at: Generated<Date>,
+  created_at: Generated<Date>,
+  updated_at: Generated<Date>,    // kept by a trigger: any update sets it
+}
+
 export interface Database {
   books: BooksTable,
   pages: PagesTable,
@@ -272,4 +285,5 @@ export interface Database {
   journals: JournalsTable,
   journal_issues: JournalIssuesTable,
   passages: PassagesTable,
+  users: UsersTable,
 }

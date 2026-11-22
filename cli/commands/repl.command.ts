@@ -119,32 +119,32 @@ export class ReplCommand extends CommandRunner {
   }
 
   public async tryQuery(model: string) {
-    
+
     const queued = await QueuedBookImportsQueries.findNextQueuedBook(this.db, 'inProgress');
 
     const surya: SuryaBook = JSON.parse(await fsprom.readFile(suryaResultsPath(queued.pdf_url), 'utf8'));
-    
+
     const [bookId, suryaPages] = Object.entries(surya)[0] ?? [];
 
-    const pages     = build_pages(suryaPages).pages;    
-    const footnotePages  = pages.filter((p) => p.blocks.some((b) => b.label === 'Footnote'));
-    
-    let insights: ScoredInsight[] = await FootnoteExtractionInsightQueries.findInsights(this.db);
-    const page = footnotePages[5];
+    const pages         = build_pages(suryaPages).pages;
+    const footnotePages = pages.filter((p) => p.blocks.some((b) => b.label === 'Footnote'));
+
+    const insights: ScoredInsight[] = await FootnoteExtractionInsightQueries.findInsights(this.db);
+    const page                      = footnotePages[5];
     console.log('running', 'asfd');
     let result;
     try {
-     result = await makeOpenRouterRequest([
-      { role: 'system', content: footnotesPrompt(insightsForPrompt(insights)) },
-      { role: 'user', content: footnoteHtml(page) },
-    ], FOOTNOTES_FORMAT, model);
+      result = await makeOpenRouterRequest([
+        { role: 'system', content: footnotesPrompt(insightsForPrompt(insights)) },
+        { role: 'user', content: footnoteHtml(page) },
+      ], FOOTNOTES_FORMAT, model);
     }
     catch (e) {
       console.error('issue');
       console.error(e);
     }
 
-    log({result});
+    log({ result });
     return result;
   }
 }

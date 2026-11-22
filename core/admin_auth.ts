@@ -3,6 +3,7 @@
 // from them (so changing the password ends every session). Pure functions; api/admin.controller.ts
 // sets and reads the cookie.
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { adminGoogleEmails, googleAuthConfig } from './user_auth.ts';
 
 export type AdminCredentials = { username: string, password: string };
 
@@ -19,6 +20,16 @@ export const adminCredentials = (
 
   return username.length > 0 && password.length > 0 ? { username, password } : undefined;
 };
+
+// The ways of signing in to the admin panel that are set up: with ADMIN_USERNAME and
+// ADMIN_PASSWORD, and with a Google account listed in ADMIN_GOOGLE_EMAILS (needing the Google
+// client, GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET). Neither leaves the panel closed.
+export const adminSignInMethods = (
+  env: Record<string, string | undefined>
+): { password: boolean, google: boolean } => ({
+  password: adminCredentials(env) !== undefined,
+  google:   googleAuthConfig(env) !== undefined && adminGoogleEmails(env).length > 0,
+});
 
 // Compared by their hashes, so the time taken says nothing about where they differ or how long
 // the expected one is

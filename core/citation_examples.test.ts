@@ -16,7 +16,7 @@ const EXAMPLES = [
   example('5', 'Pohle-Preuss, Christology, p. 230', 'Pohle-Preuss', 'Christology'),
   example('6', 'Migne, Patrol. Graec., III, 585', 'Migne', 'Patrologia Graeca', 'own'),
 ];
-const index = exampleIndex(EXAMPLES);
+const index    = exampleIndex(EXAMPLES);
 
 describe('citationTerms', () => {
   it('keeps words, lowercased and unaccented, without numbers, Roman ones too, or common words', () => {

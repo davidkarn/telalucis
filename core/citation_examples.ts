@@ -66,7 +66,7 @@ export const titleInRaw = (raw: string, title: string): boolean => {
 
 // The index of the examples whose text bears out their title (see titleInRaw)
 export const exampleIndex = (all: CitationExample[]): ExampleIndex => {
-  const examples = all.filter((e) => titleInRaw(e.raw, e.title));
+  const examples          = all.filter((e) => titleInRaw(e.raw, e.title));
   const terms             = examples.map((e) => counts(citationTerms(e.raw)));
   const documentFrequency = new Map<string, number>();
   for (const t of terms) {
@@ -139,7 +139,7 @@ export const examplesPart = (examples: CitationExample[]): string => (
     ? ''
     : `\nCitations in other books like these were read as follows. They show how such abbreviations are read;
 the same abbreviation may stand for another author's work here, so take the author from these footnotes:\n${
-      examples.map((e) => `- ${ JSON.stringify(e.raw) } -> author ${ JSON.stringify(e.author) }, title ${
-        JSON.stringify(e.title) }, location ${ JSON.stringify(e.location) }`).join('\n')
-    }\n`
+  examples.map((e) => `- ${ JSON.stringify(e.raw) } -> author ${ JSON.stringify(e.author) }, title ${
+    JSON.stringify(e.title) }, location ${ JSON.stringify(e.location) }`).join('\n')
+  }\n`
 );
