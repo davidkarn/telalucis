@@ -4,13 +4,16 @@
 #   docker compose run --rm api npm run cli -- <command>   (the CLI commands)
 #
 # Settings come from .env: OPENROUTER_KEY, ADMIN_USERNAME, ADMIN_PASSWORD, and optionally
-# POSTGRES_PASSWORD and WEB_PORT, and for signing in with Google, GOOGLE_CLIENT_ID,
-# GOOGLE_CLIENT_SECRET, SESSION_SECRET and ADMIN_GOOGLE_EMAILS (see core/user_auth.ts). DATABASE_URL and REDIS_URL are set here, pointing at the db and
-# redis services (those in .env are for running outside Docker).
+# POSTGRES_PASSWORD and WEB_PORT; for signing in with Google, GOOGLE_CLIENT_ID,
+# GOOGLE_CLIENT_SECRET, SESSION_SECRET and ADMIN_GOOGLE_EMAILS (see core/user_auth.ts); and
+# EMBEDDINGS_THREADS, the CPU threads the embeddings server uses (all of them when not set).
+# DATABASE_URL, REDIS_URL and EMBEDDINGS_URL are set here, pointing at the db, redis and
+# embeddings services (those in .env are for running outside Docker).
 
 x-database-url: &database-url
   DATABASE_URL: postgres://tela_lucis:${POSTGRES_PASSWORD:-tela_lucis}@db:5432/tela_lucis
   REDIS_URL: redis://redis:6379
+  EMBEDDINGS_URL: http://embeddings:8081/v1
 
 services:
   # Postgres with pgvector, for the passages' embeddings (docker/postgres.Dockerfile)
@@ -44,6 +47,31 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # the embeddings of search terms and passages (lib/embeddings.ts): llama.cpp's server running
+  # bge-m3 on the CPU, its model downloaded from Hugging Face on the first start (about 600 MB)
+  # into the embeddings-models volume. Only the other services reach it (no port published).
+  # The search (GET /search) works without it, by words alone. Passages must be embedded with
+  # this same model, quantization and pooling as the search terms to be compared with them.
+  embeddings:
+    image: ghcr.io/ggml-org/llama.cpp:server-b12199
+    restart: unless-stopped
+    environment:
+      LLAMA_CACHE: /models
+    command: [
+      "-hf", "gpustack/bge-m3-GGUF:Q8_0", "--embedding", "--pooling", "cls",
+      "-ub", "2048", "-b", "8192", "-t", "${EMBEDDINGS_THREADS:--1}",
+      "--host", "0.0.0.0", "--port", "8081",
+    ]
+    volumes:
+      - embeddings-models:/models
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # the first start downloads the model
+      start_period: 10m
 
   # applies any pending migrations, then exits; the api service's image, built by it
   migrate:
@@ -113,3 +141,4 @@ services:
 volumes:
   db-data:
   redis-data:
+  embeddings-models:

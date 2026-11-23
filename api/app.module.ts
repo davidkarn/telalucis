@@ -18,6 +18,7 @@ import { InsightsController } from './insights.controller';
 import { InsightsService } from './insights.service';
 import { JournalsController } from './journals.controller';
 import { JournalsService } from './journals.service';
+import { SearchController } from './search.controller';
 import { SeoController } from './seo.controller';
 import { SeoService } from './seo.service';
 import { SessionSerializer } from './session.serializer';
@@ -27,7 +28,7 @@ import { googleAuthConfig } from '../core/user_auth';
   imports:     [DatabaseModule, PassportModule.register({ session: true })],
   controllers: [
     AdminController, AuthController, AuthorsController, BooksController, CitationsController, CitationSourcePagesController,
-    EbooksController, InsightsController, JournalsController, SeoController,
+    EbooksController, InsightsController, JournalsController, SearchController, SeoController,
   ],
   providers:   [
     AdminGuard, AdminService, AuthorsService, BooksService, CitationsService, EbooksService, InsightsService,

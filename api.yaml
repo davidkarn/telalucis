@@ -71,6 +71,50 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/BookSummary'
+  /search:
+    get:
+      tags:
+        - Search
+      summary: >-
+        Search the blocks of text (body text, headings and footnotes) for a term, by its words and by
+        its meaning at once. By words: the blocks with them (English stemming; as a search box takes
+        it: "a phrase", -without, or), best first. By meaning: the passages nearest the term's
+        embedding, each standing as its block with most of the term's words (else its first). The two
+        lists are merged by reciprocal rank fusion, so a block found both ways comes first. At most
+        300 are ranked (200 by words, 100 by meaning). Without the embeddings server, it searches by
+        words alone and says so in meta. Books withheld for copyright are left out.
+      parameters:
+        - name: q
+          description: the search term
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 500
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            maximum: 10000
+        - name: length
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlockSearchResults'
+        '400':
+          description: no search term, or one longer than 500 characters
   /authors:
     get:
       tags:
@@ -1738,6 +1782,144 @@ components:
         lastYear:
           type: number
           nullable: true
+    BlockSearchResults:
+      type: object
+      required:
+        - meta
+        - items
+      properties:
+        meta:
+          type: object
+          required:
+            - count
+            - searchedBy
+          properties:
+            count:
+              description: how many blocks were found, at most 300
+              type: number
+            searchedBy:
+              type: object
+              required:
+                - words
+                - meaning
+              properties:
+                words:
+                  type: boolean
+                meaning:
+                  description: false when the embeddings server couldn't be reached
+                  type: boolean
+            meaningUnavailable:
+              description: why it wasn't searched by meaning, when it wasn't
+              type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlockSearchResult'
+    BlockSearchResult:
+      type: object
+      required:
+        - blockId
+        - label
+        - html
+        - snippet
+        - score
+        - foundBy
+        - page
+        - book
+        - authors
+        - journalIssue
+      properties:
+        blockId:
+          type: string
+        label:
+          type: string
+          enum:
+            - Text
+            - SectionHeader
+            - Footnote
+        html:
+          description: the block's html, as on its page
+          type: string
+        snippet:
+          description: >-
+            a fragment or two of its text with the term's words in <mark> (HTML: the block's html
+            with its tags taken out, its entities kept)
+          type: string
+        score:
+          description: its reciprocal rank fusion score
+          type: number
+        foundBy:
+          type: array
+          items:
+            type: string
+            enum:
+              - words
+              - meaning
+        page:
+          type: object
+          required:
+            - pageNumber
+            - printedPageNumber
+          properties:
+            pageNumber:
+              type: number
+            printedPageNumber:
+              type: string
+        book:
+          type: object
+          required:
+            - id
+            - title
+            - author
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+            author:
+              type: string
+        authors:
+          description: the book's authors (book_authors), in order; none when not known
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - name
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+        journalIssue:
+          description: the journal issue the book is an article in; null for a book
+          nullable: true
+          type: object
+          required:
+            - id
+            - journalId
+            - journalName
+            - startDate
+            - endDate
+            - volume
+            - number
+          properties:
+            id:
+              type: string
+            journalId:
+              type: string
+            journalName:
+              type: string
+            startDate:
+              type: string
+            endDate:
+              type: string
+            volume:
+              type: string
+              nullable: true
+            number:
+              type: string
+              nullable: true
     JournalIssueSummary:
       description: >-
         an issue of a journal, the period it covers, its volume and number as its file names them

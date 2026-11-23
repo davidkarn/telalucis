@@ -17,9 +17,6 @@ export const AccountLink = () => {
   return match(current.data)
     .with({user: P.nonNullable}, ({user}) => (
       __(Link, {className: 'account-link', to: '/account', title: 'Your account'},
-        user.pictureUrl !== null
-          ? __('img', {className: 'account-link-avatar', src: user.pictureUrl, alt: '', referrerPolicy: 'no-referrer'})
-          : __('span', {className: 'account-link-avatar'}, user.name.slice(0, 1).toUpperCase()),
         __('span', {className: 'account-link-name'}, user.name),
       )
     ))
