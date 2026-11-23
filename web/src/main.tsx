@@ -13,6 +13,7 @@ import JournalsPage from './pages/journals.ts'
 import JournalPage from './pages/journal.ts'
 import JournalIssuePage from './pages/journal_issue.ts'
 import LoginPage from './pages/login.ts'
+import SearchPage from './pages/search.ts'
 import AccountPage from './pages/account.ts'
 import { Footer } from './components/footer.ts'
 
@@ -31,6 +32,8 @@ createRoot(document.getElementById('root')!).render(
           __(Route, {path: '/journals/:journalId/issues/:issueId', element: __(JournalIssuePage)}),
           // one or more open books: /books/<id>[/pages/<n>]/books/<id>[/pages/<n>]... (see core/open_books.ts)
           __(Route, {path: '/books/*', element: __(BookView)}),
+          // the text of the collection, searched by words and meaning: /search?q=<term>&page=<n>
+          __(Route, {path: '/search', element: __(SearchPage)}),
           // signing in (with Google), and the signed-in reader's account
           __(Route, {path: '/login', element: __(LoginPage)}),
           __(Route, {path: '/account', element: __(AccountPage)}),

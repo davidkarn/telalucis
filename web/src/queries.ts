@@ -1,7 +1,7 @@
 import { QueryClient, queryOptions } from '@tanstack/react-query'
 import {
   fetchAdminBooks, fetchAdminCitationInsights, fetchAdminCitations, fetchAdminDashboard,
-  fetchAdminBookCopyrights, fetchAdminQueuedBooks, fetchAdminSession, fetchCurrentUser,
+  fetchAdminBookCopyrights, fetchAdminQueuedBooks, fetchAdminSession, fetchCurrentUser, fetchSearch,
   fetchAuthor, fetchAuthors, fetchJournal, fetchJournalIssue, fetchJournalIssues, fetchJournals,
   fetchBook, fetchBooks, fetchCitationSourcePage, fetchPage, fetchPageCitations,
   fetchPageOrder,
@@ -111,6 +111,12 @@ export const pageInsightsQuery = (bookId: string, pageId: number) => queryOption
 export const citationSourcePageQuery = (citationId: string) => queryOptions({
   queryKey: ['citation', citationId, 'sourcePage'],
   queryFn:  () => fetchCitationSourcePage(citationId),
+});
+
+// A page of the blocks of text matching a search term (GET /search)
+export const searchQuery = (opts: { q: string, offset: number, length: number }) => queryOptions({
+  queryKey: ['search', opts],
+  queryFn:  () => fetchSearch(opts),
 });
 
 // The signed-in reader, if any: fetched once a page load, and again after signing out

@@ -333,6 +333,41 @@ export const requestMobi = (bookId: string): Promise<MobiStatus> => (
   requestJson('POST', `/books/${encodeURIComponent(bookId)}/ebook.mobi`)
 );
 
+// GET /search: the BlockSearchResults and BlockSearchResult schemas in ../api.yaml. A block of
+// text found by the search term's words, its meaning (the passage it's in), or both. snippet:
+// HTML, a fragment or two of its text, the term's words in <mark> (see core/search.ts).
+export type BlockSearchResult = {
+  blockId: string,
+  label: 'Text' | 'SectionHeader' | 'Footnote',
+  html: string,
+  snippet: string,
+  score: number,
+  foundBy: ('words' | 'meaning')[],
+  page: { pageNumber: number, printedPageNumber: string },
+  book: { id: string, title: string, author: string },
+  authors: { id: string, name: string }[],
+  journalIssue: {
+    id: string, journalId: string, journalName: string, startDate: string, endDate: string,
+    volume: string | null, number: string | null,
+  } | null,
+};
+
+export type BlockSearchResults = {
+  // count: how many were found, at most 300; searchedBy.meaning: false when the API's embeddings
+  // server couldn't be reached, and meaningUnavailable why
+  meta: {
+    count: number,
+    searchedBy: { words: boolean, meaning: boolean },
+    meaningUnavailable?: string,
+  },
+  items: BlockSearchResult[],
+};
+
+export const fetchSearch = (opts: { q: string, offset: number, length: number }): Promise<BlockSearchResults> => {
+  const params = new URLSearchParams({q: opts.q, offset: String(opts.offset), length: String(opts.length)});
+  return requestJson('GET', `/search?${params}`);
+};
+
 // Readers signed in with Google: the User and CurrentUser schemas in ../api.yaml. The session is
 // an HttpOnly cookie the browser sends with every request.
 export type User = {
