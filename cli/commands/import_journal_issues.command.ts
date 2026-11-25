@@ -1,5 +1,5 @@
 // Import the journal issues downloaded from archive.org and OCR'd with surya
-// (../thomist, ../the_new_scholasticism, ../the_modern_schoolman,
+// (../thomist, ../the_new_scholasticism, ../the_modern_schoolman, ../american_ecclesiastical_review,
 // ../franciscan_studies, ../theological_studies, ../irish_theological_quarterly;
 // see core/journal_issues.ts): each article a book of
 // its own, by its author and with its title, its pages numbered as the

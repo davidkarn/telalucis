@@ -78,8 +78,11 @@ Return every article in the issue, in order, each with:
 Running heads tell articles apart: an article's pages share its running heads (often its author on
 one side and its title on the other), and its first page usually has none, but its title as a
 heading. Return each of the issue's departments (book reviews, brief notices, books received, news,
-correspondence, chronicle) as one entry, department: true, titled as the journal heads it ("Book
-Reviews") with author "". Leave out the cover, title page, masthead, table of contents, editorial
+correspondence, chronicle; and the regular sections of documents or questions answered, under
+headings such as "Analecta", "Decreta", "Conferences", "Studies and Conferences", "Criticisms
+and Notes", "Literary Chat", "Ecclesiastical Library Table", "Recent Bible Study") as one entry,
+department: true, titled as the journal heads it ("Book Reviews") with author "". A signed paper
+printed under such a heading is still an article. Leave out the cover, title page, masthead, table of contents, editorial
 notices, advertisements and indexes. Entries are in page order and do not overlap: an article
 continued among later pages ("Continued on page 64") ends where its first run of pages ends.`;
 
