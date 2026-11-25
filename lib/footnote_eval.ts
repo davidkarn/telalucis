@@ -15,7 +15,10 @@ import {
 } from '../core/footnote_extraction.ts';
 import type { BatchFootnote } from '../core/footnote_training.ts';
 import { FootnoteExtractionInsightQueries } from '../model/footnote_extraction_insights.ts';
-import { makeOpenRouterRequest, parseJsonResponse, type ORReasoning } from './open_router.ts';
+import {
+  makeOpenRouterRequest, parseJsonResponse, type ORMessage, type ORReasoning, type ORResponse,
+  type ORResponseFormat,
+} from './open_router.ts';
 
 // The insights given with each batch: none, or the saved ones (see
 // insightsForPage)
@@ -36,42 +39,65 @@ export type EvalAnswer = {
   reasoningTokens: number | null,
 };
 
-// The citations a model reads in a batch's footnotes (`message`, as batchMessage
-// makes it), with the insights that apply to them, or none
-export const askFootnotes = async(
-  message: string, model: string, insights: EvalInsights, reasoning?: ORReasoning,
-): Promise<EvalAnswer> => {
-  const given   = insights === null
+// The request for the citations in a batch's footnotes (`message`, as batchMessage makes it),
+// with the insights that apply to them, or none: its messages and response format
+export const footnotesRequest = (
+  message: string, insights: EvalInsights,
+): { messages: ORMessage[], format: ORResponseFormat } => {
+  const given = insights === null
     ? null
     : insightsForPage(insights.filter((i) => !i.score || i.score <= 1), insights, strip_tags(message));
-  const format  = given === null ? withoutInsights(FOOTNOTE_BATCH_FORMAT) : FOOTNOTE_BATCH_FORMAT;
-  const started = Date.now();
 
-  try {
-    const response = await makeOpenRouterRequest([
+  return {
+    messages: [
       { role: 'system', content: footnotesPrompt(given, true) },
       { role: 'user', content: message },
-    ], format, model, reasoning);
-    const result   = parseJsonResponse<BatchFootnotes>(response);
+    ],
+    format: given === null ? withoutInsights(FOOTNOTE_BATCH_FORMAT) : FOOTNOTE_BATCH_FORMAT,
+  };
+};
+
+const failedAnswer = (error: unknown, ms: number): EvalAnswer => ({
+  footnotes:        null,
+  error:            error instanceof Error ? error.message : String(error),
+  ms,
+  promptTokens:     null,
+  completionTokens: null,
+  reasoningTokens:  null,
+});
+
+// The answer in a chat completion response, taking `ms`; failed when it's an error or its
+// content isn't the footnotes
+export const footnotesAnswer = (response: ORResponse, ms: number): EvalAnswer => {
+  try {
+    const result = parseJsonResponse<BatchFootnotes>(response);
 
     return {
       footnotes:        result.footnotes,
       error:            null,
-      ms:               Date.now() - started,
+      ms,
       promptTokens:     response.usage?.prompt_tokens ?? null,
       completionTokens: response.usage?.completion_tokens ?? null,
       reasoningTokens:  response.usage?.completion_tokens_details?.reasoning_tokens ?? null,
     };
   }
   catch (e) {
-    return {
-      footnotes:        null,
-      error:            e instanceof Error ? e.message : String(e),
-      ms:               Date.now() - started,
-      promptTokens:     null,
-      completionTokens: null,
-      reasoningTokens:  null,
-    };
+    return failedAnswer(e, ms);
+  }
+};
+
+// The citations a model reads in a batch's footnotes (see footnotesRequest)
+export const askFootnotes = async(
+  message: string, model: string, insights: EvalInsights, reasoning?: ORReasoning,
+): Promise<EvalAnswer> => {
+  const { messages, format } = footnotesRequest(message, insights);
+  const started              = Date.now();
+
+  try {
+    return footnotesAnswer(await makeOpenRouterRequest(messages, format, model, reasoning), Date.now() - started);
+  }
+  catch (e) {
+    return failedAnswer(e, Date.now() - started);
   }
 };
 

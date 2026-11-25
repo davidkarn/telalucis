@@ -80,6 +80,22 @@ const endpoint = (model: string) => (
       }
 );
 
+// A chat completion request's body, as sent alone (makeOpenRouterRequest) or in a batch (see
+// lib/open_router_batches.ts). maxTokens: the answer's limit, thinking included; the
+// provider's when not given.
+export const chatRequestBody = (
+  msgs: ORMessage[], responseFormat: ORResponseFormat | undefined, model: string,
+  reasoning?: ORReasoning, maxTokens?: number,
+) => ({
+  model:    endpoint(model).model,
+  messages: msgs,
+  ...(responseFormat ? { response_format: responseFormat } : {}),
+  ...(reasoning ? { reasoning } : {}),
+  ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
+  // only OpenRouter's providers that follow the response format
+  ...(responseFormat && !isLocalModel(model) ? { provider: { require_parameters: true } } : {}),
+});
+
 export const makeOpenRouterRequest = (
   msgs: ORMessage[], responseFormat?: ORResponseFormat, model: string = 'openai/gpt-4o',
   reasoning?: ORReasoning,
@@ -89,14 +105,7 @@ export const makeOpenRouterRequest = (
   return fetch(to.url, {
     method:  'POST',
     headers: { ...to.headers, 'Content-Type': 'application/json' },
-    body:    JSON.stringify({
-      model:    to.model,
-      messages: msgs,
-      ...(responseFormat ? { response_format: responseFormat } : {}),
-      ...(reasoning ? { reasoning } : {}),
-      // only OpenRouter's providers that follow the response format
-      ...(responseFormat && !isLocalModel(model) ? { provider: { require_parameters: true } } : {}),
-    }),
+    body:    JSON.stringify(chatRequestBody(msgs, responseFormat, model, reasoning)),
   })
     .then((result) => result.json() as Promise<ORResponse>);
 };
