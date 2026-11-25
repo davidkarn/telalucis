@@ -1,0 +1,19 @@
+// a book's source, under its author, beside its e-book downloads (ebook_downloads.scss)
+a.source-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    align-self: flex-start;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-decoration: underline;
+
+    &:hover {
+        color: var(--text);
+    }
+
+    svg {
+        width: 0.875rem;
+        height: 0.875rem;
+    }
+}

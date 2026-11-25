@@ -19,6 +19,7 @@ import { pagesOnly, pageVolumes } from '../core/page_order'
 import { chapterOfPage, citingAuthorsSummaryForMany, verseRows } from '../core/bible_page'
 import { LoadingSpinner } from './loading_spinner'
 import { EbookDownloads } from './ebook_downloads'
+import { SourceLink } from './source_link'
 
 const MAX_CITATIONS_BEFORE_COLLAPSING = 3;
 
@@ -153,6 +154,12 @@ export const BookPageView = ({
                 __('h1', {className: 'book-title'}, book.title),                
               ),
               __('div', {className: 'book-author'}, book.author),
+              __(SourceLink, {
+                url:         book.url,
+                pageId,
+                // the book's first page, the one an archive.org url naming a page is to
+                firstPageId: book.volumes[0]?.firstPageId ?? allPages[0]?.pageId ?? pageId,
+              }),
               __(EbookDownloads, {bookId: book.id})
             ),
             match({isBible: book.isBible, empty: page.blocks.length === 0})
