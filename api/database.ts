@@ -64,6 +64,10 @@ export interface CitationsTable {
   reference_book_id: string | null,
   author: string,
   title: string,
+  // the journal or other collection the work is in, and its issue cited:
+  // null for none, or for citations extracted before they were asked for
+  collection: string | null,
+  issue: string | null,
   location: string,
   raw: string,
   // the citing book's words around the footnote's marker, cached (see footnoteContext): null until

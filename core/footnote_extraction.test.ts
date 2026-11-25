@@ -174,6 +174,8 @@ describe('pageCitations', () => {
       referenceBookId: null,
       author:          'Pohle',
       title:           'Christology',
+      collection:      null,
+      issue:           null,
       location:        'p. 3',
       raw:             'Pohle, Christology, p. 3',
       locationsCited:  location,

@@ -14,6 +14,10 @@ import { RelinkCitationsCommand } from './commands/relink_citations.command.ts';
 import { IndexPassagesCommand } from './commands/index_passages.command.ts';
 import { EbookWorkerCommand } from './commands/ebook_worker.command.ts';
 import { SearchPassagesCommand } from './commands/search_passages.command.ts';
+import { ExportFootnoteTrainingCommand } from './commands/export_footnote_training.command.ts';
+import { MakeFootnoteEvalSetCommand } from './commands/make_footnote_eval_set.command.ts';
+import { EvalFootnotesCommand } from './commands/eval_footnotes.command.ts';
+import { RelabelFootnoteTrainingCommand } from './commands/relabel_footnote_training.command.ts';
 
 // The commands of cli/main.ts, sharing the API's database connection
 @Module({
@@ -32,6 +36,10 @@ import { SearchPassagesCommand } from './commands/search_passages.command.ts';
     IndexPassagesCommand,
     EbookWorkerCommand,
     SearchPassagesCommand,
+    ExportFootnoteTrainingCommand,
+    MakeFootnoteEvalSetCommand,
+    EvalFootnotesCommand,
+    RelabelFootnoteTrainingCommand,
     ReplCommand,
   ],
 })

@@ -28,6 +28,10 @@ export type Citation = {
   referenceBookId: string|null,
   author: string,
   title: string,
+  // the journal or other long-running collection the work is in, and the
+  // issue of it cited (see footnotesPrompt); null or absent for none
+  collection?: string | null,
+  issue?: string | null,
   location: string,
   raw: string,
   /**

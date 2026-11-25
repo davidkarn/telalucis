@@ -17,6 +17,7 @@ export type ORResponseFormat = {
 export type ORResponse = {
   error?: { message?: string },
   choices?: { message?: { content?: unknown } }[],
+  usage?: { prompt_tokens?: number, completion_tokens?: number },
 };
 
 // A model on a local server with an OpenAI-style API (llama-server, LM

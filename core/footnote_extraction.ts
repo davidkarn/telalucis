@@ -4,7 +4,7 @@
 // (footnote_extraction_insights), and placing each citation in its footnote block. Pure functions;
 // cli/commands/process_ocred_books.command.ts makes the requests and saves the results.
 import type { ORResponseFormat } from '../lib/open_router.ts';
-import type { Citation, CitationLocation, Page, SuryaPage } from '../types.ts';
+import type { Citation, CitationLocation, Page, SuryaBlock, SuryaPage } from '../types.ts';
 import { strip_tags } from './book_pages.ts';
 
 export const LOCATION_TYPES: CitationLocation['type'][] = [
@@ -97,6 +97,10 @@ export type PageFootnotes = {
     citations: {
       author: string,
       title: string,
+      // the collection a work is in, and the issue of it, or null (see
+      // footnotesPrompt); absent from answers saved before they were asked for
+      collection?: string | null,
+      issue?: string | null,
       location: string,
       raw: string,
       locationsCited: CitationLocation[][],
@@ -140,10 +144,14 @@ export const FOOTNOTES_FORMAT: ORResponseFormat = {
                 items: {
                   type:                 'object',
                   additionalProperties: false,
-                  required:             ['author', 'title', 'location', 'raw', 'locationsCited'],
-                  properties:           {
+                  required:             [
+                    'author', 'title', 'collection', 'issue', 'location', 'raw', 'locationsCited',
+                  ],
+                  properties: {
                     author:         { type: 'string' },
                     title:          { type: 'string' },
+                    collection:     { type: ['string', 'null'] },
+                    issue:          { type: ['string', 'null'] },
                     location:       { type: 'string' },
                     raw:            { type: 'string' },
                     locationsCited: {
@@ -215,18 +223,44 @@ export const footnotesPrompt = (insights: string[] | null, pages = false) => `${
 - identifier: the footnote's marker as printed ("12", "*", "†"), without <sup> tags. A footnote that
   continues from the previous page has no marker: use "".
 - citations: one entry per work the footnote cites (none if it cites nothing):
-  - author: the author as written ("Pohle-Preuss", "St. Thomas"). For the Bible use "Bible".
+  - author: the author as written ("Pohle-Preuss", "St. Thomas"). For the Bible use "Bible". When no
+    author is written but the work's author is known, give it: the pope who issued an encyclical or
+    other papal document ("Rerum Novarum" -> "Pope Leo XIII"; by its date when it isn't named: a
+    document of December 18, 1903 is Pope Pius X's).
   - title: the work's title, without edition or location ("Christology", "Summa Theologica"). For the
     Bible, the book ("2 Corinthians"). For "Ibid." or "op. cit.", use the author and title of the work it
     refers back to when that appears earlier in these footnotes; otherwise leave author and title as written.
-  - location: the part of the work cited, as written ("Vol. I, pp. 33 sqq.", "qu. 13, art. 9").
+    For an article, the article's title, or the entry's in a dictionary; "" when only the collection is
+    named ("Amer. Cath. Quar. Rev., vol. xiv. p. 601"). A document named only by its date in a
+    collection of documents, such as the Acta Sanctae Sedis, is found by that date: give the date
+    ("December 18, 1903. Acta S. Sedis, Vol. XXXVI, p. 339" -> "December 18, 1903").
+  - collection: the long-running collection the work is in, with its name in full and corrected
+    ("Amer. Cath. Quar. Rev." -> "American Catholic Quarterly Review", "Actu Sancta Solis" -> "Acta
+    Sanctae Sedis"), or null when there is none. A collection is issued in volumes or numbers, each
+    with its own pages or columns, holding works by many authors: journals, reviews and newspapers
+    ("Theological Studies", "La Croix"), collections of documents ("Acta Sanctae Sedis", "Bullarium
+    Romanum", "Acta Sanctorum"), series of texts ("Patrologia Latina", "Patrologia Graeca", "Corpus
+    Scriptorum Ecclesiasticorum Latinorum", "Monumenta Germaniae Historica, Scriptores", "Corpus
+    Catholicorum"), dictionaries and encyclopedias of signed articles ("Dictionnaire de théologie
+    catholique", "Kirchen-Lexikon", "Catholic Encyclopedia"), proceedings of a recurring congress, and
+    Festschriften ("Mélanges Mandonnet"). Not a work's own volumes, nor one author's collected works.
+    For Migne and other series of texts, the author and title are the work's, from the citation it
+    accompanies ("Augustine, De Trin. VI, 2 (PL 42, 925)" -> a second citation, author "Augustine",
+    title "De Trinitate", collection "Patrologia Latina", issue "42", location "925"); "" when not given.
+  - issue: the volume, number or date of the collection cited, as written ("Vol. XXXVI", "3 (1942)",
+    "XXIX (April, 1955)", "October 16, 1906", "t. iii."); for "Ibid." the issue cited before; null
+    when there is no collection or none is given.
+  - location: the part of the work cited, as written ("Vol. I, pp. 33 sqq.", "qu. 13, art. 9"),
+    without the collection and issue: in a collection, the place within the issue ("Theological
+    Studies 2 (1941) 451-480" -> "451-480"; "PL 194, 1171BC" -> "1171BC").
   - raw: the citation's full text as printed, without HTML tags.
   - locationsCited: the location as groups of {rawLabel, type, values}. Start a new group for each
     separately cited place ("Bk II ch 1-3, also Bk III ch 5" -> two groups). rawLabel is the printed
     locator ("Vol. IV", "ch 1-3", "pp. 33 sqq"). values are integers: convert Roman numerals, expand ranges
     ("1-3" -> [1, 2, 3], "sqq" adds nothing). Types: ${ LOCATION_TYPES.join(', ') }. Use "position" for §,
     n., col., and other locators without a matching type. For the Bible, a "book" entry whose value is
-    the book's position in the Catholic (Douay) canon (1-73), then "chapter" and "verse".
+    the book's position in the Catholic (Douay) canon (1-73), then "chapter" and "verse". In a
+    collection, only the places within the issue: not the issue's volume or number.
 ${ insights === null ? '' : insightsPart(insights) }`;
 
 // A response format without additionalInsights, for a prompt without insights
@@ -338,8 +372,15 @@ export const learnedInsights = (result: PageFootnotes): ScoredInsight[] => (
 // insightsForPage)
 export const footnoteText = (page: SuryaPage): string => strip_tags(footnoteHtml(page));
 
+// What's read of a page to extract its footnotes' citations: surya's page, or
+// one rebuilt from the page's saved blocks (see core/footnote_training.ts)
+export type FootnotePage = {
+  page: number,
+  blocks: Pick<SuryaBlock, 'label' | 'html' | 'reading_order'>[],
+};
+
 // A page's Footnote blocks' HTML, in reading order: what the model is given
-export const footnoteHtml = (page: SuryaPage) => (
+export const footnoteHtml = (page: FootnotePage) => (
   page.blocks
     .filter((b) => b.label === 'Footnote')
     .sort((a, b) => a.reading_order - b.reading_order)
@@ -361,6 +402,8 @@ export const pageCitations = (
     referenceBookId: null,
     author:          c.author,
     title:           c.title,
+    collection:      c.collection ?? null,
+    issue:           c.issue ?? null,
     location:        c.location,
     raw:             c.raw,
     locationsCited:  c.locationsCited,

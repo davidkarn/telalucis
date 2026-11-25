@@ -8,7 +8,9 @@
 import type { ORResponseFormat } from '../lib/open_router.ts';
 import type { Citation, SuryaPage } from '../types.ts';
 import { strip_tags } from './book_pages.ts';
-import { FOOTNOTES_FORMAT, footnoteHtml, type PageFootnotes } from './footnote_extraction.ts';
+import {
+  FOOTNOTES_FORMAT, footnoteHtml, type FootnotePage, type PageFootnotes,
+} from './footnote_extraction.ts';
 
 // A batch holds pages until their footnotes come to about this many
 // characters, and at most MAX_BATCH_PAGES pages: small enough for the model to
@@ -43,7 +45,7 @@ const CROSS_REFERENCE = /^\W*\d*\W*(?:cf\.?|see|vide)?\s*,?\s*(?:above|below|sup
 // Whether a page's footnotes may cite something: not when each of its
 // Footnote blocks has no letters (a stray page number) or is only a cross-
 // reference. Kept whenever in doubt: one citation outweighs a request.
-export const hasCitableFootnotes = (page: SuryaPage): boolean => page.blocks
+export const hasCitableFootnotes = (page: FootnotePage): boolean => page.blocks
   .filter((b) => b.label === 'Footnote')
   .map((b) => strip_tags(b.html).replace(/\s+/g, ' ').trim())
   .some((text) => /[A-Za-z]/.test(text) && !CROSS_REFERENCE.test(text));
@@ -51,9 +53,9 @@ export const hasCitableFootnotes = (page: SuryaPage): boolean => page.blocks
 // The pages with footnotes worth reading (see hasCitableFootnotes), in order,
 // in batches of consecutive pages (see MAX_BATCH_CHARS and MAX_BATCH_PAGES); a
 // page with more footnotes than a batch holds is a batch of its own
-export const footnoteBatches = (pages: SuryaPage[]): SuryaPage[][] => pages
+export const footnoteBatches = <P extends FootnotePage>(pages: P[]): P[][] => pages
   .filter(hasCitableFootnotes)
-  .reduce<{ batches: SuryaPage[][], chars: number }>((out, page) => {
+  .reduce<{ batches: P[][], chars: number }>((out, page) => {
     const last  = out.batches[out.batches.length - 1];
     const chars = footnoteHtml(page).length;
 
@@ -70,9 +72,14 @@ export const footnoteBatches = (pages: SuryaPage[]): SuryaPage[][] => pages
 // What the model is given for a batch: which pages there are (told the
 // count, the model is less apt to stop after the first few), then each page's
 // footnotes in a <page>
-export const batchHtml = (batch: SuryaPage[]): string => [
-  `${ batch.length } pages: ${ batch.map((p) => p.page).join(', ') }. Return the footnotes of each.`,
-  ...batch.map((page) => `<page number="${ page.page }">\n${ footnoteHtml(page) }\n</page>`),
+export const batchHtml = (batch: FootnotePage[]): string => (
+  batchMessage(batch.map((page) => ({ page: page.page, html: footnoteHtml(page) })))
+);
+
+// batchHtml's message from each page's footnotes' HTML
+export const batchMessage = (pages: { page: number, html: string }[]): string => [
+  `${ pages.length } pages: ${ pages.map((p) => p.page).join(', ') }. Return the footnotes of each.`,
+  ...pages.map((page) => `<page number="${ page.page }">\n${ page.html }\n</page>`),
 ].join('\n');
 
 // A batch's footnotes' text, what insights' keywords are looked for in (see
@@ -125,6 +132,8 @@ export const batchCitations = (
       referenceBookId: null,
       author:          c.author,
       title:           c.title,
+      collection:      c.collection ?? null,
+      issue:           c.issue ?? null,
       location:        c.location,
       raw:             c.raw,
       locationsCited:  c.locationsCited,

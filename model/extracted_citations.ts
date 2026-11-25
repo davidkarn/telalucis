@@ -45,6 +45,8 @@ const replaceExtractedCitations = (
         reference_book_id:          c.referenceBookId,
         author:                     c.author,
         title:                      c.title,
+        collection:                 c.collection ?? null,
+        issue:                      c.issue ?? null,
         location:                   c.location,
         raw:                        c.raw,
       })
