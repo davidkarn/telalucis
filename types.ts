@@ -64,6 +64,8 @@ export type CitationLocation = {
      | 'objection' | 'sed contra' | 'respondeo' | 'ad' | 'distinction'
      // a book's prose sections and metres (poems), in works alternating them (Boethius)
      | 'prose' | 'metre'
+     // a work's prologue and epilogue, and a manual of theology's theses
+     | 'prologue' | 'thesis' | 'epilogue'
   ),
   values: number[]
 };

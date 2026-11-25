@@ -10,7 +10,7 @@ import { strip_tags } from './book_pages.ts';
 export const LOCATION_TYPES: CitationLocation['type'][] = [
   'page', 'chapter', 'book', 'volume', 'question', 'article', 'lecture', 'position', 'verse', 'part',
   'bekker number', 'line', 'stephanus number', 'objection', 'sed contra', 'respondeo', 'ad',
-  'distinction', 'prose', 'metre',
+  'distinction', 'prose', 'metre', 'prologue', 'thesis', 'epilogue',
 ];
 
 // An insight with how widely it applies (see INSIGHT_SCORES), score null until scored, and the
@@ -258,7 +258,8 @@ export const footnotesPrompt = (insights: string[] | null, pages = false) => `${
     separately cited place ("Bk II ch 1-3, also Bk III ch 5" -> two groups). rawLabel is the printed
     locator ("Vol. IV", "ch 1-3", "pp. 33 sqq"). values are integers: convert Roman numerals, expand ranges
     ("1-3" -> [1, 2, 3], "sqq" adds nothing). Types: ${ LOCATION_TYPES.join(', ') }. Use "position" for §,
-    n., col., and other locators without a matching type. For the Bible, a "book" entry whose value is
+    n., col., and other locators without a matching type; "thesis" for thes.; "prologue" and "epilogue"
+    for a work's prologue or epilogue, valued 1 unless numbered. For the Bible, a "book" entry whose value is
     the book's position in the Catholic (Douay) canon (1-73), then "chapter" and "verse". In a
     collection, only the places within the issue: not the issue's volume or number.
 ${ insights === null ? '' : insightsPart(insights) }`;

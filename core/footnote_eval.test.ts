@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import {
-  addScores, comparable, evalSetJson, isArticle, sampleEvalBatches, matchCitations, NO_SCORE, placeKeys, sampleBatches, scoreBatch, scoreSummary,
+  addScores, comparable, evalSetJson, evalSetProblems, isArticle, sampleEvalBatches, matchCitations, NO_SCORE, placeKeys, sampleBatches, scoreBatch, scoreSummary,
   similarity,
 } from './footnote_eval.ts';
 import type { BatchFootnote } from './footnote_training.ts';
@@ -88,6 +88,21 @@ describe('scoreBatch', () => {
     expect(score.fields).toMatchObject({ collection: 1, issue: 0, title: 2 });
     expect(score.exact).toBe(1);
     expect(scoreSummary(score).fields.issue).toBe(0);
+  });
+});
+
+describe('evalSetProblems', () => {
+  const set = (locationsCited: unknown) => ({ about: '', batches: [{
+    id: 'b:1', bookId: 'b', checked: true, pages: [],
+    expected: [note(1, '2', { ...cite('Prologue'), locationsCited } as ReturnType<typeof cite>)],
+  }] });
+
+  it('names a citation whose locations are not groups, or of a type not asked for', () => {
+    expect(evalSetProblems(set([[{ rawLabel: 'q. 1', type: 'question', values: [1] }]]))).toEqual([]);
+    expect(evalSetProblems(set([{ rawLabel: 'Prologue', type: 'part', values: [1] }]))[0])
+      .toMatch(/^b:1 p1 fn 2: locationsCited must be a list of groups/);
+    expect(evalSetProblems(set([[{ rawLabel: 'N. 403', type: 'number', values: [403] }]]))[0])
+      .toMatch(/bad location/);
   });
 });
 

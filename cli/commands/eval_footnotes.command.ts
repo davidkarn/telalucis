@@ -19,7 +19,7 @@ import { Command, CommandRunner, Option } from 'nest-commander';
 import { DB } from '../../api/database.module.ts';
 import type { Database } from '../../api/database.ts';
 import {
-  addScores, COMPARED_FIELDS, NO_SCORE, scoreBatch, scoreSummary, type EvalSet,
+  addScores, COMPARED_FIELDS, evalSetProblems, NO_SCORE, scoreBatch, scoreSummary, type EvalSet,
 } from '../../core/footnote_eval.ts';
 import { DEFAULT_FOOTNOTES_MODEL } from '../../lib/footnote_citations.ts';
 import { askEvalBatch, findEvalInsights } from '../../lib/footnote_eval.ts';
@@ -76,6 +76,10 @@ export class EvalFootnotesCommand extends CommandRunner {
   async run(_: string[], options: Options = {}): Promise<void> {
     const model    = options.model ?? DEFAULT_FOOTNOTES_MODEL;
     const set      = JSON.parse(await fs.readFile(options.set ?? DEFAULT_SET, 'utf8')) as EvalSet;
+    const problems = evalSetProblems(set);
+    if (problems.length > 0) {
+      throw new Error(`The eval set can't be scored:\n${ problems.join('\n') }`);
+    }
     const chosen   = set.batches.filter((b) => options.checkedOnly !== true || b.checked);
     const batches  = options.limit === undefined ? chosen : chosen.slice(0, options.limit);
     const insights = options.insights === true ? await findEvalInsights(this.db) : null;

@@ -878,7 +878,7 @@
               "issue": null,
               "location": "Prologue",
               "raw": "Prologue",
-              "locationsCited": [{"rawLabel":"Prologue","type":"prologue","values":[1]}]
+              "locationsCited": [[{"rawLabel":"Prologue","type":"prologue","values":[1]}]]
             }
           ]
         },
@@ -1076,7 +1076,7 @@
               "issue": null,
               "location": "N. 403",
               "raw": "\"Asserta Moralia,\" N. 403.",
-              "locationsCited": [[{"rawLabel":"N. 403","type":"number","values":[403]}]]
+              "locationsCited": [[{"rawLabel":"N. 403","type":"position","values":[403]}]]
             }
           ]
         },
@@ -1429,7 +1429,7 @@
               "locationsCited": [
                 [
                   {"rawLabel":"iv.","type":"part","values":[4]},
-                  {"rawLabel":"§ 8","type":"section","values":[8]}
+                  {"rawLabel":"§ 8","type":"position","values":[8]}
                 ]
               ]
             }
@@ -4883,7 +4883,7 @@
     {
       "id": "barbaracelarent033237mbp:64,65,66,67,69,70",
       "bookId": "barbaracelarent033237mbp",
-      "checked": false,
+      "checked": true,
       "pages": [
         {
           "page": 64,
@@ -5418,7 +5418,7 @@
     {
       "id": "earlyfirstcommun00dezuuoft:38,39,41,43,49,51",
       "bookId": "earlyfirstcommun00dezuuoft",
-      "checked": false,
+      "checked": true,
       "pages": [
         {
           "page": 38,
@@ -5529,7 +5529,7 @@
           "citations": [
             {
               "author": "",
-              "title": "Compendium of Christian Doctrine: The Greater Catechism",
+                "title": "Compendium of Christian Doctrine: The Greater Catechism",
               "collection": null,
               "issue": null,
               "location": "The Eucharist, sec. 5",
@@ -5609,7 +5609,7 @@
     {
       "id": "ontologyortheory00coffrich:88,90,91,92,93,94",
       "bookId": "ontologyortheory00coffrich",
-      "checked": false,
+      "checked": true,
       "pages": [
         {
           "page": 88,
@@ -5757,7 +5757,7 @@
     {
       "id": "bub_gb_ArMHAAAAQAAJ:78,79,81,82,88,89",
       "bookId": "bub_gb_ArMHAAAAQAAJ",
-      "checked": false,
+      "checked": true,
       "pages": [
         {
           "page": 78,
@@ -5944,7 +5944,7 @@
     {
       "id": "soteriology00pohluoft:41,42,43,44,46,48",
       "bookId": "soteriology00pohluoft",
-      "checked": false,
+      "checked": true,
       "pages": [
         {
           "page": 41,
@@ -6259,7 +6259,7 @@
     {
       "id": "logicormorpholog02bosaiala:66,67,68,69,70,72",
       "bookId": "logicormorpholog02bosaiala",
-      "checked": false,
+      "checked": true,
       "pages": [
         {"page":66,"html":"<p><sup>1</sup> Cp. Introduction, sect. 4.</p>"},
         {
@@ -6340,7 +6340,7 @@
     {
       "id": "historyamericab03roogoog:199,200,201,206,208,211",
       "bookId": "historyamericab03roogoog",
-      "checked": false,
+      "checked": true,
       "pages": [
         {
           "page": 199,
@@ -6943,7 +6943,7 @@
     {
       "id": "PapalProgramOfSocialReform:49,51,56,57,61,66",
       "bookId": "PapalProgramOfSocialReform",
-      "checked": false,
+      "checked": true,
       "pages": [
         {"page":49,"html":"<p>1 Exod. XX. 8.<br/>2 Genesis II. 2.</p>"},
         {"page":51,"html":"<p>1 Genesis III. 19.</p>"},
@@ -7183,7 +7183,7 @@
     {
       "id": "secretwarfareoff00pachuoft:131,133,134,135,136,137",
       "bookId": "secretwarfareoff00pachuoft",
-      "checked": false,
+      "checked": true,
       "pages": [
         {
           "page": 131,
@@ -7362,7 +7362,7 @@
     {
       "id": "barbaracelarent033237mbp:97,99,100,101,102,103",
       "bookId": "barbaracelarent033237mbp",
-      "checked": false,
+      "checked": true,
       "pages": [
         {"page":97,"html":"<p><sup>1</sup> <i>Summa Theologica</i>, 2a–2ae: II: 3.</p>"},
         {
@@ -7655,7 +7655,7 @@
     {
       "id": "earlyfirstcommun00dezuuoft:55,56,59,60,61,62",
       "bookId": "earlyfirstcommun00dezuuoft",
-      "checked": false,
+      "checked": true,
       "pages": [
         {"page":55,"html":"<p><sup>1</sup> 2 Pet. i. 4.</p>"},
         {"page":56,"html":"<p><sup>1</sup> Sess. XIII.: \"On the Holy Eucharist,\" chap. n.</p>"},
@@ -7861,7 +7861,7 @@
     {
       "id": "ontologyortheory00coffrich:128,129,131,132,133,134",
       "bookId": "ontologyortheory00coffrich",
-      "checked": false,
+      "checked": true,
       "pages": [
         {
           "page": 128,

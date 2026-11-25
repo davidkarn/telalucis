@@ -11,6 +11,7 @@
 import { placesOf } from './citation_groups.ts';
 import type { BatchFootnote } from './footnote_training.ts';
 import { batchId, stableHash } from './footnote_training.ts';
+import { LOCATION_TYPES } from './footnote_extraction.ts';
 import type { CitationLocation } from '../types.ts';
 
 // A batch whose citations are known
@@ -29,6 +30,38 @@ export type EvalSet = { about: string, batches: EvalBatch[] };
 
 // An eval batch's id: its book's, with its pages
 export const evalBatchId = batchId;
+
+// What's wrong with a citation's locations as written by hand, or null: they
+// must be groups (arrays) of locations, each of a type the prompt names (a
+// model can give no other) with integer values
+const locationsProblem = (locations: unknown): string | null => {
+  const groups = Array.isArray(locations) ? locations as unknown[] : null;
+  const locs   = (groups ?? []).flatMap((g) => (Array.isArray(g) ? g as unknown[] : []));
+  const bad    = locs.find((l) => {
+    const { type, values } = (l ?? {}) as { type?: unknown, values?: unknown };
+    return !(LOCATION_TYPES as unknown[]).includes(type)
+      || !Array.isArray(values) || !values.every((v) => Number.isInteger(v));
+  });
+
+  if (groups === null || groups.some((g) => !Array.isArray(g))) {
+    return 'locationsCited must be a list of groups: [[{...}]]';
+  }
+  else if (bad !== undefined) {
+    return `bad location ${ JSON.stringify(bad) } (types: ${ LOCATION_TYPES.join(', ') })`;
+  }
+  else {
+    return null;
+  }
+};
+
+// The problems with an eval set's expected citations, each naming its batch,
+// page and footnote: none when it can be scored
+export const evalSetProblems = (set: EvalSet): string[] => set.batches.flatMap((b) => (
+  b.expected.flatMap((f) => f.citations.flatMap((c) => {
+    const problem = locationsProblem(c.locationsCited);
+    return problem === null ? [] : [`${ b.id } p${ f.page } fn ${ f.identifier }: ${ problem }`];
+  }))
+));
 
 // `count` of the batches, at most `perBook` a book, spread over each book's:
 // a batch of each book, then a second of each, and so on, the books in an
