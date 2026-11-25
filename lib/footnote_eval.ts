@@ -15,8 +15,9 @@ import {
 } from '../core/footnote_extraction.ts';
 import type { BatchFootnote } from '../core/footnote_training.ts';
 import { FootnoteExtractionInsightQueries } from '../model/footnote_extraction_insights.ts';
+import { LOCAL_MAX_TOKENS } from './footnote_citations.ts';
 import {
-  makeOpenRouterRequest, parseJsonResponse, type ORMessage, type ORReasoning, type ORResponse,
+  isLocalModel, makeOpenRouterRequest, parseJsonResponse, type ORMessage, type ORReasoning, type ORResponse,
   type ORResponseFormat,
 } from './open_router.ts';
 
@@ -94,7 +95,10 @@ export const askFootnotes = async(
   const started              = Date.now();
 
   try {
-    return footnotesAnswer(await makeOpenRouterRequest(messages, format, model, reasoning), Date.now() - started);
+    const response = await makeOpenRouterRequest(
+      messages, format, model, reasoning, isLocalModel(model) ? LOCAL_MAX_TOKENS : undefined,
+    );
+    return footnotesAnswer(response, Date.now() - started);
   }
   catch (e) {
     return failedAnswer(e, Date.now() - started);

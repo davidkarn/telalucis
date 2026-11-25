@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { issueName, issuePeriods, issueTitle, periodOf } from './journal_issues.ts';
+import { issueCopies, issueName, issuePeriods, issueTitle, periodOf } from './journal_issues.ts';
 
 describe('issueName', () => {
   it('reads the date, volume and number from an archive.org identifier', () => {
@@ -25,6 +25,7 @@ describe('periodOf', () => {
     expect(periodOf('1939-1986')).toEqual({ start: '1939-01-01', end: '1986-12-31', precision: 'range' });
     expect(periodOf('Franciscan Studies 1953: Vol 13')).toEqual({ start: '1953-01-01', end: '1953-12-31', precision: 'year' });
     expect(periodOf('Vol 13')).toBeNull();
+    expect(periodOf('1902-08-01')).toEqual({ start: '1902-08-01', end: '1902-08-31', precision: 'month' });
   });
 });
 
@@ -52,5 +53,28 @@ describe('issueTitle', () => {
       .toBe('The Thomist 1947: Vol 10 Table of Contents');
     expect(issueTitle('The Thomist', issueName('x_1948-01_11_1'), ' The Thomist 1948-01: Vol 11 Iss 1 '))
       .toBe('The Thomist 1948-01: Vol 11 Iss 1');
+  });
+});
+
+describe('issueCopies', () => {
+  const plain = 'sim_american-ecclesiastical-review_1902-08_27_2';
+  const named = 'sim_american-ecclesiastical-review_the-ecclesiastical-review_1902-08-01_27_2';
+  const other = 'sim_american-ecclesiastical-review_1902-09_27_3';
+
+  it('keeps the copy named by the journal alone', () => {
+    expect(issueCopies([named, plain, other])).toEqual([{ name: named, copyOf: plain }]);
+  });
+
+  it('keeps the copy ranked lowest first', () => {
+    expect(issueCopies([named, plain], (n) => (n === named ? 0 : 1))).toEqual([{ name: plain, copyOf: named }]);
+  });
+
+  it('passes over a second scan marked "_0", and leaves names without a date or volume alone', () => {
+    expect(issueCopies(['res-philosophica_1949-11_27_1', 'res-philosophica_1949-11_27_1_0', 'franciscanstudie0013unse', 'franciscanstudie0014unse']))
+      .toEqual([{ name: 'res-philosophica_1949-11_27_1_0', copyOf: 'res-philosophica_1949-11_27_1' }]);
+  });
+
+  it('tells apart parts of the same volume and month', () => {
+    expect(issueCopies(['x_1931_5_contents', 'x_1931_5_index'])).toEqual([]);
   });
 });

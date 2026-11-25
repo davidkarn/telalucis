@@ -98,14 +98,14 @@ export const chatRequestBody = (
 
 export const makeOpenRouterRequest = (
   msgs: ORMessage[], responseFormat?: ORResponseFormat, model: string = 'openai/gpt-4o',
-  reasoning?: ORReasoning,
+  reasoning?: ORReasoning, maxTokens?: number,
 ) => {
   const to = endpoint(model);
 
   return fetch(to.url, {
     method:  'POST',
     headers: { ...to.headers, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(chatRequestBody(msgs, responseFormat, model, reasoning)),
+    body:    JSON.stringify(chatRequestBody(msgs, responseFormat, model, reasoning, maxTokens)),
   })
     .then((result) => result.json() as Promise<ORResponse>);
 };

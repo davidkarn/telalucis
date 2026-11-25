@@ -15,15 +15,18 @@
 // added; its citations are pointed at the books in the collection they cite,
 // and earlier citations of it at it (see lib/citation_relinking.ts). An issue
 // imported before as one book has that book replaced by its articles. Issues
-// not OCR'd yet, and those imported already, are passed over.
+// not OCR'd yet, and those imported already, are passed over, as are second
+// copies of an issue downloaded twice (see issueCopies).
 //   npm run cli -- import-journal-issues [folders...] [--limit <n>] [--dir <folder>]
 //     [--reimport] [--dry-run] [--model <model>] [--examples] [--batch [--batch-size <n>]]
 // folders: the journals' folders (all when none are given). --dry-run: name
 // each issue's articles (asking the LLM for issues not asked before), without
 // extracting citations or saving.
 // --model: the model extracting citations, an OpenRouter one or "local/<name>"
-// for a local server's (see lib/open_router.ts). --examples: show it
-// citations in the collection like each batch's (see core/citation_examples.ts).
+// for a local server's (see lib/open_router.ts; a model distilled for it is
+// served as "local/default_model" by scripts/distill_footnotes.sh serve).
+// --examples: show it citations in the collection like each batch's (see
+// core/citation_examples.ts).
 // --batch: extract through the Batch API, for about half the price, waiting for
 // the answers (most take minutes, at most a day), then save the issues; a run
 // stopped while waiting collects them when run again with the same issues.
@@ -44,7 +47,7 @@ import {
 } from '../../core/journal_articles.ts';
 import { importJournalArticleActions } from '../../core/journal_issue_import.ts';
 import {
-  JOURNALS, issueName, issuePeriods, issueTitle, periodOf, type Period,
+  JOURNALS, issueCopies, issueName, issuePeriods, issueTitle, periodOf, type Period,
 } from '../../core/journal_issues.ts';
 import type { Page } from '../../types.ts';
 import { archiveItemMetadata } from '../../lib/archive_search.ts';
@@ -177,13 +180,26 @@ export class ImportJournalIssuesCommand extends CommandRunner {
       const folder  = path.join(dir, journal.folder);
       const names   = (await pdfsIn(folder)).map((pdf) => path.basename(pdf, '.pdf'));
       const periods = issuePeriods(names.map((n) => periodOf(issueName(n).date ?? '')));
+      const results = (name: string) => path.join(folder, 'results', 'surya', name, 'results.json');
+      const ocred   = new Set<string>();
       let waiting   = 0;
 
-      for (const [i, name] of names.entries()) {
-        const results = path.join(folder, 'results', 'surya', name, 'results.json');
-        const ocred   = await fs.access(results).then(() => true, () => false);
+      for (const name of names) {
+        if (await fs.access(results(name)).then(() => true, () => false)) {
+          ocred.add(name);
+        }
+      }
 
-        if (!ocred) {
+      // an issue downloaded twice is imported once: the copy imported already, else one OCR'd
+      const copies = new Map(issueCopies(names, (n) => (
+        isImported(imported, n) ? 0 : ocred.has(n) ? 1 : 2
+      )).map((c) => [c.name, c.copyOf]));
+
+      for (const [i, name] of names.entries()) {
+        if (copies.has(name)) {
+          // another copy of an issue (see issueCopies)
+        }
+        else if (!ocred.has(name)) {
           waiting++;
         }
         else if ((isImported(imported, name) && !options.reimport) || count >= (options.limit ?? Infinity)) {
@@ -191,7 +207,7 @@ export class ImportJournalIssuesCommand extends CommandRunner {
         }
         else {
           count++;
-          const issue = await this.prepareIssue(journal.name, name, results, periods[i] ?? null);
+          const issue = await this.prepareIssue(journal.name, name, results(name), periods[i] ?? null);
 
           if (issue === null || options.dryRun) {
             // not to be imported, or not now
@@ -208,7 +224,8 @@ export class ImportJournalIssuesCommand extends CommandRunner {
         }
       }
 
-      console.log(`${ journal.name }: ${ names.length } issues, ${ waiting } not OCR'd yet`);
+      console.log(`${ journal.name }: ${ names.length - copies.size } issues, ${ waiting } not OCR'd yet`
+        + (copies.size > 0 ? `; ${ copies.size } second copies passed over` : ''));
     }
 
     if (issues.length > 0) {

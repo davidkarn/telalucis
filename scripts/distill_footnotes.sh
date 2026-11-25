@@ -4,10 +4,14 @@
 # the chats, serve it, and measure it on the eval set (eval-footnotes), as a run in
 # output/distill/<run>/. Apple silicon only (MLX).
 #
-#   scripts/distill_footnotes.sh [all|train|eval]        (from src/; all by default)
+#   scripts/distill_footnotes.sh [all|train|eval|serve]  (from src/; all by default)
 #
 # train: pick the chats (those that fit in MAX_SEQ tokens), then train. eval: serve the run's
-# adapter and measure it on the hand-checked batches. Settings, by environment variable:
+# adapter and measure it on the hand-checked batches. serve: serve the run's adapter until
+# stopped (ctrl-c), for the importers to extract citations with, as local/default_model:
+#   LOCAL_LLM_URL=http://127.0.0.1:<port>/v1 npm run cli -- process-ocred-books --model local/default_model
+# (import-journal-issues likewise; without --examples or --batch, which the student
+# wasn't trained with and a local server hasn't). Settings, by environment variable:
 #   RUN          the run's name (distill-<student>-<chats>)
 #   STUDENT      the model to train, an MLX model on Hugging Face (mlx-community/Qwen2.5-7B-Instruct-4bit)
 #   TEACHER      whose answers to learn (anthropic/claude-haiku-5.5)
@@ -17,8 +21,7 @@
 #   MAX_SEQ      the longest chat trained on, in tokens; longer ones are left out (8192)
 #   NUM_LAYERS   layers given adapters (16; -1 for all)
 #   LR           learning rate (1e-5)
-#   PORT         the server's port while measuring (the first free one from 8081; 8080 is the
-#                default local model's)
+#   PORT         the server's port while measuring or serving (the first free one from 8081)
 #   EVAL_ARGS    more arguments for eval-footnotes ("--checked-only")
 #   TEMPLATE_ARGS chat template arguments for the server, as JSON (for Qwen3: '{"enable_thinking": false}')
 set -euo pipefail
@@ -103,17 +106,14 @@ train() {
     2>&1 | tee "$OUT/train.log"
 }
 
-# Serve the student with its adapter until measured, then stop it. The server names the model
-# it was started with "default_model", so the eval asks for local/default_model.
-evaluate() {
+# The port to serve on, the first free one from 8081 when PORT isn't set (another server on it
+# would answer in the student's place), and the server's arguments, in args
+server_args() {
+  in_use() { lsof -nP -iTCP:"$1" -sTCP:LISTEN > /dev/null 2>&1; }
   if [[ ! -f "$OUT/adapters/adapters.safetensors" ]]; then
     echo "no adapter in $OUT/adapters: train first" >&2
     exit 1
-  fi
-
-  # another server on the port would answer in the student's place
-  in_use() { lsof -nP -iTCP:"$1" -sTCP:LISTEN > /dev/null 2>&1; }
-  if [[ -z "$PORT" ]]; then
+  elif [[ -z "$PORT" ]]; then
     PORT=8081
     while in_use "$PORT"; do PORT=$((PORT + 1)); done
   elif in_use "$PORT"; then
@@ -121,10 +121,26 @@ evaluate() {
     exit 1
   fi
 
-  local args=(--model "$STUDENT" --adapter-path "$OUT/adapters" --port "$PORT" --max-tokens 8192)
+  args=(--model "$STUDENT" --adapter-path "$OUT/adapters" --port "$PORT" --max-tokens 8192)
   if [[ -n "$TEMPLATE_ARGS" ]]; then
     args+=(--chat-template-args "$TEMPLATE_ARGS")
   fi
+}
+
+# Serve the student with its adapter until stopped
+serve() {
+  local args
+  server_args
+  echo "serving $STUDENT with $OUT/adapters; extract citations with it by:"
+  echo "  LOCAL_LLM_URL=http://127.0.0.1:$PORT/v1 npm run cli -- process-ocred-books --model local/default_model"
+  exec "$VENV/bin/mlx_lm.server" "${args[@]}"
+}
+
+# Serve the student with its adapter until measured, then stop it. The server names the model
+# it was started with "default_model", so the eval asks for local/default_model.
+evaluate() {
+  local args
+  server_args
 
   echo "serving $STUDENT with $OUT/adapters on port $PORT"
   "$VENV/bin/mlx_lm.server" "${args[@]}" > "$OUT/server.log" 2>&1 &
@@ -157,5 +173,6 @@ case "$STEP" in
   all)   train && evaluate ;;
   train) train ;;
   eval)  evaluate ;;
-  *)     echo "usage: $0 [all|train|eval]" >&2; exit 1 ;;
+  serve) serve ;;
+  *)     echo "usage: $0 [all|train|eval|serve]" >&2; exit 1 ;;
 esac

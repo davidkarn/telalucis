@@ -8,8 +8,10 @@
 //     [--batch [--batch-size <n>]]
 // count: how many books, 10 when not given. --model: the model extracting
 // citations, an OpenRouter one or "local/<name>" for a local server's (see
-// lib/open_router.ts). --examples: show it citations in the collection like
-// each batch's (see core/citation_examples.ts). --batch: ask for all the
+// lib/open_router.ts; a model distilled for it is served as
+// "local/default_model" by scripts/distill_footnotes.sh serve). --examples:
+// show it citations in the collection like each batch's (see
+// core/citation_examples.ts). --batch: ask for all the
 // books' citations at once through OpenRouter's Batch API, for about half the
 // price, waiting for the answers (most take minutes, at most a day; see
 // lib/footnote_batch_extraction.ts), then import the books one after another.

@@ -23,6 +23,10 @@ import type { Citation, SuryaPage } from '../types.ts';
 // OpenRouter allows 20 requests a minute
 const REQUEST_INTERVAL_MS = 3200;
 
+// The answer limit asked of a local model: some servers stop answers short without one
+// (mlx_lm.server at 512 tokens, a few footnotes' worth), and answers are about 5,000 tokens
+export const LOCAL_MAX_TOKENS = 8192;
+
 // measured on eval/footnotes.json against openai/gpt-4o-mini (see eval-footnotes)
 export const DEFAULT_FOOTNOTES_MODEL = 'anthropic/claude-haiku-5.5';
 
@@ -38,7 +42,8 @@ export const defaultReasoning = (model: string): ORReasoning | undefined => (
 
 // How the citations are extracted. model: an OpenRouter model, or a local one
 // ("local/<name>", see lib/open_router.ts), asked without waiting between
-// requests. examples: citations to show the model those like each batch's
+// requests: a model distilled for it is served by scripts/distill_footnotes.sh
+// serve, as "local/default_model". examples: citations to show the model those like each batch's
 // (see core/citation_examples.ts), none from the book itself. reasoning: how
 // much the model thinks (see ORReasoning), defaultReasoning when not given.
 export type ExtractionOptions = { model?: string, examples?: ExampleIndex, reasoning?: ORReasoning };
@@ -84,7 +89,9 @@ export const askFootnoteBatches = async(
 
     try {
       const { messages, format } = footnoteBatchRequest(bookId, batch, options.examples);
-      const response             = await makeOpenRouterRequest(messages, format, model, reasoning);
+      const response             = await makeOpenRouterRequest(
+        messages, format, model, reasoning, isLocalModel(model) ? LOCAL_MAX_TOKENS : undefined,
+      );
       const answer               = answeredBatch(bookId, batch, parseJsonResponse<BatchFootnotes>(response));
 
       citations.push(...answer.citations);

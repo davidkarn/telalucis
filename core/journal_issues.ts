@@ -64,12 +64,12 @@ const firstDay = (year: number, month: number) => ymd(new Date(Date.UTC(year, mo
 const lastDay  = (year: number, month: number) => ymd(new Date(Date.UTC(year, month, 0)));
 const monthOf  = (name: string) => MONTHS.findIndex((m) => m.startsWith(name.toLowerCase().slice(0, 3))) + 1;
 
-// The period a date as written covers: "1951-07" (a month), "July 1951",
+// The period a date as written covers: "1951-07" or "1951-07-01" (a month), "July 1951",
 // "February-March 1926", "November 1958-May 1959", "1939-1986", "1953" (a
 // year); null when it has no year
 export const periodOf = (text: string): Period | null => {
   const t      = text.toLowerCase();
-  const month  = t.match(/\b(\d{4})-(\d{2})\b(?!-\d{2}\b)/);
+  const month  = t.match(/\b(\d{4})-(\d{2})(?:-\d{2})?\b/);
   const months = t.match(new RegExp(`\\b${ MONTH }(?:\\s+(\\d{4}))?\\s*[-–]\\s*${ MONTH }\\s+(\\d{4})`));
   const named  = t.match(new RegExp(`\\b${ MONTH }\\s+(\\d{4})`));
   const years  = t.match(/\b(\d{4})\s*[-–]\s*(\d{4})\b/);
@@ -133,6 +133,53 @@ export const issuePeriods = (periods: (Period | null)[]): (Period | null)[] => {
       ));
       return { ...p, end };
     }
+  });
+};
+
+// An issue's key: its period, volume and number or part; null when its
+// name gives no date or volume, so it can't be told from another
+const issueKey = (name: string): string | null => {
+  const issue  = issueName(name);
+  const period = periodOf(issue.date ?? '');
+
+  if (period === null || issue.volume === null) {
+    return null;
+  }
+  else {
+    return [period.start, period.end, issue.volume, issue.part ?? ''].join('|');
+  }
+};
+
+// How many identifier segments come before a name's date: 0 for
+// "sim_american-ecclesiastical-review_1890-10_3_4", 1 for
+// "sim_american-ecclesiastical-review_the-ecclesiastical-review_1902-08-01_27_2"
+const segmentsBeforeDate = (name: string): number => {
+  const segments = name.replace(/^sim_/, '').split('_');
+  return Math.max(0, segments.findIndex((s, i) => i > 0 && /\d{4}/.test(s)) - 1);
+};
+
+// The copies of issues downloaded more than once (archive.org has some
+// journals' issues under two identifiers, scanned twice), each with the copy
+// kept in its place. Of an issue's copies the one ranked lowest is kept
+// (rank: what the caller prefers, such as copies imported or OCR'd already),
+// then the one named by the journal alone, then the first by name.
+export const issueCopies = (
+  names: string[], rank: (name: string) => number = () => 0,
+): { name: string, copyOf: string }[] => {
+  const byIssue = new Map<string, string[]>();
+
+  for (const name of names) {
+    const key = issueKey(name);
+    if (key !== null) {
+      byIssue.set(key, [...(byIssue.get(key) ?? []), name]);
+    }
+  }
+
+  return [...byIssue.values()].flatMap((copies) => {
+    const [kept, ...others] = [...copies].sort((a, b) => (
+      rank(a) - rank(b) || segmentsBeforeDate(a) - segmentsBeforeDate(b) || a.localeCompare(b)
+    ));
+    return others.map((name) => ({ name, copyOf: kept! }));
   });
 };
 
