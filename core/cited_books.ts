@@ -1,13 +1,18 @@
-// The books an imported book's citations cite: those in the collection already (matched by author
-// and title, see core/citation_matching.ts), those queued for import, and the rest, to look for on
-// archive.org and queue. Pure functions; cli/commands/find_and_queue_cited_books.command.ts reads
+// The books an imported book's citations cite: those in the collection already (a journal article
+// or a collection's volume, by the collection and issue cited, see core/collection_links.ts; else
+// by author and title, see core/citation_matching.ts), those queued for import, and the rest, to
+// look for on archive.org and queue. Pure functions; cli/commands/find_and_queue_cited_books.command.ts reads
 // and saves them and searches archive.org.
 import path from 'node:path';
 import type { AppActionStep } from '../actions/app_actions.ts';
 import { citedTitle, sameAuthor, sameTitle, citationShouldBeSkipped, volumeOf } from './citation_matching.ts';
 import { SCHOLSHELF } from './book_files.ts';
+import { citedArticle, citedCollectionVolume, type JournalArticleRef } from './collection_links.ts';
 
-type CitationFields = { id: string, author: string, title: string, location: string, reference_book_id: string | null };
+type CitationFields = {
+  id: string, author: string, title: string, location: string, reference_book_id: string | null,
+  collection?: string | null, issue?: string | null,
+};
 type Named          = { title: string, author: string };
 
 // A citation's matches among these works, by author and title: the works it may cite
@@ -28,11 +33,13 @@ const matchingWorks = <W extends Named>(works: W[]) => {
 // the book (of several volumes, the one whose volume number matches the citation's), and those that
 // cite something neither in the collection nor queued for import: the ones worth looking for.
 // Citations with no author or title to go by are among the latter. books: the collection but the
-// book itself; queued: the books queued for import but not imported.
+// book itself; queued: the books queued for import but not imported; articles: the journal
+// articles in the collection, for citations of a journal.
 export const matchCitedBooks = <C extends CitationFields>(
   citations: C[],
   books: (Named & { id: string })[],
   queued: Named[],
+  articles: JournalArticleRef[] = [],
 ): { referencing: { citationId: string, bookId: string }[], notReferencing: C[] } => {
   const booksMatching  = matchingWorks(books);
   const queuedMatching = matchingWorks(queued);
@@ -41,8 +48,16 @@ export const matchCitedBooks = <C extends CitationFields>(
   const notReferencing: C[]                                   = [];
 
   for (const c of citations) {
+    // a journal article or a collection's volume, by the collection and issue cited
+    const collected = c.reference_book_id === null && c.collection
+      ? citedArticle(c, articles) ?? citedCollectionVolume(c, books)
+      : undefined;
+
     if (c.reference_book_id !== null) {
       // linked already
+    }
+    else if (collected !== undefined) {
+      referencing.push({ citationId: c.id, bookId: collected.id });
     }
     else if (citationShouldBeSkipped(c.author, c.title)) {
       notReferencing.push(c);

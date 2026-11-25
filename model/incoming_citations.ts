@@ -108,8 +108,8 @@ export const relinkCitations = (
 export const findCitationsInBook = (db: Kysely<Database>, bookId: string) => (
   db.selectFrom('citations')
     .select([
-      'id', 'source_footnote_page', 'source_footnote_identifier', 'author', 'title', 'location', 'raw',
-      'reference_book_id',
+      'id', 'source_footnote_page', 'source_footnote_identifier', 'author', 'title', 'collection',
+      'issue', 'location', 'raw', 'reference_book_id',
     ])
     .where('source_book_id', '=', bookId)
     .orderBy('source_footnote_page')

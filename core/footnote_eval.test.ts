@@ -5,7 +5,7 @@ import {
 } from './footnote_eval.ts';
 import type { BatchFootnote } from './footnote_training.ts';
 
-const cite = (raw: string, title = 'Summa Theologica', values = [1]) => ({
+const cite = (raw: string, title = 'Summa Theologica', values = [1]): BatchFootnote['citations'][number] => ({
   author:         'St. Thomas',
   title,
   location:       'q. 1',
@@ -13,7 +13,7 @@ const cite = (raw: string, title = 'Summa Theologica', values = [1]) => ({
   locationsCited: [[{ rawLabel: 'q. 1', type: 'question' as const, values }]],
 });
 
-const note = (page: number, identifier: string, ...citations: ReturnType<typeof cite>[]): BatchFootnote => ({
+const note = (page: number, identifier: string, ...citations: BatchFootnote['citations'][number][]): BatchFootnote => ({
   page, identifier, citations,
 });
 
@@ -94,7 +94,7 @@ describe('scoreBatch', () => {
 describe('evalSetProblems', () => {
   const set = (locationsCited: unknown) => ({ about: '', batches: [{
     id: 'b:1', bookId: 'b', checked: true, pages: [],
-    expected: [note(1, '2', { ...cite('Prologue'), locationsCited } as ReturnType<typeof cite>)],
+    expected: [note(1, '2', { ...cite('Prologue'), locationsCited } as BatchFootnote['citations'][number])],
   }] });
 
   it('names a citation whose locations are not groups, or of a type not asked for', () => {

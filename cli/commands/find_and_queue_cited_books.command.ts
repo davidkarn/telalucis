@@ -14,6 +14,7 @@ import { searchArchive } from '../../lib/archive_search.ts';
 import { log } from '../../lib/lib.ts';
 import { BookQueries } from '../../model/books.ts';
 import { findCitationsInBook, linkCitations } from '../../model/incoming_citations.ts';
+import { JournalQueries } from '../../model/journals.ts';
 import {
   QueuedBookImportsActions, QueuedBookImportsQueries,
 } from '../../model/queued_book_imports.ts';
@@ -77,6 +78,7 @@ export class FindAndQueueCitedBooksCommand extends CommandRunner {
         await findCitationsInBook(this.db, bookId),
         await BookQueries.findOtherBookNames(this.db, bookId),
         await QueuedBookImportsQueries.findQueuedBookNames(this.db),
+        (await JournalQueries.findArticleRefs(this.db)).filter((a) => a.id !== bookId),
       );
 
       const archiveCopies = await this.findArchiveCopies(notReferencing);

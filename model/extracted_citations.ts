@@ -1,9 +1,12 @@
 // Saving the citations extracted from an imported book's footnotes (see core/footnote_extraction.ts),
 // with the insights learned extracting them
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import type { Database } from '../api/database.ts';
 import { placesOf } from '../core/citation_groups.ts';
 import { newInsights, type PlacedCitation, type ScoredInsight } from '../core/footnote_extraction.ts';
+import type { FootnoteBlocks } from '../core/footnote_relabel.ts';
+import { locationsFromPlaces } from '../core/footnote_training.ts';
+import type { PlaceGroup } from '../core/citation_groups.ts';
 import { groupRow } from './citation_groups.ts';
 import { FootnoteExtractionInsightActions } from './footnote_extraction_insights.ts';
 import { PageCitedCountsCacheActions } from './page_cited_counts_cache.ts';
@@ -78,3 +81,64 @@ const replaceExtractedCitations = (
 });
 
 export const ExtractedCitationActions = { replaceExtractedCitations };
+
+// A book's citations as saved, each in its footnote block (its page and position), with its
+// link and its locations from its citation_groups rows (see locationsFromPlaces), in the order
+// saved: what replaceExtractedCitations would save again
+const findPlacedCitations = async(db: Kysely<Database>, bookId: string): Promise<PlacedCitation[]> => {
+  const rows = (await sql<{
+    pageNumber: number, position: number, identifier: string, footnotePage: number,
+    referenceBookId: string | null, author: string, title: string, collection: string | null,
+    issue: string | null, location: string, raw: string, groups: PlaceGroup[],
+  }>`
+    select pb.page_number as "pageNumber", pb.position, c.source_footnote_identifier as identifier,
+      c.source_footnote_page as "footnotePage", c.reference_book_id as "referenceBookId",
+      c.author, c.title, c.collection, c.issue, c.location, c.raw,
+      coalesce((
+        select json_agg(json_build_object('raw', g.raw, 'parts', array_remove(array[
+          ${ sql.join([1, 2, 3, 4, 5, 6, 7, 8].map((n) => sql`
+            case when ${ sql.ref(`g.part${ n }_type`) } is null then null
+            else json_build_object('type', ${ sql.ref(`g.part${ n }_type`) },
+              'value', ${ sql.ref(`g.part${ n }_value`) })::jsonb end`)) }
+        ], null)) order by g.id)
+        from citation_groups g where g.citation_id = c.id
+      ), '[]'::json) as groups
+    from citations c
+    join page_blocks pb on pb.id = c.page_block_id
+    where c.source_book_id = ${ bookId }
+    order by c.id
+  `.execute(db)).rows;
+
+  return rows.map((r) => ({
+    pageNumber: r.pageNumber,
+    position:   r.position,
+    citation:   {
+      source:          { bookId, footnoteIdentifier: r.identifier, footnotePage: r.footnotePage },
+      referenceBookId: r.referenceBookId,
+      author:          r.author,
+      title:           r.title,
+      collection:      r.collection,
+      issue:           r.issue,
+      location:        r.location,
+      raw:             r.raw,
+      locationsCited:  locationsFromPlaces(r.groups),
+    },
+  }));
+};
+
+// A book's Footnote blocks, by page, each with its position among the page's blocks
+const findFootnoteBlocks = async(db: Kysely<Database>, bookId: string): Promise<FootnoteBlocks> => {
+  const rows = await db.selectFrom('page_blocks')
+    .select(['page_number', 'position', 'html'])
+    .where('book_id', '=', bookId)
+    .where('label', '=', 'Footnote')
+    .orderBy('page_number')
+    .orderBy('position')
+    .execute();
+
+  return rows.reduce((m, r) => m.set(r.page_number, [
+    ...m.get(r.page_number) ?? [], { position: r.position, html: r.html },
+  ]), new Map() as FootnoteBlocks);
+};
+
+export const ExtractedCitationQueries = { findPlacedCitations, findFootnoteBlocks };

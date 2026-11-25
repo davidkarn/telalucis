@@ -53,8 +53,8 @@ const citesBook = <O>(bookId: string) => (query: DbSelectQuery<'citations', O>) 
 );
 
 
-// Citations whose title, author or raw text contains the search, ignoring case; all of them for an
-// empty search
+// Citations whose title, author, collection, issue or raw text contains the search, ignoring case;
+// all of them for an empty search
 const matchingSearch = <O>(search: string) => (query: DbSelectQuery<'citations', O>) => {
   if (search.trim().length > 0) {
     const pattern = likePattern(search.trim());
@@ -62,6 +62,8 @@ const matchingSearch = <O>(search: string) => (query: DbSelectQuery<'citations',
     return query.where((eb) => eb.or([
       eb('citations.title', 'ilike', pattern),
       eb('citations.author', 'ilike', pattern),
+      eb('citations.collection', 'ilike', pattern),
+      eb('citations.issue', 'ilike', pattern),
       eb('citations.raw', 'ilike', pattern),
     ]));
   }

@@ -1,6 +1,6 @@
 // The admin panel's Citations tab (/tl-admin/citations): every citation, by author then title,
-// searchable by title, author and raw text, and filtered by the book it's in and whether it's
-// matched to the book it cites. The search, filters and page are kept in the URL
+// searchable by title, author, collection, issue and raw text, and filtered by the book it's in
+// and whether it's matched to the book it cites. The search, filters and page are kept in the URL
 // (?q=&book=&matched=&page=); the Books tab links here with ?book=<id>&matched=unmatched.
 import { createElement as __ } from 'react'
 import { Link, useSearchParams } from 'react-router'
@@ -61,7 +61,7 @@ export function AdminCitations() {
       __('div', {className: 'citations-toolbar'},
         __(AdminSearch, {
           query,
-          placeholder: 'Search titles, authors and citation text',
+          placeholder: 'Search titles, authors, collections and citation text',
           onSearch:    (q: string) => show({ q, page: 1 }),
         }),
         book.length > 0 && __('span', {className: 'book-filter'},
@@ -154,7 +154,13 @@ function CitationRow({citation: c}: {citation: AdminCitation}) {
         c.author.length > 0 ? c.author : __('span', {className: 'muted'}, 'none')
       ),
       __('td', {className: 'citation-title'},
-        c.title.length > 0 ? __('cite', {}, c.title) : __('span', {className: 'muted'}, 'none')
+        match({title: c.title, collection: c.collection})
+          .with({title: '', collection: null}, () => __('span', {className: 'muted'}, 'none'))
+          .with({title: ''}, () => null)
+          .otherwise(() => __('cite', {}, c.title)),
+        c.collection !== null && __('div', {className: 'citation-collection'},
+          'in ', __('cite', {}, c.collection), c.issue === null ? '' : ', ' + c.issue
+        )
       ),
       __('td', {className: 'citation-location'}, c.location),
       __('td', {className: 'citation-raw'}, c.raw),

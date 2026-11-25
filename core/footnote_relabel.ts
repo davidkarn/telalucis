@@ -12,10 +12,16 @@
 // - drop: it skips a page with citations saved, or finds far fewer, or the
 //   request failed: likely the teacher's mistake, and not trained on.
 //
+// The answers kept can be written back to the collection in place of the
+// citations saved (see writtenBackCitations).
+//
 // Pure functions; cli/commands/relabel_footnote_training.command.ts asks the
-// teacher and writes the files.
+// teacher and writes the files, and apply_relabelled_citations.command.ts
+// writes the answers back.
 import { scoreBatch, type BatchScore } from './footnote_eval.ts';
 import { trainingPrompt, type BatchFootnote, type TrainingChat } from './footnote_training.ts';
+import { footnoteBlockFor, type PlacedCitation } from './footnote_extraction.ts';
+import type { Citation } from '../types.ts';
 
 // A training chat's parts: the batch's id, what the model is given, its
 // pages, and the answer saved
@@ -84,3 +90,54 @@ export const relabelledChat = (batch: TrainingBatch, footnotes: BatchFootnote[])
     { role: 'assistant', content: JSON.stringify({ footnotes }) },
   ],
 });
+
+// A batch's book, from its id ("<book>:12,13,15", see batchId)
+export const batchBookId = (id: string): string => id.slice(0, id.lastIndexOf(':'));
+
+// A book's footnote blocks on each page, each with its position among the page's blocks (as
+// citations are placed, see PlacedCitation)
+export type FootnoteBlocks = Map<number, { position: number, html: string }[]>;
+
+// A book's citations with the teacher's answers written back (apply-relabelled-citations): on
+// each page of a batch whose answer is kept (keep or more, see judgeAnswer), the answer's
+// citations, each in its footnote's block (see footnoteBlockFor), unlinked, in place of those
+// saved; everywhere else, those saved, as they are (linked as they were). The answer's
+// citations whose page has no block with their marker are left out, in unplaced.
+// answered: the book's batches with their answers and verdicts; saved: its citations placed.
+export const writtenBackCitations = (
+  bookId: string,
+  answered: { batch: TrainingBatch, footnotes: BatchFootnote[] | null, verdict: Verdict }[],
+  saved: PlacedCitation[],
+  blocks: FootnoteBlocks,
+): { citations: PlacedCitation[], unplaced: Citation[], replacedPages: number[] } => {
+  const kept     = answered.filter((a) => a.verdict !== 'drop' && a.footnotes !== null);
+  const replaced = new Set(kept.flatMap((a) => a.batch.pages));
+  const fresh    = kept.flatMap((a) => (a.footnotes ?? []).filter((f) => replaced.has(f.page)).flatMap((f) => (
+    f.citations.map((c): Citation => ({
+      source:          { bookId, footnoteIdentifier: f.identifier, footnotePage: f.page },
+      referenceBookId: null,
+      author:          c.author,
+      title:           c.title,
+      collection:      c.collection ?? null,
+      issue:           c.issue ?? null,
+      location:        c.location,
+      raw:             c.raw,
+      locationsCited:  c.locationsCited,
+    }))
+  )));
+  const placed   = fresh.map((citation) => ({
+    citation,
+    block: footnoteBlockFor(blocks.get(citation.source.footnotePage) ?? [], citation.source.footnoteIdentifier),
+  }));
+
+  return {
+    citations: [
+      ...saved.filter((s) => !replaced.has(s.pageNumber)),
+      ...placed.flatMap(({ citation, block }) => (
+        block === undefined ? [] : [{ pageNumber: citation.source.footnotePage, position: block.position, citation }]
+      )),
+    ].sort((a, b) => a.pageNumber - b.pageNumber || a.position - b.position),
+    unplaced:      placed.filter((p) => p.block === undefined).map((p) => p.citation),
+    replacedPages: [...replaced].sort((a, b) => a - b),
+  };
+};

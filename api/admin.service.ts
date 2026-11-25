@@ -46,6 +46,9 @@ export type AdminCitation = {
   id: string,
   author: string,
   title: string,
+  // the journal or other collection the work is in, and its issue cited; null for none
+  collection: string | null,
+  issue: string | null,
   location: string,
   raw: string,
   sourceBookId: string,
@@ -144,7 +147,8 @@ export class AdminService {
     };
   }
 
-  // A page of the citations, by author then title: those whose title, author or raw text contains
+  // A page of the citations, by author then title: those whose title, author, collection, issue or
+  // raw text contains
   // `query`, in the book sourceBookId (any, without one), matched to the book they cite or not;
   // and how many there are in all
   async citations(opts: {
@@ -163,7 +167,8 @@ export class AdminService {
       .leftJoin('books as source', 'source.id', 'citations.source_book_id')
       .leftJoin('books as reference', 'reference.id', 'citations.reference_book_id')
       .select([
-        'citations.id', 'citations.author', 'citations.title', 'citations.location', 'citations.raw',
+        'citations.id', 'citations.author', 'citations.title', 'citations.collection', 'citations.issue',
+        'citations.location', 'citations.raw',
         'citations.source_book_id', 'citations.source_footnote_page', 'citations.reference_book_id',
         'source.title as source_title', 'reference.title as reference_title',
       ])
@@ -178,6 +183,8 @@ export class AdminService {
         id:                 r.id,
         author:             r.author,
         title:              r.title,
+        collection:         r.collection,
+        issue:              r.issue,
         location:           r.location,
         raw:                r.raw,
         sourceBookId:       r.source_book_id,

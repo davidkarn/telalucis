@@ -51,6 +51,7 @@ import { CitationExampleQueries } from '../../model/citation_examples.ts';
 import { makeOpenRouterRequest, parseJsonResponse } from '../../lib/open_router.ts';
 import { BookActions, BookQueries } from '../../model/books.ts';
 import { findCitationsInBook, linkCitations } from '../../model/incoming_citations.ts';
+import { JournalQueries } from '../../model/journals.ts';
 import { QueuedBookImportsQueries } from '../../model/queued_book_imports.ts';
 import type { SuryaBook } from '../../types.ts';
 
@@ -296,6 +297,7 @@ export class ImportJournalIssuesCommand extends CommandRunner {
       await findCitationsInBook(this.db, bookId),
       await BookQueries.findOtherBookNames(this.db, bookId),
       await QueuedBookImportsQueries.findQueuedBookNames(this.db),
+      (await JournalQueries.findArticleRefs(this.db)).filter((a) => a.id !== bookId),
     );
 
     return linkCitations(this.db, referencing);

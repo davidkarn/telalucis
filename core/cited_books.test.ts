@@ -87,3 +87,33 @@ describe('actionsForArchivePlan', () => {
     expect(typeof queue === 'function' && queue(result(false))).toBeNull();
   });
 });
+
+describe('matchCitedBooks by collection', () => {
+  const article = {
+    id: 'ts_1941_2_p307', title: 'On Gratia Operans', journal: 'Theological Studies',
+    volume: 2, year: 1941, firstPage: 307, lastPage: 324,
+  };
+  const books   = [
+    { id: 'ts_1941_2_p307', title: 'On Gratia Operans', author: 'Lonergan' },
+    { id: 'pg100', title: 'Patrologia Graeca 100', author: 'Migne' },
+    { id: 'summa', title: 'Summa Theologica', author: 'St. Thomas' },
+  ];
+  const cite    = (id: string, fields: object) => ({
+    id, author: '', title: '', location: '', reference_book_id: null, ...fields,
+  });
+
+  it("links a journal's citation to the article on the page cited, and a collection's to its volume", () => {
+    const { referencing } = matchCitedBooks([
+      cite('1', { collection: 'Theological Studies', issue: '2 (1941)', location: '310-312' }),
+      cite('2', { collection: 'Patrologia Graeca', issue: '100', location: '1023' }),
+      cite('3', { author: 'St. Thomas', title: 'Summa Theologica', collection: null, issue: null }),
+      cite('4', { collection: 'Theological Studies', issue: '9 (1948)', location: '12' }),
+    ], books, [], [article]);
+
+    expect(referencing).toEqual([
+      { citationId: '1', bookId: 'ts_1941_2_p307' },
+      { citationId: '2', bookId: 'pg100' },
+      { citationId: '3', bookId: 'summa' },
+    ]);
+  });
+});

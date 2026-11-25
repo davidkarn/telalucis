@@ -1345,6 +1345,8 @@ components:
         - id
         - author
         - title
+        - collection
+        - issue
         - location
         - raw
         - sourceBookId
@@ -1359,6 +1361,14 @@ components:
           type: string
         title:
           type: string
+        collection:
+          description: >-
+            the journal or other long-running collection the work is in ("Theological Studies",
+            "Patrologia Latina"); null for none, or for a citation extracted before it was asked for
+          type: [string, 'null']
+        issue:
+          description: the issue of the collection cited ("2 (1941)", "Vol. XXXVI"); null for none
+          type: [string, 'null']
         location:
           type: string
         raw:

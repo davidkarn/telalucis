@@ -18,6 +18,7 @@ import { ExportFootnoteTrainingCommand } from './commands/export_footnote_traini
 import { MakeFootnoteEvalSetCommand } from './commands/make_footnote_eval_set.command.ts';
 import { EvalFootnotesCommand } from './commands/eval_footnotes.command.ts';
 import { RelabelFootnoteTrainingCommand } from './commands/relabel_footnote_training.command.ts';
+import { ApplyRelabelledCitationsCommand } from './commands/apply_relabelled_citations.command.ts';
 
 // The commands of cli/main.ts, sharing the API's database connection
 @Module({
@@ -40,6 +41,7 @@ import { RelabelFootnoteTrainingCommand } from './commands/relabel_footnote_trai
     MakeFootnoteEvalSetCommand,
     EvalFootnotesCommand,
     RelabelFootnoteTrainingCommand,
+    ApplyRelabelledCitationsCommand,
     ReplCommand,
   ],
 })

@@ -2,6 +2,8 @@
 // (books.journal_issue_id; see migrations/0027_create_journals.ts).
 import { sql, type Kysely } from 'kysely';
 import type { Database } from '../api/database.ts';
+import type { JournalArticleRef } from '../core/collection_links.ts';
+import { issueName } from '../core/journal_issues.ts';
 import { CopyrightStatusCheckSql } from './copyright_status_checks.ts';
 
 // The id of the journal named `name`, added when there's none yet
@@ -112,4 +114,34 @@ const findJournalIssue = async(
   `.execute(db)).rows[0]
 );
 
-export const JournalQueries = { findJournals, findJournalIssues, findJournalIssue };
+// Every journal article in the collection, for linking the citations of journals to them (see
+// citedArticle): its journal, its issue's volume (from the issue's file name, see issueName) and
+// year, and its first and last pages
+const findArticleRefs = async(db: Kysely<Database>): Promise<JournalArticleRef[]> => {
+  const rows = (await sql<{
+    id: string, title: string, journal: string, year: number, first_page: number, last_page: number,
+  }>`
+    select b.id, b.title, j.name as journal, extract(year from i.start_date)::int as year,
+      min(p.page_number)::int as first_page, max(p.page_number)::int as last_page
+    from books b
+    join journal_issues i on i.id = b.journal_issue_id
+    join journals j on j.id = i.journal_id
+    join pages p on p.book_id = b.id
+    group by b.id, b.title, j.name, i.start_date
+  `.execute(db)).rows;
+
+  return rows.map((r) => {
+    const volume = issueName(r.id.replace(/_p\d+$/, '')).volume;
+    return {
+      id:        r.id,
+      title:     r.title,
+      journal:   r.journal,
+      volume:    volume !== null && /^\d+$/.test(volume) ? Number(volume) : null,
+      year:      r.year,
+      firstPage: r.first_page,
+      lastPage:  r.last_page,
+    };
+  });
+};
+
+export const JournalQueries = { findJournals, findJournalIssues, findJournalIssue, findArticleRefs };

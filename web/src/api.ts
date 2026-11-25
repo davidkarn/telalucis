@@ -417,6 +417,9 @@ export type AdminCitation = {
   id: string,
   author: string,
   title: string,
+  // the journal or other collection the work is in, and its issue cited; null for none
+  collection: string | null,
+  issue: string | null,
   location: string,
   raw: string,
   sourceBookId: string,
@@ -430,7 +433,7 @@ export type CitationMatch = 'all' | 'matched' | 'unmatched';
 
 export type AdminCitationList = { meta: { count: number }, items: AdminCitation[] };
 
-// query: search titles, authors and raw text. sourceBookId: only those in this book's footnotes
+// query: search titles, authors, collections, issues and raw text. sourceBookId: only those in this book's footnotes
 // ('' for any book). matched: whether they're matched to a book.
 export const fetchAdminCitations = (opts: {
   query: string, sourceBookId: string, matched: CitationMatch, offset: number, length: number,

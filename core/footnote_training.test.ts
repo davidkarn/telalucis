@@ -54,11 +54,13 @@ const citation = (pageNumber: number, position: number, identifier: string, titl
   pageNumber,
   position,
   identifier,
-  author:   'St. Thomas',
+  author:     'St. Thomas',
   title,
-  location: 'q. 1',
-  raw:      `${ title }, q. 1`,
-  groups:   [{ raw: 'q. 1', parts: [{ type: 'question', value: 1 }] }],
+  collection: null,
+  issue:      null,
+  location:   'q. 1',
+  raw:        `${ title }, q. 1`,
+  groups:     [{ raw: 'q. 1', parts: [{ type: 'question', value: 1 }] }],
 });
 
 describe('batchAnswer', () => {
