@@ -66,9 +66,7 @@ const main = async() => {
 
   try {
     const footnotes            = FOOTNOTES
-      ? await extractFootnoteCitations(db, HUGH_BOOK_ID, suryaPages, {
-        skipInsights: true, ...(MODEL ? { model: MODEL } : {}),
-      })
+      ? await extractFootnoteCitations(HUGH_BOOK_ID, suryaPages, MODEL ? { model: MODEL } : {})
       : { citations: [], failedPages: [] };
     const { placed, unplaced } = placeCitations(inline, footnotes.citations);
     const pages                = withPlacedCitations(inline, placed);

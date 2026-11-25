@@ -1,20 +1,18 @@
 // Importing an OCR'd book (see cli/commands/process_ocred_books.command.ts) as actions: claiming it
 // from the queue, then saving its pages, the citations extracted from its footnotes (each in its
-// footnote block, see placeCitations) and the insights learned, and marking it imported. Each save
+// footnote block, see placeCitations), and marking it imported. Each save
 // waits on the one before it succeeding, so a book whose pages or citations fail to save isn't
 // marked imported. Pure functions; actions/app_actions.ts carries the actions out.
 import type { AppAction, AppActionStep, ActionResultsTbl } from '../actions/app_actions.ts';
 import type { Citation, Page } from '../types.ts';
-import { placeCitations, type ScoredInsight } from './footnote_extraction.ts';
+import { placeCitations } from './footnote_extraction.ts';
 
 export type QueuedImport = { id: string, title: string, author: string, archive_url: string | null };
 
-// The citations extracted from the book's footnotes, the pages whose request failed, and the
-// insights the model has, those saved and those it learned, scored
+// The citations extracted from the book's footnotes, and the pages whose request failed
 export type ExtractedCitations = {
   citations: Citation[],
   failedPages: { page: number, error: string }[],
-  insights: ScoredInsight[],
 };
 
 const log = (...data: unknown[]): AppAction => ({ cmd: 'log', data });
@@ -60,7 +58,7 @@ export const importOcredBookActions = (
             data: {
               model:  'ExtractedCitations',
               act:    'replaceExtractedCitations',
-              params: [bookId, placed, extracted.insights],
+              params: [bookId, placed],
             },
           }
         : null

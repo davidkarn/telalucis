@@ -1,6 +1,6 @@
 // Extracting footnotes' citations several pages at a time: most pages have
-// only a few short footnotes, so the prompt (its instructions and insights,
-// see footnotesPrompt) is most of each request; given the footnotes of
+// only a few short footnotes, so the prompt (its instructions, see
+// footnotesPrompt) is most of each request; given the footnotes of
 // several pages at once, the model reads them for a fraction of the cost, and
 // can resolve an "Ibid." on one page from the page before. Pages whose
 // footnotes can cite nothing are left out. Pure functions;
@@ -82,12 +82,6 @@ export const batchMessage = (pages: { page: number, html: string }[]): string =>
   ...pages.map((page) => `<page number="${ page.page }">\n${ page.html }\n</page>`),
 ].join('\n');
 
-// A batch's footnotes' text, what insights' keywords are looked for in (see
-// insightsForPage)
-export const batchText = (batch: SuryaPage[]): string => (
-  strip_tags(batch.map((page) => footnoteHtml(page)).join('\n'))
-);
-
 // A batch's footnotes, each Footnote block's text, what examples like them
 // are looked for by (see core/citation_examples.ts)
 export const batchFootnotes = (batch: SuryaPage[]): string[] => batch.flatMap((page) => page.blocks
@@ -139,5 +133,19 @@ export const batchCitations = (
       locationsCited:  c.locationsCited,
     }))),
     strays: result.footnotes.length - kept.length,
+  };
+};
+
+// What the model's answer for a batch gives: its citations and strays (see batchCitations), the
+// pages it missed (see missedPages), and the batches to ask again for them (see retryBatches)
+export const answeredBatch = <P extends SuryaPage>(bookId: string, batch: P[], result: BatchFootnotes): {
+  citations: Citation[], strays: number, missed: P[], retry: P[][],
+} => {
+  const missed = missedPages(batch, result) as P[];
+
+  return {
+    ...batchCitations(bookId, batch, result),
+    missed,
+    retry: retryBatches(batch, missed) as P[][],
   };
 };

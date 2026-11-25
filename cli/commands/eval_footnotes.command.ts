@@ -12,7 +12,8 @@
 // hand. --reasoning: how much the model thinks: "off", a budget of tokens, or an
 // effort (see ORReasoning); as importing asks the model when not given (see
 // defaultReasoning). --out: the answers,
-// output/footnote_eval/<model>[_reasoning-<setting>].json when not given.
+// output/footnote_eval/<model>[_reasoning-<setting>][_insights].json when not
+// given.
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout } from 'node:timers/promises';
@@ -98,7 +99,8 @@ export class EvalFootnotesCommand extends CommandRunner {
     const batches   = options.limit === undefined ? chosen : chosen.slice(0, options.limit);
     const insights  = options.insights === true ? await findEvalInsights(this.db) : null;
     const out       = options.out ?? path.join('output/footnote_eval', model.replace(/[^\w.-]+/g, '_')
-      + (reasoning ? '_reasoning-' + reasoningName(reasoning) : '') + '.json');
+      + (reasoning ? '_reasoning-' + reasoningName(reasoning) : '') + (insights === null ? '' : '_insights')
+      + '.json');
     const answers  = [];
 
     let total    = NO_SCORE;

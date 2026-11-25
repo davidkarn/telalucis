@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import {
-  batchCitations, batchHtml, FOOTNOTE_BATCH_FORMAT, footnoteBatches, hasCitableFootnotes,
+  answeredBatch, batchCitations, batchHtml, FOOTNOTE_BATCH_FORMAT, footnoteBatches, hasCitableFootnotes,
   MAX_BATCH_CHARS, MAX_BATCH_PAGES, missedPages, retryBatches,
 } from './footnote_batches.ts';
 import { footnotesPrompt, withoutInsights } from './footnote_extraction.ts';
@@ -117,5 +117,20 @@ describe('batchCitations', () => {
       { bookId: 'book', footnoteIdentifier: '2', footnotePage: 5 },
     ]);
     expect(found.strays).toBe(1);
+  });
+});
+
+describe('answeredBatch', () => {
+  it("gives a batch's citations, the pages missed and the batches to ask again for them", () => {
+    const citation = { author: 'Pohle', title: 'Christology', location: 'p. 3', raw: 'Pohle, p. 3', locationsCited: [] };
+    const batch    = [1, 2, 3, 4].map((n) => page(n, '<p>1 Pohle.</p>'));
+    const answer   = answeredBatch('book', batch, {
+      footnotes: [{ page: 1, identifier: '1', citations: [citation] }, { page: 9, identifier: '2', citations: [] }],
+    });
+
+    expect(answer.citations.map((c) => c.source.footnotePage)).toEqual([1]);
+    expect(answer.strays).toBe(1);
+    expect(answer.missed.map((p) => p.page)).toEqual([2, 3, 4]);
+    expect(answer.retry.map((b) => b.map((p) => p.page))).toEqual([[2, 3], [4]]);
   });
 });

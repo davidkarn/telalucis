@@ -145,7 +145,7 @@ export class ApplyRelabelledCitationsCommand extends CommandRunner {
         }
       }
       else {
-        await ExtractedCitationActions.replaceExtractedCitations(this.db, bookId, result.citations, []);
+        await ExtractedCitationActions.replaceExtractedCitations(this.db, bookId, result.citations);
         console.log(`  saved; linked ${ await this.linkCitations(bookId) } citations to books in the collection`);
       }
     }

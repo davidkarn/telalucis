@@ -8,21 +8,25 @@
 // from an outline of its pages; its answer is kept in
 // output/journal_articles/<issue>.json, so an issue is only sent once (and an
 // answer can be corrected there). The citations in each article's footnotes
-// are extracted by an LLM, as process-ocred-books extracts a book's. Each
+// are extracted by an LLM, as process-ocred-books extracts a book's: a request
+// at a time, or with --batch all the issues' articles' at once through
+// OpenRouter's Batch API (see lib/footnote_batch_extraction.ts). Each
 // article is put in its journal issue (journal_issues) and journal, found or
 // added; its citations are pointed at the books in the collection they cite,
 // and earlier citations of it at it (see lib/citation_relinking.ts). An issue
 // imported before as one book has that book replaced by its articles. Issues
 // not OCR'd yet, and those imported already, are passed over.
 //   npm run cli -- import-journal-issues [folders...] [--limit <n>] [--dir <folder>]
-//     [--reimport] [--dry-run] [--skip-insights] [--model <model>] [--examples]
+//     [--reimport] [--dry-run] [--model <model>] [--examples] [--batch [--batch-size <n>]]
 // folders: the journals' folders (all when none are given). --dry-run: name
 // each issue's articles (asking the LLM for issues not asked before), without
-// extracting citations or saving. --skip-insights: extract without the
-// insights (see footnotesPrompt), for shorter requests.
+// extracting citations or saving.
 // --model: the model extracting citations, an OpenRouter one or "local/<name>"
 // for a local server's (see lib/open_router.ts). --examples: show it
 // citations in the collection like each batch's (see core/citation_examples.ts).
+// --batch: extract through the Batch API, for about half the price, waiting for
+// the answers (most take minutes, at most a day), then save the issues; a run
+// stopped while waiting collects them when run again with the same issues.
 // Needs OPENROUTER_KEY.
 import { Inject } from '@nestjs/common';
 import fs from 'node:fs/promises';
@@ -45,15 +49,18 @@ import {
 import type { Page } from '../../types.ts';
 import { archiveItemMetadata } from '../../lib/archive_search.ts';
 import { linkUnlinkedCitations, relinkSummary } from '../../lib/citation_relinking.ts';
-import type { ExampleIndex } from '../../core/citation_examples.ts';
-import { DEFAULT_FOOTNOTES_MODEL, extractFootnoteCitations } from '../../lib/footnote_citations.ts';
+import { DEFAULT_BATCH_SIZE, extractInBatches } from '../../lib/footnote_batch_extraction.ts';
+import {
+  DEFAULT_FOOTNOTES_MODEL, extractFootnoteCitations, type ExtractionOptions,
+} from '../../lib/footnote_citations.ts';
 import { CitationExampleQueries } from '../../model/citation_examples.ts';
 import { makeOpenRouterRequest, parseJsonResponse } from '../../lib/open_router.ts';
 import { BookActions, BookQueries } from '../../model/books.ts';
 import { findCitationsInBook, linkCitations } from '../../model/incoming_citations.ts';
 import { JournalQueries } from '../../model/journals.ts';
 import { QueuedBookImportsQueries } from '../../model/queued_book_imports.ts';
-import type { SuryaBook } from '../../types.ts';
+import type { ExtractedCitations } from '../../core/ocred_book_import.ts';
+import type { SuryaBook, SuryaPage } from '../../types.ts';
 
 const DEFAULT_DIR = '..';
 
@@ -64,12 +71,27 @@ const ARTICLES_CACHE = 'output/journal_articles';
 
 const ARTICLES_MODEL = 'openai/gpt-4.1-mini';
 
+// Where --batch keeps its answers and the API batches it's waiting on
+const BATCH_DIR = 'output/footnote_batches/journal_issues';
+
 type Metadata = { identifier: string, title: string, date: string } | null;
 
 type Options = {
-  limit?: number, dir?: string, reimport?: boolean, dryRun?: boolean, skipInsights?: boolean,
-  model?: string, examples?: boolean,
+  limit?: number, dir?: string, reimport?: boolean, dryRun?: boolean, model?: string,
+  examples?: boolean, batch?: boolean, batchSize?: number,
 };
+
+// An article to import: the book it's saved as, its pages, numbered as the journal prints them,
+// its surya pages (scans), and the difference between the two numberings (see pageOffset)
+type ArticleToImport = {
+  book: { bookId: string, title: string, author: string, url: string | null },
+  own: Page[],
+  scans: SuryaPage[],
+  offset: number,
+};
+
+// An issue's articles to import, and the issue they're in
+type IssueToImport = { name: string, journal: string, period: Period, articles: ArticleToImport[] };
 
 @Command({
   name:        'import-journal-issues',
@@ -78,8 +100,6 @@ type Options = {
 })
 export class ImportJournalIssuesCommand extends CommandRunner {
   private metadata: Record<string, Metadata> = {};
-  // the citations shown the model as examples, with --examples
-  private examples: ExampleIndex | undefined;
 
   constructor(@Inject(DB) private readonly db: Kysely<Database>) {
     super();
@@ -112,10 +132,6 @@ export class ImportJournalIssuesCommand extends CommandRunner {
     return true;
   }
 
-  @Option({ flags: '--skip-insights', description: 'extract citations without insights, given or learned' })
-  parseSkipInsights(): boolean {
-    return true;
-  }
 
   @Option({ flags: '--model <model>', description: `the model extracting citations (${ DEFAULT_FOOTNOTES_MODEL }; "local/<name>" for a local server's)` })
   parseModel(value: string): string {
@@ -127,6 +143,16 @@ export class ImportJournalIssuesCommand extends CommandRunner {
     return true;
   }
 
+  @Option({ flags: '--batch', description: "extract through OpenRouter's Batch API, for about half the price" })
+  parseBatch(): boolean {
+    return true;
+  }
+
+  @Option({ flags: '--batch-size <n>', description: `with --batch, requests an API batch (${ DEFAULT_BATCH_SIZE })` })
+  parseBatchSize(value: string): number {
+    return Number(value);
+  }
+
   async run(folders: string[], options: Options = {}): Promise<void> {
     const unknown = folders.filter((f) => !JOURNALS.some((j) => j.folder === f));
     if (unknown.length > 0) {
@@ -136,10 +162,12 @@ export class ImportJournalIssuesCommand extends CommandRunner {
     const dir      = options.dir ?? DEFAULT_DIR;
     const journals = JOURNALS.filter((j) => folders.length === 0 || folders.includes(j.folder));
     const imported = await BookQueries.findBookIds(this.db);
-    let count      = 0;
+    const how: ExtractionOptions = options.model ? { model: options.model } : {};
+    const issues: IssueToImport[] = [];
+    let count                     = 0;
 
     if (options.examples && !options.dryRun) {
-      this.examples = await CitationExampleQueries.findExampleIndex(this.db);
+      how.examples = await CitationExampleQueries.findExampleIndex(this.db);
     }
 
     this.metadata = await fs.readFile(METADATA_CACHE, 'utf8')
@@ -163,19 +191,74 @@ export class ImportJournalIssuesCommand extends CommandRunner {
         }
         else {
           count++;
-          await this.importIssue(journal.name, name, results, periods[i] ?? null, options);
+          const issue = await this.prepareIssue(journal.name, name, results, periods[i] ?? null);
+
+          if (issue === null || options.dryRun) {
+            // not to be imported, or not now
+          }
+          else if (options.batch) {
+            issues.push(issue);
+          }
+          else {
+            for (const article of issue.articles) {
+              await this.importArticle(issue, article, await extractFootnoteCitations(article.book.bookId, article.scans, how));
+            }
+            await this.finishIssue(issue);
+          }
         }
       }
 
       console.log(`${ journal.name }: ${ names.length } issues, ${ waiting } not OCR'd yet`);
     }
 
+    if (issues.length > 0) {
+      await this.importInBatches(issues, how, options.batchSize);
+    }
+
     console.log(options.dryRun ? `dry run: ${ count } issues would be imported` : `imported ${ count } issues`);
   }
 
-  private async importIssue(
-    journal: string, name: string, resultsFile: string, fromName: Period | null, options: Options,
-  ) {
+  // Ask for every article's citations through the Batch API, then save the issues
+  private async importInBatches(issues: IssueToImport[], how: ExtractionOptions, batchSize?: number) {
+    const extraction = await extractInBatches(
+      issues.flatMap((i) => i.articles.map((a) => ({ bookId: a.book.bookId, pages: a.scans }))),
+      { ...how, dir: BATCH_DIR, ...(batchSize ? { batchSize } : {}) },
+    );
+
+    for (const [n, issue] of issues.entries()) {
+      console.log(`${ n + 1 }/${ issues.length } ${ issue.name }: saving ${ issue.articles.length } articles`);
+      for (const article of issue.articles) {
+        await this.importArticle(issue, article, await extraction.citationsOf(article.book.bookId));
+      }
+      await this.finishIssue(issue);
+    }
+  }
+
+  // Save an article with its citations, and link them, and earlier citations of it
+  private async importArticle(issue: IssueToImport, article: ArticleToImport, extracted: ExtractedCitations) {
+    const renumbered = { ...extracted, citations: renumberCitations(extracted.citations, article.offset) };
+    const results    = await executeActions(this.db, importJournalArticleActions(
+      { journal: issue.journal, period: issue.period }, article.book, article.own, renumbered,
+    ));
+
+    if (results['saveCitations']?.success) {
+      console.log(`    ${ article.book.bookId }: linked ${ await this.linkCitations(article.book.bookId) } `
+        + 'citations to books in the collection; '
+        + relinkSummary(await linkUnlinkedCitations(this.db, { bookIds: [article.book.bookId] })));
+    }
+  }
+
+  // Once its articles are saved, the issue imported before as one book is removed
+  private async finishIssue(issue: IssueToImport) {
+    if (issue.articles.length > 0) {
+      await this.removeWholeIssue(issue.name);
+    }
+  }
+
+  // The issue's articles to import, named (see articlesOf); null when it can't be imported
+  private async prepareIssue(
+    journal: string, name: string, resultsFile: string, fromName: Period | null,
+  ): Promise<IssueToImport | null> {
     const surya: SuryaBook = JSON.parse(await fs.readFile(resultsFile, 'utf8'));
     const [, suryaPages]   = Object.entries(surya)[0] ?? [];
     const meta             = await this.metadataOf(name);
@@ -183,9 +266,11 @@ export class ImportJournalIssuesCommand extends CommandRunner {
 
     if (!suryaPages) {
       console.error(`${ name }: its surya results have no pages`);
+      return null;
     }
     else if (!period) {
       console.error(`${ name }: no date in its name or its archive.org title; not imported`);
+      return null;
     }
     else {
       const pages    = build_pages(suryaPages).pages;
@@ -198,42 +283,27 @@ export class ImportJournalIssuesCommand extends CommandRunner {
         console.log(`  no articles found; not imported (see ${ path.join(ARTICLES_CACHE, `${ name }.json`) })`);
       }
 
-      for (const article of articles) {
-        const own    = articlePages(article, pages);
-        const offset = pageOffset(pages.filter((p) => p.pageNumber >= article.firstScan && p.pageNumber <= article.lastScan), pages);
-        const bookId = articleBookId(name, own[0]!.pageNumber);
-        const book   = {
-          bookId,
-          title:  article.title,
-          author: article.author,
-          url:    meta ? `https://archive.org/details/${ meta.identifier }/page/n${ article.firstScan - 1 }` : null,
-        };
+      return {
+        name, journal, period,
+        articles: articles.map((article) => {
+          const own    = articlePages(article, pages);
+          const offset = pageOffset(pages.filter((p) => p.pageNumber >= article.firstScan && p.pageNumber <= article.lastScan), pages);
+          const bookId = articleBookId(name, own[0]!.pageNumber);
+          const book   = {
+            bookId,
+            title:  article.title,
+            author: article.author,
+            url:    meta ? `https://archive.org/details/${ meta.identifier }/page/n${ article.firstScan - 1 }` : null,
+          };
 
-        console.log(`  pp. ${ own[0]!.pageNumber }-${ own.at(-1)!.pageNumber }: ${ book.author || '(unsigned)' }, `
-          + `"${ book.title }" (${ bookId })`);
-
-        if (!options.dryRun) {
-          const scans      = suryaPages.filter((p) => p.page >= article.firstScan && p.page <= article.lastScan);
-          const extracted  = await extractFootnoteCitations(this.db, bookId, scans, {
-            skipInsights: options.skipInsights === true,
-            ...(options.model ? { model: options.model } : {}),
-            ...(this.examples ? { examples: this.examples } : {}),
-          });
-          const renumbered = { ...extracted, citations: renumberCitations(extracted.citations, offset) };
-          const results    = await executeActions(
-            this.db, importJournalArticleActions({ journal, period }, book, own, renumbered),
-          );
-
-          if (results['saveCitations']?.success) {
-            console.log(`    linked ${ await this.linkCitations(bookId) } citations to books in the collection; `
-              + relinkSummary(await linkUnlinkedCitations(this.db, { bookIds: [bookId] })));
-          }
-        }
-      }
-
-      if (!options.dryRun && articles.length > 0) {
-        await this.removeWholeIssue(name);
-      }
+          console.log(`  pp. ${ own[0]!.pageNumber }-${ own.at(-1)!.pageNumber }: ${ book.author || '(unsigned)' }, `
+            + `"${ book.title }" (${ bookId })`);
+          return {
+            book, own, offset,
+            scans: suryaPages.filter((p) => p.page >= article.firstScan && p.page <= article.lastScan),
+          };
+        }),
+      };
     }
   }
 

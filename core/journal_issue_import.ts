@@ -2,7 +2,7 @@
 // core/journal_articles.ts and cli/commands/import_journal_issues.command.ts)
 // as actions: its journal and journal issue, found or added, then the article
 // as a book in it, its pages, and the citations extracted from its footnotes
-// (each in its footnote block, see placeCitations), with the insights learned.
+// (each in its footnote block, see placeCitations).
 // Each step waits on the one before it succeeding. Pure functions;
 // actions/app_actions.ts carries the actions out.
 import type { AppAction, AppActionStep, ActionResultsTbl } from '../actions/app_actions.ts';
@@ -85,7 +85,7 @@ export const importJournalArticleActions = (
             data: {
               model:  'ExtractedCitations',
               act:    'replaceExtractedCitations',
-              params: [article.bookId, placed, extracted.insights],
+              params: [article.bookId, placed],
             },
           }
         : null

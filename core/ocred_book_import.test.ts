@@ -52,7 +52,6 @@ describe('importOcredBookActions', () => {
   const extracted = {
     citations:   [citation(1, '1'), citation(2, '4')],
     failedPages: [{ page: 3, error: 'timeout' }],
-    insights:    [{ insight: 'Synopsis is by Tanquerey.', score: 2, keywords: ['Tanquerey'] }],
   };
   const steps     = importOcredBookActions(queued, 'god', pages, extracted);
 
@@ -61,7 +60,7 @@ describe('importOcredBookActions', () => {
     expect(ids(actions)).toEqual(['saveBook', 'saveCitations', 'markImported']);
     expect(actions.find((a) => a.id === 'saveCitations')).toMatchObject({ data: {
       act:    'replaceExtractedCitations',
-      params: ['god', [{ pageNumber: 1, position: 1, citation: citation(1, '1') }], extracted.insights],
+      params: ['god', [{ pageNumber: 1, position: 1, citation: citation(1, '1') }]],
     } });
   });
 

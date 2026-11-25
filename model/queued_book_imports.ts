@@ -32,6 +32,16 @@ const findNextQueuedBooks = (db: Kysely<Database>, status: QueueStatus, limit: n
     .execute()
 );
 
+// The books queued with these ids that have this status, in queue order
+const findQueuedBooksWithIds = (db: Kysely<Database>, ids: string[], status: QueueStatus) => (
+  ids.length === 0
+    ? Promise.resolve([])
+    : inQueueOrder(db.selectFrom('queued_book_imports').selectAll())
+      .where('id', 'in', ids)
+      .where('status', '=', status)
+      .execute()
+);
+
 // How many books are queued with each status (statuses no book has are left out)
 const countByStatus = async(
   db: Kysely<Database>
@@ -154,7 +164,7 @@ const sortedBy = <O>(sort: QueuedBookSort) => (query: DbSelectQuery<'queued_book
 export const QueuedBookImportsScopes = { matchingSearch, withStatus, sortedBy };
 
 export const QueuedBookImportsQueries = {
-  findNextQueuedBook, findNextQueuedBooks, countByStatus, findQueuedBookNames, findQueuedUrls,
+  findNextQueuedBook, findNextQueuedBooks, findQueuedBooksWithIds, countByStatus, findQueuedBookNames, findQueuedUrls,
 };
 export const QueuedBookImportsActions = {
   queueBook, setQueuedBookStatus, markQueuedBookImported, moveQueuedBookToTop,
