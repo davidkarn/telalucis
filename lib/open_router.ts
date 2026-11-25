@@ -17,8 +17,43 @@ export type ORResponseFormat = {
 export type ORResponse = {
   error?: { message?: string },
   choices?: { message?: { content?: unknown } }[],
-  usage?: { prompt_tokens?: number, completion_tokens?: number },
+  // completion_tokens includes the reasoning tokens
+  usage?: {
+    prompt_tokens?: number,
+    completion_tokens?: number,
+    completion_tokens_details?: { reasoning_tokens?: number },
+  },
 };
+
+// How much a reasoning model thinks (OpenRouter's reasoning parameter): not at all, at most
+// max_tokens (1024 at least), or at an effort. For Claude on chat completions an effort is
+// a share of the request's max_tokens, not Claude's own effort, so a budget is the surer.
+// Left out, the model's default.
+export type ORReasoning = { enabled: false } | { max_tokens: number } | { effort: ReasoningEffort };
+
+export const REASONING_EFFORTS = ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+type ReasoningEffort = typeof REASONING_EFFORTS[number];
+
+// --reasoning's value: "off", a budget of tokens ("2000"), or an effort ("low")
+export const parseReasoning = (value: string): ORReasoning => {
+  if (value === 'off') {
+    return { enabled: false };
+  }
+  else if (/^\d+$/.test(value)) {
+    return { max_tokens: Math.max(1024, Number(value)) };
+  }
+  else if ((REASONING_EFFORTS as readonly string[]).includes(value)) {
+    return { effort: value as ReasoningEffort };
+  }
+  else {
+    throw new Error(`--reasoning: "off", a number of tokens, or one of ${ REASONING_EFFORTS.join(', ') }`);
+  }
+};
+
+// A reasoning setting as named in a file name ("off", "2000", "low")
+export const reasoningName = (reasoning: ORReasoning): string => (
+  'enabled' in reasoning ? 'off' : 'max_tokens' in reasoning ? String(reasoning.max_tokens) : reasoning.effort
+);
 
 // A model on a local server with an OpenAI-style API (llama-server, LM
 // Studio, Ollama) is named "local/<its name>": asked at LOCAL_LLM_URL
@@ -46,7 +81,8 @@ const endpoint = (model: string) => (
 );
 
 export const makeOpenRouterRequest = (
-  msgs: ORMessage[], responseFormat?: ORResponseFormat, model: string = 'openai/gpt-4o'
+  msgs: ORMessage[], responseFormat?: ORResponseFormat, model: string = 'openai/gpt-4o',
+  reasoning?: ORReasoning,
 ) => {
   const to = endpoint(model);
 
@@ -57,6 +93,7 @@ export const makeOpenRouterRequest = (
       model:    to.model,
       messages: msgs,
       ...(responseFormat ? { response_format: responseFormat } : {}),
+      ...(reasoning ? { reasoning } : {}),
       // only OpenRouter's providers that follow the response format
       ...(responseFormat && !isLocalModel(model) ? { provider: { require_parameters: true } } : {}),
     }),

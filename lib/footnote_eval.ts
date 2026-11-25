@@ -15,7 +15,7 @@ import {
 } from '../core/footnote_extraction.ts';
 import type { BatchFootnote } from '../core/footnote_training.ts';
 import { FootnoteExtractionInsightQueries } from '../model/footnote_extraction_insights.ts';
-import { makeOpenRouterRequest, parseJsonResponse } from './open_router.ts';
+import { makeOpenRouterRequest, parseJsonResponse, type ORReasoning } from './open_router.ts';
 
 // The insights given with each batch: none, or the saved ones (see
 // insightsForPage)
@@ -32,12 +32,14 @@ export type EvalAnswer = {
   // the tokens of the request and the answer, when the server says
   promptTokens: number | null,
   completionTokens: number | null,
+  // of the answer's tokens, those spent thinking
+  reasoningTokens: number | null,
 };
 
 // The citations a model reads in a batch's footnotes (`message`, as batchMessage
 // makes it), with the insights that apply to them, or none
 export const askFootnotes = async(
-  message: string, model: string, insights: EvalInsights,
+  message: string, model: string, insights: EvalInsights, reasoning?: ORReasoning,
 ): Promise<EvalAnswer> => {
   const given   = insights === null
     ? null
@@ -49,7 +51,7 @@ export const askFootnotes = async(
     const response = await makeOpenRouterRequest([
       { role: 'system', content: footnotesPrompt(given, true) },
       { role: 'user', content: message },
-    ], format, model);
+    ], format, model, reasoning);
     const result   = parseJsonResponse<BatchFootnotes>(response);
 
     return {
@@ -58,6 +60,7 @@ export const askFootnotes = async(
       ms:               Date.now() - started,
       promptTokens:     response.usage?.prompt_tokens ?? null,
       completionTokens: response.usage?.completion_tokens ?? null,
+      reasoningTokens:  response.usage?.completion_tokens_details?.reasoning_tokens ?? null,
     };
   }
   catch (e) {
@@ -67,10 +70,13 @@ export const askFootnotes = async(
       ms:               Date.now() - started,
       promptTokens:     null,
       completionTokens: null,
+      reasoningTokens:  null,
     };
   }
 };
 
-export const askEvalBatch = (batch: EvalBatch, model: string, insights: EvalInsights): Promise<EvalAnswer> => (
-  askFootnotes(batchMessage(batch.pages), model, insights)
+export const askEvalBatch = (
+  batch: EvalBatch, model: string, insights: EvalInsights, reasoning?: ORReasoning,
+): Promise<EvalAnswer> => (
+  askFootnotes(batchMessage(batch.pages), model, insights, reasoning)
 );

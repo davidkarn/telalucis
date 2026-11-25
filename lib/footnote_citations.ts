@@ -18,14 +18,27 @@ import {
 } from '../core/footnote_extraction.ts';
 import type { ExtractedCitations } from '../core/ocred_book_import.ts';
 import { log } from './lib.ts';
-import { isLocalModel, makeOpenRouterRequest, parseJsonResponse } from './open_router.ts';
+import {
+  isLocalModel, makeOpenRouterRequest, parseJsonResponse, type ORReasoning,
+} from './open_router.ts';
 import { FootnoteExtractionInsightQueries } from '../model/footnote_extraction_insights.ts';
 import type { Citation, SuryaPage } from '../types.ts';
 
 // OpenRouter allows 20 requests a minute
 const REQUEST_INTERVAL_MS = 3200;
 
-export const DEFAULT_FOOTNOTES_MODEL = 'openai/gpt-4o-mini';
+// measured on eval/footnotes.json against openai/gpt-4o-mini (see eval-footnotes)
+export const DEFAULT_FOOTNOTES_MODEL = 'anthropic/claude-haiku-5.5';
+
+// How much the default model thinks: a budget of 1024 tokens (it spends more) did best on the
+// eval, better than its default and than not thinking, no slower and no dearer than its default
+export const DEFAULT_FOOTNOTES_REASONING: ORReasoning = { max_tokens: 1024 };
+
+// The reasoning a model is asked with when none is given: the default model's, else the
+// model's own (a model without reasoning is refused one, see require_parameters)
+export const defaultReasoning = (model: string): ORReasoning | undefined => (
+  model === DEFAULT_FOOTNOTES_MODEL ? DEFAULT_FOOTNOTES_REASONING : undefined
+);
 
 // Every citation in the book's footnotes, a request per batch of pages with
 // footnotes worth reading (see core/footnote_batches.ts), each request given
@@ -41,11 +54,12 @@ export const DEFAULT_FOOTNOTES_MODEL = 'openai/gpt-4o-mini';
 // model: an OpenRouter model, or a local one ("local/<name>", see
 // lib/open_router.ts), asked without waiting between requests.
 // examples: citations to show the model those like each batch's (see
-// core/citation_examples.ts), none from this book.
+// core/citation_examples.ts), none from this book. reasoning: how much the
+// model thinks (see ORReasoning), defaultReasoning when not given.
 export const extractFootnoteCitations = async(
   db: Kysely<Database>, bookId: string, pages: SuryaPage[],
-  { skipInsights = false, model = DEFAULT_FOOTNOTES_MODEL, examples }: {
-    skipInsights?: boolean, model?: string, examples?: ExampleIndex,
+  { skipInsights = false, model = DEFAULT_FOOTNOTES_MODEL, examples, reasoning = defaultReasoning(model) }: {
+    skipInsights?: boolean, model?: string, examples?: ExampleIndex, reasoning?: ORReasoning,
   } = {},
 ): Promise<ExtractedCitations> => {
   const batches                                        = footnoteBatches(pages);
@@ -77,7 +91,7 @@ export const extractFootnoteCitations = async(
       const response = await makeOpenRouterRequest([
         { role: 'system', content: footnotesPrompt(given, true) + shown },
         { role: 'user', content: batchHtml(batch) },
-      ], format, model);
+      ], format, model, reasoning);
 
       const result      = parseJsonResponse<BatchFootnotes>(response);
       const learned     = learnedInsights(result);
