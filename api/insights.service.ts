@@ -9,8 +9,12 @@ import {
 import {
   findBooks, findCachedInsights, findCitingCitations, findContextPages, findPage, saveCachedInsights,
 } from '../model/page_insights';
-import { makeOpenRouterRequest, parseJsonResponse } from '../lib/open_router';
+import { recordLlmRequest } from '../lib/llm_request_log.ts';
+import { makeOpenRouterRequest, parseJsonResponse, USAGE_ACCOUNTING, type ORResponse } from '../lib/open_router.ts';
 import { assertNotWithheld } from './copyright';
+
+// The model making insights
+const INSIGHTS_MODEL = 'openai/gpt-4o';
 
 // No OPENROUTER_KEY: insights can't be made
 export class OpenRouterUnavailable extends Error {}
@@ -25,8 +29,9 @@ export class InsightsService {
   // What other books say about a page they cite: the cached insights for the page, else new ones
   // (see makeInsights), which are then cached. 'no page' when the book has no such page;
   // 'no citations' when nothing in the collection cites it (not cached: no request is made then).
+  // userId: the reader asking, when signed in (kept with the request's record in llm_requests).
   async pageInsights(
-    bookId: string, pageNumber: number
+    bookId: string, pageNumber: number, userId: string | null = null,
   ): Promise<PageInsights | 'no page' | 'no citations'> {
     await assertNotWithheld(this.db, bookId);
     const cached = await findCachedInsights(this.db, bookId, pageNumber);
@@ -35,7 +40,7 @@ export class InsightsService {
       return cached;
     }
     else {
-      const insights = await this.makeInsights(bookId, pageNumber);
+      const insights = await this.makeInsights(bookId, pageNumber, userId);
 
       if (typeof insights === 'object') {
         await saveCachedInsights(this.db, insights);
@@ -47,7 +52,7 @@ export class InsightsService {
   // Insights summarized by the model from this page and, for each citing page, it and the pages
   // around it
   private async makeInsights(
-    bookId: string, pageNumber: number
+    bookId: string, pageNumber: number, userId: string | null,
   ): Promise<PageInsights | 'no page' | 'no citations'> {
     const page          = await findPage(this.db, bookId, pageNumber);
     const printedNumber = page ? citablePageNumber(page.printed_page_number) : null;
@@ -87,13 +92,39 @@ export class InsightsService {
             .filter((c) => c !== undefined),
         }));
 
-        const book     = books.get(bookId) ?? { title: bookId, author: '' };
-        const messages = buildInsightsMessages({ book, page: thisPage, sources });
-        const answer   = await makeOpenRouterRequest(messages, INSIGHTS_FORMAT)
-          .then((response) => parseJsonResponse<InsightsAnswer>(response))
-          .catch((e: Error) => {
-            throw new OpenRouterFailed(e.message ?? String(e));
-          });
+        const book                        = books.get(bookId) ?? { title: bookId, author: '' };
+        const messages                    = buildInsightsMessages({ book, page: thisPage, sources });
+        const startedAt                   = Date.now();
+        let response: ORResponse | null   = null;
+        let failure: string | null        = null;
+        let answer: InsightsAnswer | null = null;
+        try {
+          response = await makeOpenRouterRequest(messages, INSIGHTS_FORMAT, INSIGHTS_MODEL, undefined, undefined, USAGE_ACCOUNTING);
+          answer   = parseJsonResponse<InsightsAnswer>(response);
+        }
+        catch (e) {
+          failure = e instanceof Error ? e.message : String(e);
+        }
+
+        const content = response?.choices?.[0]?.message?.content;
+        await recordLlmRequest(this.db, {
+          source:       'page_insights',
+          userId,
+          context:      { bookId, pageNumber },
+          model:        INSIGHTS_MODEL,
+          messages,
+          parameters:   { response_format: INSIGHTS_FORMAT },
+          response:     typeof content === 'string' ? content : null,
+          status:       failure === null ? 'ok' : 'error',
+          error:        failure,
+          usage:        response?.usage ?? null,
+          generationId: response?.id ?? null,
+          durationMs:   Date.now() - startedAt,
+        });
+
+        if (answer === null) {
+          throw new OpenRouterFailed(failure ?? 'no answer');
+        }
 
         return toPageInsights({ bookId, page: thisPage, sources, answer });
       }

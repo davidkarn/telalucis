@@ -294,7 +294,32 @@ export interface ConversationMessagesTable {
   created_at: Generated<Date>,
 }
 
+// Every request the web app makes of an LLM, what it sent, what came back and what it cost (see
+// model/llm_requests.ts and migrations/0036_create_llm_requests.ts). cost: US dollars, as
+// OpenRouter reports it, read back as a string (numeric).
+export interface LlmRequestsTable {
+  id: Generated<string>,          // bigserial
+  source: string,
+  user_id: string | null,
+  context: ColumnType<unknown, string | undefined, string>,
+  model: string,
+  messages: ColumnType<unknown, string, string>,
+  parameters: ColumnType<unknown, string | undefined, string>,
+  response: string | null,
+  status: 'ok' | 'error' | 'stopped',
+  error: string | null,
+  prompt_tokens: number | null,
+  completion_tokens: number | null,
+  reasoning_tokens: number | null,
+  cached_tokens: number | null,
+  cost: ColumnType<string | null, number | null, number | null>,
+  generation_id: string | null,
+  duration_ms: number,
+  created_at: Generated<Date>,
+}
+
 export interface Database {
+  llm_requests: LlmRequestsTable,
   conversations: ConversationsTable,
   conversation_messages: ConversationMessagesTable,
   books: BooksTable,

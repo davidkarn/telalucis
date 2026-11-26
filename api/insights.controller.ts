@@ -1,7 +1,9 @@
 import {
-  BadGatewayException, Controller, Get, Inject, NotFoundException, Param, Res,
+  BadGatewayException, Controller, Get, Inject, NotFoundException, Param, Req, Res,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import type { Request } from 'express';
+import type { SessionUser } from '../model/users.ts';
 import { InsightsService, OpenRouterFailed, OpenRouterUnavailable } from './insights.service';
 import { int_param } from './params';
 
@@ -14,12 +16,15 @@ export class InsightsController {
   async pageInsights(
     @Param('bookId') bookId: string,
     @Param('pageId') pageId: string,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: { status: (code: number) => unknown },
   ) {
     const pageNumber = int_param('pageId', pageId, 1, 1, 1000000);
 
     try {
-      const result = await this.insights.pageInsights(bookId, pageNumber);
+      // passport's req.user, as api/sessions.ts declares it
+      const user   = req.user as SessionUser | null | undefined;
+      const result = await this.insights.pageInsights(bookId, pageNumber, user?.id ?? null);
 
       if (result === 'no page') {
         throw new NotFoundException(`No page ${ pageId } in book ${ bookId }`);

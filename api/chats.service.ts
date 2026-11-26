@@ -5,13 +5,16 @@
 // as saved. A message whose search fails, or that the model refuses outright,
 // is taken back, so it doesn't count toward the day's limits; once the model
 // has started answering it counts, and an answer cut short is saved with why.
+// Every request of the model is recorded in llm_requests, with what it cost.
 import { Inject, Injectable } from '@nestjs/common';
 import type { Kysely } from 'kysely';
 import {
   CHAT_MAX_TOKENS, chatLimits, chatRequestMessages, conversationTitle, DEFAULT_CHAT_MODEL,
   numberedPassages, searchQuery, type ChatPassage, type ChatTurn, type ChatUsage,
 } from '../core/chats.ts';
-import { isLocalModel, streamChat } from '../lib/open_router.ts';
+import type { LlmUsage } from '../core/llm_requests.ts';
+import { recordLlmRequest } from '../lib/llm_request_log.ts';
+import { isLocalModel, streamChat, USAGE_ACCOUNTING, type ORReasoning } from '../lib/open_router.ts';
 import { DEFAULT_SEARCH, searchPassages } from '../lib/passage_search.ts';
 import { ChatActions, ChatQueries, type ConversationRow, type MessageRow } from '../model/chats.ts';
 import { DB } from './database.module.ts';
@@ -135,9 +138,10 @@ export class ChatsService {
     }
   }
 
-  // Answer a message just sent (see send), emitting its events; `started`:
-  // whether it started the conversation, which is taken back with it
+  // Answer a reader's message just sent (see send), emitting its events;
+  // `started`: whether it started the conversation, which is taken back with it
   async answer(
+    userId: string,
     sent: { conversation: ConversationRow, messageId: string, usage: ChatUsage },
     earlier: MessageRow[], content: string, started: boolean,
     emit: (event: ChatEvent) => void, signal: AbortSignal,
@@ -168,29 +172,65 @@ export class ChatsService {
       return;
     }
 
-    let written              = '';
-    let tokens               = { promptTokens: null as number | null, completionTokens: null as number | null };
-    let error: string | null = null;
+    const messages                  = chatRequestMessages(turns, passages, content);
+    const parameters                = { reasoning: { enabled: false } as ORReasoning, max_tokens: CHAT_MAX_TOKENS };
+    const startedAt                 = Date.now();
+    let written                     = '';
+    let usage: LlmUsage | null      = null;
+    let generationId: string | null = null;
+    let error: string | null        = null;
     try {
-      const answer = await streamChat(chatRequestMessages(turns, passages, content), model, (text) => {
+      await streamChat(messages, model, (text) => {
         written += text;
         emit({ type: 'text', text });
-      }, { reasoning: { enabled: false }, maxTokens: CHAT_MAX_TOKENS, signal });
-      tokens = { promptTokens: answer.promptTokens, completionTokens: answer.completionTokens };
+      }, {
+        reasoning: parameters.reasoning,
+        maxTokens: CHAT_MAX_TOKENS,
+        signal,
+        extra:     USAGE_ACCOUNTING,
+        onChunk:   (about) => {
+          usage        = about.usage ?? usage;
+          generationId = about.generationId ?? generationId;
+        },
+      });
     }
     catch (e) {
       error = signal.aborted ? 'Stopped before the answer was finished' : messageText(e);
     }
 
+    const record = (answerId: string | null) => recordLlmRequest(this.db, {
+      source:     'chat',
+      userId,
+      context:    { conversationId: sent.conversation.id, messageId: sent.messageId, answerId },
+      model,
+      messages,
+      parameters,
+      response:   written.length > 0 ? written : null,
+      status:     signal.aborted ? 'stopped' : error === null ? 'ok' : 'error',
+      error,
+      usage,
+      generationId,
+      durationMs: Date.now() - startedAt,
+    });
+
     if (error !== null && written.length === 0 && !signal.aborted) {
       // refused before answering: nothing to keep, nor to count
+      await record(null);
       await unsend();
       emit({ type: 'error', message: `The model couldn't answer: ${ error }` });
     }
     else {
-      const saved = await ChatActions.saveAnswer(this.db, {
-        conversationId: sent.conversation.id, content: written, passages, model, ...tokens, error,
+      const tokens = usage as LlmUsage | null;
+      const saved  = await ChatActions.saveAnswer(this.db, {
+        conversationId:   sent.conversation.id,
+        content:          written,
+        passages,
+        model,
+        error,
+        promptTokens:     tokens?.prompt_tokens ?? null,
+        completionTokens: tokens?.completion_tokens ?? null,
       });
+      await record(saved.id);
       emit({ type: 'done', message: messageOf(saved) });
     }
   }

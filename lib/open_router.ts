@@ -2,6 +2,7 @@
 // consolidate-footnote-insights, see cli/), or a local server's (see
 // LOCAL_MODEL_PREFIX). Needs OPENROUTER_KEY for OpenRouter's.
 import type { JSONSchema7 } from 'json-schema';
+import type { LlmUsage } from '../core/llm_requests.ts';
 
 export type ORMessage = {
   role: 'system' | 'user' | 'assistant',
@@ -13,17 +14,18 @@ export type ORResponseFormat = {
   json_schema: { name: string, strict: boolean, schema: JSONSchema7 }
 };
 
-// The parts of an OpenRouter chat completion response this code reads
+// The parts of an OpenRouter chat completion response this code reads. id:
+// OpenRouter's generation id. usage: completion_tokens includes the reasoning
+// tokens; cost, in US dollars, is there when asked for (USAGE_ACCOUNTING).
 export type ORResponse = {
+  id?: string,
   error?: { message?: string },
   choices?: { message?: { content?: unknown } }[],
-  // completion_tokens includes the reasoning tokens
-  usage?: {
-    prompt_tokens?: number,
-    completion_tokens?: number,
-    completion_tokens_details?: { reasoning_tokens?: number },
-  },
+  usage?: LlmUsage,
 };
+
+// Asks OpenRouter to report the request's cost (and cached and reasoning tokens) in its usage
+export const USAGE_ACCOUNTING = { usage: { include: true } };
 
 // How much a reasoning model thinks (OpenRouter's reasoning parameter): not at all, at most
 // max_tokens (1024 at least), or at an effort. For Claude on chat completions an effort is
@@ -96,16 +98,17 @@ export const chatRequestBody = (
   ...(responseFormat && !isLocalModel(model) ? { provider: { require_parameters: true } } : {}),
 });
 
+// extra: more of the request's body (USAGE_ACCOUNTING)
 export const makeOpenRouterRequest = (
   msgs: ORMessage[], responseFormat?: ORResponseFormat, model: string = 'openai/gpt-4o',
-  reasoning?: ORReasoning, maxTokens?: number,
+  reasoning?: ORReasoning, maxTokens?: number, extra: Record<string, unknown> = {},
 ) => {
   const to = endpoint(model);
 
   return fetch(to.url, {
     method:  'POST',
     headers: { ...to.headers, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(chatRequestBody(msgs, responseFormat, model, reasoning, maxTokens)),
+    body:    JSON.stringify({ ...chatRequestBody(msgs, responseFormat, model, reasoning, maxTokens), ...extra }),
   })
     .then((result) => result.json() as Promise<ORResponse>);
 };
@@ -126,15 +129,16 @@ export const parseJsonResponse = <T>(response: ORResponse): T => {
   }
 };
 
-// What a streamed answer came to: its text, and the tokens counted when the
-// stream says (in its last chunk)
-export type StreamedAnswer = { content: string, promptTokens: number | null, completionTokens: number | null };
+// What a streamed answer came to: its text, its usage when the stream says
+// (in its last chunk), and OpenRouter's generation id
+export type StreamedAnswer = { content: string, usage: LlmUsage | null, generationId: string | null };
 
 // A streamed chunk of a chat completion (server-sent events, "data: {...}")
 type StreamChunk = {
+  id?: string,
   error?: { message?: string },
   choices?: { delta?: { content?: string | null } }[],
-  usage?: { prompt_tokens?: number, completion_tokens?: number },
+  usage?: LlmUsage,
 };
 
 // The lines of server-sent events' data, as they come
@@ -156,11 +160,16 @@ async function* eventData(body: ReadableStream<Uint8Array>): AsyncGenerator<stri
 }
 
 // Ask for a chat completion streamed, calling onText with each piece of its
-// text as it comes; its whole text once it's done. Throws when the request is
-// refused, or the stream reports an error (err.partial: the text before it).
+// text as it comes, and onChunk with what the stream says of the request (its
+// generation id, its usage) as it says it; the whole answer once it's done.
+// Throws when the request is refused, or the stream reports an error.
+// extra: more of the request's body (USAGE_ACCOUNTING).
 export const streamChat = async(
   msgs: ORMessage[], model: string, onText: (text: string) => void,
-  options: { reasoning?: ORReasoning, maxTokens?: number, signal?: AbortSignal } = {},
+  options: {
+    reasoning?: ORReasoning, maxTokens?: number, signal?: AbortSignal, extra?: Record<string, unknown>,
+    onChunk?: (about: { generationId?: string, usage?: LlmUsage }) => void,
+  } = {},
 ): Promise<StreamedAnswer> => {
   const to       = endpoint(model);
   const response = await fetch(to.url, {
@@ -168,6 +177,7 @@ export const streamChat = async(
     headers: { ...to.headers, 'Content-Type': 'application/json' },
     body:    JSON.stringify({
       ...chatRequestBody(msgs, undefined, model, options.reasoning, options.maxTokens),
+      ...options.extra,
       stream: true,
     }),
     ...(options.signal ? { signal: options.signal } : {}),
@@ -178,7 +188,7 @@ export const streamChat = async(
     throw new Error(message ?? `the model's server answered ${ response.status } ${ response.statusText }`);
   }
   else {
-    const answer: StreamedAnswer = { content: '', promptTokens: null, completionTokens: null };
+    const answer: StreamedAnswer = { content: '', usage: null, generationId: null };
 
     for await (const data of eventData(response.body)) {
       if (data === '[DONE]') {
@@ -188,16 +198,20 @@ export const streamChat = async(
         const chunk = JSON.parse(data) as StreamChunk;
         const text  = chunk.choices?.[0]?.delta?.content ?? '';
 
+        if (chunk.id !== undefined || chunk.usage !== undefined) {
+          answer.generationId = chunk.id ?? answer.generationId;
+          answer.usage        = chunk.usage ?? answer.usage;
+          options.onChunk?.({
+            ...(chunk.id === undefined ? {} : { generationId: chunk.id }),
+            ...(chunk.usage === undefined ? {} : { usage: chunk.usage }),
+          });
+        }
         if (chunk.error) {
-          throw Object.assign(new Error(chunk.error.message ?? 'the model stopped with an error'), { partial: answer.content });
+          throw new Error(chunk.error.message ?? 'the model stopped with an error');
         }
         else if (text.length > 0) {
           answer.content += text;
           onText(text);
-        }
-        if (chunk.usage) {
-          answer.promptTokens     = chunk.usage.prompt_tokens ?? null;
-          answer.completionTokens = chunk.usage.completion_tokens ?? null;
         }
       }
     }

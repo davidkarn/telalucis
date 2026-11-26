@@ -118,7 +118,7 @@ export class ChatsController {
     };
 
     try {
-      await this.chats.answer(sent, earlier, message.content, conversationId === null, emit, stop.signal);
+      await this.chats.answer(userId, sent, earlier, message.content, conversationId === null, emit, stop.signal);
     }
     catch (e) {
       emit({ type: 'error', message: `The answer failed: ${ e instanceof Error ? e.message : String(e) }` });
