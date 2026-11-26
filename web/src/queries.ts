@@ -5,7 +5,7 @@ import {
   fetchAuthor, fetchAuthors, fetchJournal, fetchJournalIssue, fetchJournalIssues, fetchJournals,
   fetchBook, fetchBooks, fetchCitationSourcePage, fetchPage, fetchPageCitations,
   fetchPageOrder,
-  fetchPageInsights,
+  fetchPageInsights, fetchConversations, fetchConversation,
 } from './api'
 
 // The app's one QueryClient (see main.tsx). Books and pages don't change while they're open, so
@@ -181,4 +181,17 @@ export const adminQueuedBooksQuery = (
   queryFn:   () => fetchAdminQueuedBooks(opts),
   staleTime: 0,
   retry:     false,
+});
+
+// The signed-in reader's chats, and today's usage against the limits
+export const conversationsQuery = () => queryOptions({
+  queryKey:  ['chats'],
+  queryFn:   fetchConversations,
+  staleTime: 0,
+});
+
+export const conversationQuery = (conversationId: string) => queryOptions({
+  queryKey:  ['chats', conversationId],
+  queryFn:   () => fetchConversation(conversationId),
+  staleTime: 0,
 });

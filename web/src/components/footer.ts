@@ -19,7 +19,7 @@ const githubMark = () => (
   )
 );
 
-const HIDDEN_ON = ['/books/', '/tl-admin'];
+const HIDDEN_ON = ['/books/', '/tl-admin', '/chats'];
 
 export const Footer = () => {
   const { pathname } = useLocation();

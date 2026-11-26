@@ -557,3 +557,101 @@ export const setAdminBookCopyright = (
 ): Promise<AdminBookCopyright> => (
   requestJson('POST', `/admin/copyright/${encodeURIComponent(bookId)}`, { status, notes })
 );
+
+// The ChatPassage schema in ../api.yaml: a passage an answer was given, as it was then. n: its
+// number in the conversation, which the answer's links point to ("[ST I q76 a1](3)")
+export type ChatPassage = {
+  n: number,
+  passageId: string,
+  bookId: string,
+  title: string,
+  author: string,
+  pageNumber: number,
+  endPageNumber: number,
+  printedPageNumber: string,
+  text: string,
+};
+
+// The ChatMessage schema: content is markdown; error, why an answer stopped short
+export type ChatMessage = {
+  id: string,
+  role: 'user' | 'assistant',
+  content: string,
+  passages: ChatPassage[],
+  error: string | null,
+  createdAt: string,
+};
+
+export type ConversationSummary = { id: string, title: string, createdAt: string, updatedAt: string };
+
+// The ChatUsage schema: the messages sent today (a UTC day), by the reader and by everyone
+export type ChatUsage = { used: number, limit: number, appUsed: number, appLimit: number, resetsAt: string };
+
+export type ConversationList = { items: ConversationSummary[], usage: ChatUsage };
+
+export type Conversation = { conversation: ConversationSummary, messages: ChatMessage[] };
+
+// The ChatEvent schema: an event of a streamed answer
+export type ChatEvent =
+  | { type: 'conversation', conversation: ConversationSummary, message: ChatMessage, usage: ChatUsage }
+  | { type: 'passages', passages: ChatPassage[], searchedByMeaning: boolean }
+  | { type: 'text', text: string }
+  | { type: 'done', message: ChatMessage }
+  | { type: 'error', message: string };
+
+export const fetchConversations = (): Promise<ConversationList> => requestJson('GET', '/chats');
+
+export const fetchConversation = (conversationId: string): Promise<Conversation> => (
+  requestJson('GET', `/chats/${encodeURIComponent(conversationId)}`)
+);
+
+export const deleteConversation = async (conversationId: string): Promise<void> => {
+  const res = await fetch(`/api/chats/${encodeURIComponent(conversationId)}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const message = await res.json().then((b) => b?.message, () => undefined);
+    throw new ApiError(res.status, message ?? `Couldn't delete the conversation: ${res.status}`);
+  }
+};
+
+// Send a message (in a conversation, or starting one when conversationId is null), calling
+// onEvent with each event of its answer as it comes. Throws ApiError when it's refused before
+// answering (429 at a limit). signal: aborting it stops the answer.
+export const sendChatMessage = async (
+  body: { conversationId: string | null, content: string },
+  onEvent: (event: ChatEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> => {
+  const res = await fetch('/api/chats/messages', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body),
+    ...(signal === undefined ? {} : { signal }),
+  });
+
+  if (!res.ok || res.body === null) {
+    const message = await res.json().then((b) => b?.message, () => undefined);
+    throw new ApiError(res.status, message ?? `Couldn't send the message: ${res.status} ${res.statusText}`);
+  }
+  else {
+    const reader  = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffered  = '';
+
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) {
+        break;
+      }
+      else {
+        buffered += value;
+        const events = buffered.split('\n\n');
+        buffered     = events.pop() ?? '';
+        for (const event of events) {
+          const data = event.split('\n').filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trim()).join('');
+          if (data.length > 0) {
+            onEvent(JSON.parse(data) as ChatEvent);
+          }
+        }
+      }
+    }
+  }
+};

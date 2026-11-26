@@ -17,6 +17,9 @@ export type SearchOptions = {
   // score the best found again with the reranker: how many of them (0: none)
   rerank: number,
   limits: VoiceLimits,
+  // when the embeddings server can't be reached, search by words alone (saying
+  // so in meaningUnavailable) rather than failing
+  meaningOptional?: boolean,
 };
 
 export const DEFAULT_SEARCH: SearchOptions = { words: true, cites: true, rerank: 60, limits: DEFAULT_LIMITS };
@@ -33,6 +36,8 @@ export type SearchReport = {
   // what each step took, in milliseconds; whether the reranker was used, and if not why
   timings: Record<string, number>,
   reranked: boolean | string,
+  // why it wasn't searched by meaning, when it wasn't (see meaningOptional)
+  meaningUnavailable?: string,
 };
 
 const timed = async<T>(timings: Record<string, number>, step: string, work: () => Promise<T>): Promise<T> => {
@@ -47,9 +52,19 @@ export const searchPassages = async(
 ): Promise<SearchReport> => {
   const timings: Record<string, number> = {};
 
-  const [vector]         = await timed(timings, 'embed', () => embed([question]));
+  const vector           = await timed(timings, 'embed', () => embed([question]).then(
+    ([v]) => v!,
+    (e: unknown) => {
+      if (options.meaningOptional === true && options.words) {
+        return new Error(`the embeddings server couldn't be reached: ${ e instanceof Error ? e.message : String(e) }`);
+      }
+      else {
+        throw e;
+      }
+    },
+  ));
   const [meaning, words] = await timed(timings, 'search', () => Promise.all([
-    PassageSearchQueries.findNearest(db, vector!, POOL),
+    vector instanceof Error ? Promise.resolve([]) : PassageSearchQueries.findNearest(db, vector, POOL),
     options.words ? PassageSearchQueries.findWithWords(db, question, POOL) : Promise.resolve([]),
   ]));
 
@@ -79,5 +94,10 @@ export const searchPassages = async(
     }
   }
 
-  return { results: searchResults(pool, scores, options.limits), timings, reranked };
+  return {
+    results: searchResults(pool, scores, options.limits),
+    timings,
+    reranked,
+    ...(vector instanceof Error ? { meaningUnavailable: vector.message } : {}),
+  };
 };

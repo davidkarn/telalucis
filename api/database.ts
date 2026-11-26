@@ -267,7 +267,36 @@ export interface UsersTable {
   updated_at: Generated<Date>,    // kept by a trigger: any update sets it
 }
 
+// A reader's chat with an LLM about the collection, and its messages (see
+// core/chats.ts and migrations/0035_create_conversations.ts). deleted_at: when
+// the reader deleted it; its messages still count toward the day's limits.
+export interface ConversationsTable {
+  id: Generated<string>,          // bigserial
+  user_id: string,
+  title: string,
+  deleted_at: Date | null,
+  created_at: Generated<Date>,
+  updated_at: Generated<Date>,    // kept by a trigger: any update sets it
+}
+
+// passages: an answer's passages (ChatPassage[], core/chats.ts), as JSON; [] for a reader's.
+// error: why an answer stopped short.
+export interface ConversationMessagesTable {
+  id: Generated<string>,          // bigserial
+  conversation_id: string,
+  role: 'user' | 'assistant',
+  content: string,
+  passages: ColumnType<unknown, string | undefined, string>,
+  model: string | null,
+  prompt_tokens: number | null,
+  completion_tokens: number | null,
+  error: string | null,
+  created_at: Generated<Date>,
+}
+
 export interface Database {
+  conversations: ConversationsTable,
+  conversation_messages: ConversationMessagesTable,
   books: BooksTable,
   pages: PagesTable,
   page_blocks: PageBlocksTable,

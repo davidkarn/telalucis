@@ -718,6 +718,137 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CurrentUser'
+  /chats:
+    get:
+      tags:
+        - Chats
+      summary: >-
+        The signed-in reader's conversations with the LLM about the collection, the one written in
+        last first (at most 200), and the messages they and everyone have sent today against the
+        day's limits.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - usage
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConversationSummary'
+                  usage:
+                    $ref: '#/components/schemas/ChatUsage'
+        '401':
+          description: not signed in
+  /chats/{conversationId}:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - Chats
+      summary: One of the signed-in reader's conversations, with its messages in order.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - conversation
+                  - messages
+                properties:
+                  conversation:
+                    $ref: '#/components/schemas/ConversationSummary'
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatMessage'
+        '401':
+          description: not signed in
+        '404':
+          description: no such conversation of theirs
+    delete:
+      tags:
+        - Chats
+      summary: >-
+        Delete one of the signed-in reader's conversations. Its messages still count toward the
+        day's limits.
+      responses:
+        '204':
+          description: deleted
+        '401':
+          description: not signed in
+        '404':
+          description: no such conversation of theirs
+  /chats/messages:
+    post:
+      tags:
+        - Chats
+      summary: >-
+        Send a message, in one of the reader's conversations or starting one, and stream back the
+        answer. The message is searched for in the collection's passages (by meaning and by words,
+        or by words alone when the embeddings server can't be reached); the model (CHAT_MODEL,
+        anthropic/claude-haiku-5.5 by default) is given the passages found, numbered for the
+        conversation, and cites them as markdown links to their numbers ("[ST I q76 a1](3)"). Each
+        reader may send CHAT_USER_DAILY_LIMIT messages a UTC day (20 by default), and all readers
+        together CHAT_APP_DAILY_LIMIT (300). A message whose search fails, or that the model
+        refuses before answering, is taken back and doesn't count. The answer comes as server-sent
+        events, a "data:" line of JSON each (ChatEvent): conversation, passages, text (many), then
+        done or error.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                conversationId:
+                  description: the conversation it's in; null or left out to start one
+                  type: string
+                  nullable: true
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 2000
+      responses:
+        '200':
+          description: the answer's events
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/ChatEvent'
+        '400':
+          description: an empty message, or one longer than 2000 characters
+        '401':
+          description: not signed in
+        '404':
+          description: no such conversation of theirs
+        '429':
+          description: the reader's limit, or the app's, has been reached today
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - usage
+                properties:
+                  message:
+                    type: string
+                  usage:
+                    $ref: '#/components/schemas/ChatUsage'
+        '503':
+          description: the model isn't set up (no OPENROUTER_KEY)
   /admin/session:
     get:
       tags:
@@ -1435,6 +1566,173 @@ components:
         googleSignIn:
           description: signing in with a Google account in ADMIN_GOOGLE_EMAILS is set up
           type: boolean
+    ConversationSummary:
+      type: object
+      required:
+        - id
+        - title
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        title:
+          description: its first message, cut to 80 characters
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          description: when a message was last written in it
+          type: string
+          format: date-time
+    ChatPassage:
+      description: >-
+        a passage given to the model for an answer, as it was then: its number in the conversation
+        (what the answer's links point to), its book and pages, and its text
+      type: object
+      required:
+        - n
+        - passageId
+        - bookId
+        - title
+        - author
+        - pageNumber
+        - endPageNumber
+        - printedPageNumber
+        - text
+      properties:
+        n:
+          type: integer
+        passageId:
+          type: string
+        bookId:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        pageNumber:
+          description: the scan page it starts on
+          type: integer
+        endPageNumber:
+          type: integer
+        printedPageNumber:
+          description: the number printed on its first page, '' when none is
+          type: string
+        text:
+          type: string
+    ChatMessage:
+      type: object
+      required:
+        - id
+        - role
+        - content
+        - passages
+        - error
+        - createdAt
+      properties:
+        id:
+          type: string
+        role:
+          type: string
+          enum:
+            - user
+            - assistant
+        content:
+          description: >-
+            markdown; an answer cites passages as links to their numbers ("[ST I q76 a1](3)"), which
+            may be of passages given for an earlier answer in the conversation
+          type: string
+        passages:
+          description: the passages the answer was given; none for a reader's message
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatPassage'
+        error:
+          description: why the answer stopped short, with what came of it in content
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    ChatUsage:
+      description: the messages sent today (a UTC day), by the reader and by everyone, and the limits
+      type: object
+      required:
+        - used
+        - limit
+        - appUsed
+        - appLimit
+        - resetsAt
+      properties:
+        used:
+          type: integer
+        limit:
+          type: integer
+        appUsed:
+          type: integer
+        appLimit:
+          type: integer
+        resetsAt:
+          description: when the day's counts start again
+          type: string
+          format: date-time
+    ChatEvent:
+      description: >-
+        an event of a streamed answer: the conversation the message is in (new or not) with the
+        message as saved and the usage after it; the passages found; a piece of the answer's text;
+        the answer as saved (done); or why it failed (error; the message was taken back)
+      oneOf:
+        - type: object
+          required: [type, conversation, message, usage]
+          properties:
+            type:
+              type: string
+              enum: [conversation]
+            conversation:
+              $ref: '#/components/schemas/ConversationSummary'
+            message:
+              $ref: '#/components/schemas/ChatMessage'
+            usage:
+              $ref: '#/components/schemas/ChatUsage'
+        - type: object
+          required: [type, passages, searchedByMeaning]
+          properties:
+            type:
+              type: string
+              enum: [passages]
+            passages:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChatPassage'
+            searchedByMeaning:
+              description: false when the embeddings server couldn't be reached
+              type: boolean
+        - type: object
+          required: [type, text]
+          properties:
+            type:
+              type: string
+              enum: [text]
+            text:
+              type: string
+        - type: object
+          required: [type, message]
+          properties:
+            type:
+              type: string
+              enum: [done]
+            message:
+              $ref: '#/components/schemas/ChatMessage'
+        - type: object
+          required: [type, message]
+          properties:
+            type:
+              type: string
+              enum: [error]
+            message:
+              type: string
     User:
       description: a reader signed in with Google
       type: object

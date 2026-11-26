@@ -6,6 +6,8 @@ import { AdminService } from './admin.service';
 import { AuthController } from './auth.controller';
 import { AuthorsController } from './authors.controller';
 import { AuthorsService } from './authors.service';
+import { ChatsController } from './chats.controller.ts';
+import { ChatsService } from './chats.service.ts';
 import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
 import { CitationSourcePagesController, CitationsController } from './citations.controller';
@@ -27,11 +29,11 @@ import { googleAuthConfig } from '../core/user_auth';
 @Module({
   imports:     [DatabaseModule, PassportModule.register({ session: true })],
   controllers: [
-    AdminController, AuthController, AuthorsController, BooksController, CitationsController, CitationSourcePagesController,
+    AdminController, AuthController, AuthorsController, BooksController, ChatsController, CitationsController, CitationSourcePagesController,
     EbooksController, InsightsController, JournalsController, SearchController, SeoController,
   ],
   providers:   [
-    AdminGuard, AdminService, AuthorsService, BooksService, CitationsService, EbooksService, InsightsService,
+    AdminGuard, AdminService, AuthorsService, BooksService, ChatsService, CitationsService, EbooksService, InsightsService,
     JournalsService, SeoService, SessionSerializer,
     // signing in with Google, when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set
     ...(googleAuthConfig(process.env) === undefined ? [] : [GoogleStrategy]),

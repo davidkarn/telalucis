@@ -15,6 +15,7 @@ import JournalIssuePage from './pages/journal_issue.ts'
 import LoginPage from './pages/login.ts'
 import SearchPage from './pages/search.ts'
 import AccountPage from './pages/account.ts'
+import ChatsPage from './pages/chats.ts'
 import { Footer } from './components/footer.ts'
 
 createRoot(document.getElementById('root')!).render(
@@ -37,6 +38,8 @@ createRoot(document.getElementById('root')!).render(
           // signing in (with Google), and the signed-in reader's account
           __(Route, {path: '/login', element: __(LoginPage)}),
           __(Route, {path: '/account', element: __(AccountPage)}),
+          // a signed-in reader's chats with an LLM about the collection: /chats[/<conversation id>]
+          __(Route, {path: '/chats/:conversationId?', element: __(ChatsPage)}),
           // the admin panel and its tabs: /tl-admin[/<tab>]
           __(Route, {path: '/tl-admin/*', element: __(AdminPage)}),
         ),

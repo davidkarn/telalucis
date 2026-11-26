@@ -1,6 +1,8 @@
 import { createElement as __, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
+import { useQuery } from '@tanstack/react-query'
 import { Menu, X } from 'lucide-react';
+import { currentUserQuery } from '../queries';
 import { AccountLink } from './account_link';
 import './header.scss';
 
@@ -13,6 +15,9 @@ const SECTIONS: NavLink[] = [
   { href: '/journals', label: 'Journals' },
   { href: '/search', label: 'Search' },
 ];
+
+// For a signed-in reader, after the sections
+const CHAT: NavLink = { href: '/chats', label: 'Chat' };
 
 // Works and authors to go straight to, on the right. The ids are the authors table's rows for
 // Aristotle and Thomas Aquinas (migrations/0020_create_authors.ts).
@@ -33,6 +38,8 @@ export const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menu                    = useRef<HTMLDivElement>(null);
   const menuLabel               = menuOpen ? 'Close menu' : 'Open menu';
+  const current                 = useQuery(currentUserQuery());
+  const sections                = current.data?.user ? [...SECTIONS, CHAT] : SECTIONS;
 
   useEffect(() => {
     if (!menuOpen) {
@@ -59,7 +66,7 @@ export const Header = () => {
       ),
       __('div', {className: 'separator'}),
       __('nav', {className: 'navbar'},
-        navLinks(SECTIONS),
+        navLinks(sections),
         __('div', {className: 'spacer'}),
         navLinks(FEATURED),
         __(AccountLink, {}),
@@ -74,7 +81,7 @@ export const Header = () => {
           onClick:         () => setMenuOpen(!menuOpen),
         }, menuOpen ? __(X, {}) : __(Menu, {})),
         menuOpen && __('nav', {className: 'navbar-dropdown'},
-          navLinks(SECTIONS, () => setMenuOpen(false)),
+          navLinks(sections, () => setMenuOpen(false)),
           __('hr', {}),
           navLinks(FEATURED, () => setMenuOpen(false)),
         )

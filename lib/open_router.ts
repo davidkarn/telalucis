@@ -4,7 +4,7 @@
 import type { JSONSchema7 } from 'json-schema';
 
 export type ORMessage = {
-  role: 'system' | 'user',
+  role: 'system' | 'user' | 'assistant',
   content: string
 };
 
@@ -123,5 +123,85 @@ export const parseJsonResponse = <T>(response: ORResponse): T => {
     else {
       return JSON.parse(content);
     }
+  }
+};
+
+// What a streamed answer came to: its text, and the tokens counted when the
+// stream says (in its last chunk)
+export type StreamedAnswer = { content: string, promptTokens: number | null, completionTokens: number | null };
+
+// A streamed chunk of a chat completion (server-sent events, "data: {...}")
+type StreamChunk = {
+  error?: { message?: string },
+  choices?: { delta?: { content?: string | null } }[],
+  usage?: { prompt_tokens?: number, completion_tokens?: number },
+};
+
+// The lines of server-sent events' data, as they come
+async function* eventData(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
+  const decoder = new TextDecoder();
+  let buffered  = '';
+
+  for await (const bytes of body) {
+    buffered   += decoder.decode(bytes, { stream: true });
+    const lines = buffered.split('\n');
+    buffered    = lines.pop() ?? '';
+    for (const line of lines) {
+      // comments (": OPENROUTER PROCESSING") and other fields are passed over
+      if (line.startsWith('data:')) {
+        yield line.slice(5).trim();
+      }
+    }
+  }
+}
+
+// Ask for a chat completion streamed, calling onText with each piece of its
+// text as it comes; its whole text once it's done. Throws when the request is
+// refused, or the stream reports an error (err.partial: the text before it).
+export const streamChat = async(
+  msgs: ORMessage[], model: string, onText: (text: string) => void,
+  options: { reasoning?: ORReasoning, maxTokens?: number, signal?: AbortSignal } = {},
+): Promise<StreamedAnswer> => {
+  const to       = endpoint(model);
+  const response = await fetch(to.url, {
+    method:  'POST',
+    headers: { ...to.headers, 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      ...chatRequestBody(msgs, undefined, model, options.reasoning, options.maxTokens),
+      stream: true,
+    }),
+    ...(options.signal ? { signal: options.signal } : {}),
+  });
+
+  if (!response.ok || response.body === null) {
+    const message = await response.json().then((b: ORResponse) => b.error?.message, () => undefined);
+    throw new Error(message ?? `the model's server answered ${ response.status } ${ response.statusText }`);
+  }
+  else {
+    const answer: StreamedAnswer = { content: '', promptTokens: null, completionTokens: null };
+
+    for await (const data of eventData(response.body)) {
+      if (data === '[DONE]') {
+        break;
+      }
+      else if (data.length > 0) {
+        const chunk = JSON.parse(data) as StreamChunk;
+        const text  = chunk.choices?.[0]?.delta?.content ?? '';
+
+        if (chunk.error) {
+          throw Object.assign(new Error(chunk.error.message ?? 'the model stopped with an error'), { partial: answer.content });
+        }
+        else if (text.length > 0) {
+          answer.content += text;
+          onText(text);
+        }
+        if (chunk.usage) {
+          answer.promptTokens     = chunk.usage.prompt_tokens ?? null;
+          answer.completionTokens = chunk.usage.completion_tokens ?? null;
+        }
+      }
+    }
+
+    return answer;
   }
 };
