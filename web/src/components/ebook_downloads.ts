@@ -1,11 +1,13 @@
 // A book's e-book downloads, under its title: its EPUB, a plain link (made when asked for), and its
 // Kindle .mobi, made in the background: clicked, it's asked for every few seconds (saying how it's
-// going) until it's ready, then downloaded.
+// going) until it's ready, then downloaded. The .mobi only for a signed-in reader: signed out, it
+// isn't shown.
 import { createElement as __, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Download } from 'lucide-react'
-import { match } from 'ts-pattern'
+import { match, P } from 'ts-pattern'
 import { ebookUrl, requestMobi, type MobiStatus } from '../api'
+import { currentUserQuery } from '../queries'
 import './ebook_downloads.scss'
 
 // How often a .mobi being made is asked about
@@ -13,7 +15,10 @@ const POLL_MS = 3000;
 
 const done = (status: MobiStatus | undefined) => status?.status === 'ready' || status?.status === 'failed';
 
+const MOBI_TITLE = 'For older Kindles; newer ones and Send to Kindle take the EPUB';
+
 export function EbookDownloads({bookId}: {bookId: string}) {
+  const current = useQuery(currentUserQuery());
   // asked for since the book was opened (a click starts it; a new click after a failure, again)
   const [asked, setAsked] = useState(0);
 
@@ -38,12 +43,14 @@ export function EbookDownloads({bookId}: {bookId: string}) {
     __('div', {className: 'ebook-downloads'},
       __(Download, {'aria-hidden': true}),
       __('a', {href: ebookUrl(bookId, 'epub'), download: true}, 'EPUB'),
-      __('button', {
-        type:     'button',
-        disabled: preparing,
-        title:    'For older Kindles; newer ones and Send to Kindle take the EPUB',
-        onClick:  () => setAsked((n) => n + 1),
-      }, 'Kindle (.mobi)'),
+      match(current.data)
+        .with({user: P.nonNullable}, () => __('button', {
+          type:     'button',
+          disabled: preparing,
+          title:    MOBI_TITLE,
+          onClick:  () => setAsked((n) => n + 1),
+        }, 'Kindle (.mobi)'))
+        .otherwise(() => null),
       asked > 0 && __('span', {className: 'mobi-status', role: 'status'},
         mobi.isError
           ? `Couldn't make the .mobi: ${ mobi.error.message }`

@@ -3,8 +3,8 @@ import type { Kysely } from 'kysely';
 import { DB } from './database.module';
 import type { Database } from './database';
 import { citation_columns, to_citation_dto, type CitationDto } from './citations.service';
-import { citablePageNumber } from '../core/page_insights';
-import { citationsOfPage, citedCountsByPage, findBooks } from '../model/page_insights';
+import { citablePageNumber } from '../core/page_citations';
+import { PageCitationQueries } from '../model/page_citations';
 import { findCitedPages } from '../model/book_pages_to_citations';
 import { CitedPageQueries } from '../model/cited_pages';
 import { contentsOf, type ContentsEntry } from '../core/contents';
@@ -246,7 +246,7 @@ export class BooksService {
       return cached;
     }
     else {
-      const counts = await citedCountsByPage(this.db, bookId);
+      const counts = await PageCitationQueries.citedCountsByPage(this.db, bookId);
       await PageCitedCountsCacheActions.saveCachedCounts(this.db, bookId, counts);
       return counts;
     }
@@ -334,13 +334,13 @@ export class BooksService {
     }
     else {
       const printedNumber    = citablePageNumber(page.printed_page_number);
-      const foreignCitations = await citationsOfPage(
+      const foreignCitations = await PageCitationQueries.citationsOfPage(
         this.db, bookId, { pageNumber: page.page_number, printedNumber }
       )
         .select((eb) => [...citation_columns(eb), 'citations.source_snippet'])
         .execute();
 
-      const citingBooks = await findBooks(
+      const citingBooks = await PageCitationQueries.findBooks(
         this.db, [...new Set(foreignCitations.map((c) => c.source_book_id))]
       );
       const snippets    = await this.sourceSnippets(foreignCitations);

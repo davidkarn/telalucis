@@ -244,11 +244,6 @@
         // its rows lay out by its own width (below)
         container: bible-page / inline-size;
 
-        .bible-page-insights {
-            margin-bottom: 1rem;
-            max-width: 45rem;
-        }
-
         .verse-row {
             display: flex;
             flex-direction: row;

@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { Kysely, PostgresDialect } from "kysely";
 import { Pool } from 'pg';
-import { citedCountsByPage } from '../model/page_insights.ts';
+import { PageCitationQueries } from '../model/page_citations.ts';
 
 dotenv.config();
 
@@ -15,7 +15,7 @@ const db = new Kysely<Database>({
 
 const main = async() => {
   const bookId = 'summa-theologiae or true';
-  console.log(await citedCountsByPage(db, bookId));
+  console.log(await PageCitationQueries.citedCountsByPage(db, bookId));
 };
 
 main();

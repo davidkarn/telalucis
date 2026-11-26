@@ -1,22 +1,12 @@
-// Database reads for pages and the citations of them: a page, the citations in other books
-// that cite it, those books' titles and authors, and the text of the pages around each citing
-// page.
+// Database reads for the citations of a book's pages: those in other books
+// that cite a page, how many cite each of a book's pages, and the citing
+// books' titles and authors.
 import { sql, type Kysely } from 'kysely';
 import type { Database } from '../api/database.ts';
-import type { CitingCitation, ContextPage, PageInsights } from '../core/page_insights.ts';
 import { AlternateIdsSql } from './alternate_ids.ts';
 import { withScopes } from './model_utils.js';
 import { CITATION_RANGE, CitationScopes } from './citations.js';
 import { CopyrightStatusCheckSql } from './copyright_status_checks.ts';
-
-export const findPage = (db: Kysely<Database>, bookId: string, pageNumber: number) => (
-  db.selectFrom('pages')
-    .select(['pages.page_number', 'pages.printed_page_number'])
-    .where('pages.book_id', '=', bookId)
-    .where('pages.page_number', '=', pageNumber)
-    .executeTakeFirst()
-);
-
 
 // SQL: the citation_groups row `grp`'s parts as a table (n, type, value), to join laterally; a
 // part that is null is left out by the caller (where type is not null)
@@ -24,14 +14,11 @@ const groupPartRows = (grp: string) => sql`(values ${ sql.join(CITATION_RANGE.ma
   sql`(${ n }, ${ sql.ref(`${ grp }.part${ n }_type`) }, ${ sql.ref(`${ grp }.part${ n }_value`) })`
 ))) })`;
 
-// SQL: every part of the book_pages_to_citations row `row` is one of the parts of the
-// citation_groups row `grp`. A part that is null asks for nothing.
-
 // Citations in other books of a book's page (pointing at the book or one of its alternate ids, see
 // model/alternate_ids.ts): those with a "page" location equal to its printed page number (when that
 // is a number), or that cite it by the parts of one of its book_pages_to_citations rows (see
 // citesPageByParts). Callers choose the columns.
-export const citationsOfPage = (
+const citationsOfPage = (
   db: Kysely<Database>, bookId: string, page: { pageNumber: number, printedNumber: number | null }
 ) => (
   withScopes(db.selectFrom('citations'), [
@@ -63,7 +50,7 @@ const rowPartMatches = (n: number) => {
 // Found from the book's rows rather than from its citations (the Bible has 98,879): a row with a
 // second part finds the citation_groups rows with its first two parts through
 // citation_groups_parts_lookup_idx, one without, those with its first part.
-export const citedCountsByPage = async(
+const citedCountsByPage = async(
   db: Kysely<Database>, bookId: string
 ): Promise<Map<number, number>> => {
   const rows = await sql<{ page_number: number, n: string }>`
@@ -127,26 +114,8 @@ export const citedCountsByPage = async(
   return new Map(rows.rows.map((r) => [r.page_number, Number(r.n)]));
 };
 
-export const findCitingCitations = async(
-  db: Kysely<Database>, bookId: string, page: { pageNumber: number, printedNumber: number | null }
-): Promise<CitingCitation[]> => {
-  const rows = await citationsOfPage(db, bookId, page)
-    .select([
-      'citations.source_book_id',
-      'citations.source_footnote_page',
-      'citations.source_footnote_identifier',
-    ])
-    .execute();
-
-  return rows.map((r) => ({
-    sourceBookId:       r.source_book_id,
-    sourcePage:         r.source_footnote_page,
-    footnoteIdentifier: r.source_footnote_identifier,
-  }));
-};
-
-export const findBooks = async(db: Kysely<Database>, bookIds: string[]) => {
-  if (!bookIds.length) {
+const findBooks = async(db: Kysely<Database>, bookIds: string[]) => {
+  if (bookIds.length === 0) {
     return new Map<string, { id: string, title: string, author: string }>();
   }
   else {
@@ -159,102 +128,4 @@ export const findBooks = async(db: Kysely<Database>, bookIds: string[]) => {
   }
 };
 
-const pageKey = (bookId: string, pageNumber: number) => bookId + '\u0000' + pageNumber;
-
-// The pages asked for that exist, with their blocks in reading order, keyed by pageKey
-export const findContextPages = async(
-  db: Kysely<Database>, wanted: { bookId: string, pageNumbers: number[] }[]
-): Promise<{ get: (bookId: string, pageNumber: number) => ContextPage | undefined }> => {
-  const pairs = wanted.flatMap((w) => w.pageNumbers.map((n) => ({ bookId: w.bookId, n })));
-  const pages = new Map<string, ContextPage>();
-
-  if (pairs.length) {
-    const rows = await db.selectFrom('pages')
-      .leftJoin('page_blocks', (join) => join
-        .onRef('page_blocks.book_id', '=', 'pages.book_id')
-        .onRef('page_blocks.page_number', '=', 'pages.page_number'))
-      .select([
-        'pages.book_id', 'pages.page_number', 'pages.printed_page_number',
-        'page_blocks.label', 'page_blocks.html',
-      ])
-      .where((eb) => eb.or(pairs.map((p) => eb.and([
-        eb('pages.book_id', '=', p.bookId),
-        eb('pages.page_number', '=', p.n),
-      ]))))
-      .orderBy('pages.book_id')
-      .orderBy('pages.page_number')
-      .orderBy('page_blocks.position')
-      .execute();
-
-    for (const r of rows) {
-      const key  = pageKey(r.book_id, r.page_number);
-      const page = pages.get(key) ?? {
-        pageNumber:        r.page_number,
-        printedPageNumber: r.printed_page_number,
-        blocks:            [],
-      };
-
-      if (r.label !== null && r.html !== null) {
-        page.blocks.push({ label: r.label, html: r.html });
-      }
-      pages.set(key, page);
-    }
-  }
-
-  return { get: (bookId, pageNumber) => pages.get(pageKey(bookId, pageNumber)) };
-};
-
-// The cached insights for a page, if any
-export const findCachedInsights = async(
-  db: Kysely<Database>, bookId: string, pageNumber: number
-): Promise<PageInsights | undefined> => {
-  const row = await db.selectFrom('page_insights_cache')
-    .select('page_insights_cache.insights')
-    .where('page_insights_cache.book_id', '=', bookId)
-    .where('page_insights_cache.page_number', '=', pageNumber)
-    .executeTakeFirst();
-
-  return row?.insights;
-};
-
-export const saveCachedInsights = (db: Kysely<Database>, insights: PageInsights) => (
-  db.insertInto('page_insights_cache')
-    .values({
-      book_id:     insights.bookId,
-      page_number: insights.pageId,
-      insights:    JSON.stringify(insights),
-    })
-    .onConflict((oc) => oc.columns(['book_id', 'page_number']).doUpdateSet((eb) => ({
-      insights:   eb.ref('excluded.insights'),
-      created_at: sql<Date>`now()`,
-    })))
-    .execute()
-);
-
-// Delete the cached insights of every page these citations point to: in the book each references
-// (and the books it is an alternate id of), the pages whose printed number is one of the
-// citation's page locations (the rule citationsOfPage uses). Returns how many were deleted.
-export const invalidateInsightsCitedBy = async(
-  db: Kysely<Database>, citationIds: string[]
-): Promise<number> => {
-  if (!citationIds.length) {
-    return 0;
-  }
-  else {
-    const result = await sql`
-      DELETE FROM page_insights_cache cache
-      USING citations c
-      JOIN citation_groups grp ON grp.citation_id = c.id
-      CROSS JOIN LATERAL ${ groupPartRows('grp') } part(n, type, value)
-      JOIN pages p ON (p.book_id = c.reference_book_id OR p.book_id IN (
-          SELECT a.book_id FROM alternate_ids a WHERE a.alternate_id = c.reference_book_id))
-        AND CASE WHEN p.printed_page_number ~ '^[0-9]+$'
-                 THEN p.printed_page_number::numeric END = part.value
-      WHERE c.id = ANY(${ citationIds }::bigint[])
-        AND part.type = 'page'
-        AND cache.book_id = p.book_id
-        AND cache.page_number = p.page_number`.execute(db);
-
-    return Number(result.numAffectedRows ?? 0);
-  }
-};
+export const PageCitationQueries = { citationsOfPage, citedCountsByPage, findBooks };

@@ -13,12 +13,12 @@ import {
 } from 'lucide-react';
 import { formatLocations } from '../core/page_rendering';
 import { highlightFootnote, stripUnhighlightedBlocks } from '../core/citations';
-import { PageInsightsSummary } from './page_insights';
 import { TableOfContents } from './table_of_contents';
 import { pagesOnly, pageVolumes } from '../core/page_order'
 import { chapterOfPage, citingAuthorsSummaryForMany, verseRows } from '../core/bible_page'
 import { LoadingSpinner } from './loading_spinner'
 import { EbookDownloads } from './ebook_downloads'
+import { safeHtml } from '../core/safe_html'
 import { SourceLink } from './source_link'
 
 const MAX_CITATIONS_BEFORE_COLLAPSING = 3;
@@ -46,7 +46,6 @@ export const BookPageView = ({
   pageResult: UseQueryResult<BookPage, Error>,
   citationsResult: DefinedUseQueryResult<unknown, Error>
 }) => {
-  const bookId   = book.id;
   const allPages = pagesOnly(book.pageOrder);
   // for a book listing every volume's pages, the volume of each
   const volumeOf = pageVolumes(book.pageOrder, book.volumes);
@@ -126,7 +125,7 @@ export const BookPageView = ({
                 ),                
                 headerBlocks.map((block) => (
                   __('div', {className: 'page-header-item'},
-                    __('div', {dangerouslySetInnerHTML: {__html: block.html}}),
+                    __('div', {dangerouslySetInnerHTML: {__html: safeHtml(block.html)}}),
                   )
                 )),
                 __('div', {className: 'spacer'}),
@@ -183,9 +182,6 @@ export const BookPageView = ({
           ),
           // a Bible's citations are beside their verses instead (BiblePage)
           showCitedBy && !book.isBible && __('aside', {className: 'cited-by'},
-            foreignCitations.length > 0
-              && __(PageInsightsSummary, {bookId, pageId}),
-
             __('h2', {}, 'Cited by'),
 
             match({citations, error: citationsError})
@@ -370,7 +366,7 @@ function Block({block, hrefForCitedBook}: {
 }) {
   return (
     __('div', {className: 'block block-' + block.label},
-      __('div', {dangerouslySetInnerHTML: {__html: block.html}}),
+      __('div', {dangerouslySetInnerHTML: {__html: safeHtml(block.html)}}),
       block.citations.length > 0 && __('ul', {className: 'citations'},
         block.citations.map(c => {
           const text = [
@@ -479,7 +475,7 @@ function SourcePage({citation}: {citation: Citation}) {
     .otherwise(() => (
       html.length === 0
         ? null
-        : __('div', {className: 'source-page', dangerouslySetInnerHTML: {__html: html}})
+        : __('div', {className: 'source-page', dangerouslySetInnerHTML: {__html: safeHtml(html)}})
     ));
 }
 

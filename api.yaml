@@ -370,6 +370,7 @@ paths:
         Ask for the book as a .mobi e-book (older Kindles): converted from its EPUB in the
         background, one book at a time, and kept until the book changes. Asked again, says how it's
         going; once ready, GET downloads it. A failure is told once; asking again tries again.
+        Only for a signed-in reader.
       parameters:
         - name: bookId
           in: path
@@ -383,6 +384,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MobiStatus'
+        '401':
+          description: not signed in
         '404':
           description: no such book
         '451':
@@ -390,7 +393,7 @@ paths:
     get:
       tags:
         - Books
-      summary: The book's .mobi, once POST has made it ready
+      summary: The book's .mobi, once POST has made it ready. Only for a signed-in reader.
       parameters:
         - name: bookId
           in: path
@@ -405,6 +408,8 @@ paths:
               schema:
                 type: string
                 format: binary
+        '401':
+          description: not signed in
         '404':
           description: no such book, or its .mobi isn't ready
         '451':
@@ -519,42 +524,6 @@ paths:
           description: no such book or page
         '451':
           description: the book is withheld, likely still under copyright
-  /books/{bookId}/pages/{pageId}/insights:
-    get:
-      tags:
-        - Books
-      parameters:
-        - name: bookId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: pageId
-          description: a pageId from the book's pageOrder
-          in: path
-          required: true
-          schema:
-            type: number
-            minimum: 1
-      summary: >-
-        What other books in the collection say about this page: an LLM summary of the passages
-        that cite it (each citing page with two pages before and after), with this page as context.
-        The result is cached per page until a citation is newly linked to the page.
-      responses:
-        '200':
-          description: the insights
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PageInsights'
-        '204':
-          description: nothing in the collection cites this page (no summary is made)
-        '404':
-          description: no such book or page
-        '502':
-          description: the OpenRouter request failed
-        '503':
-          description: insights are unavailable (OPENROUTER_KEY is not set)
   /citations/{citationId}/sourcePage:
     get:
       tags:
@@ -1936,57 +1905,6 @@ components:
           type: object
           additionalProperties:
             type: string
-    PageInsights:
-      type: object
-      required:
-        - bookId
-        - pageId
-        - printedPageNumber
-        - overview
-        - sources
-      properties:
-        bookId:
-          type: string
-        pageId:
-          type: number
-        printedPageNumber:
-          type: string
-        overview:
-          description: how the citing sources, taken together, treat this page
-          type: string
-        sources:
-          description: one per page in another book that cites this page, with what it says
-          type: array
-          items:
-            type: object
-            required:
-              - bookId
-              - title
-              - author
-              - pageId
-              - printedPageNumber
-              - footnoteIdentifiers
-              - summary
-            properties:
-              bookId:
-                type: string
-              title:
-                type: string
-              author:
-                type: string
-              pageId:
-                description: the citing page (a pageId of that book)
-                type: number
-              printedPageNumber:
-                type: string
-              footnoteIdentifiers:
-                description: the footnote markers on that page that cite this page
-                type: array
-                items:
-                  type: string
-              summary:
-                description: what that author says about this page ('' if the model gave none)
-                type: string
     CitationSourcePage:
       description: the HTML of the page a citation's footnote is on
       type: object

@@ -282,7 +282,7 @@ export const placeOnPage = (
 };
 
 // A place is on a page when every part of one of the page's rows is the place's part in the same
-// position (as citedCountsByPage in model/page_insights.ts counts it)
+// position (as citedCountsByPage in model/page_citations.ts counts it)
 export const isOnSomePage = (place: CitationPart[], rows: { parts: CitationPart[] }[]): boolean => (
   rows.some((row) => row.parts.every((p, i) => (
     place[i]?.type === p.type && place[i]?.value === p.value

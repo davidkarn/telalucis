@@ -2,9 +2,9 @@
 // see model/llm_requests.ts): what asked for it, what was sent, what came
 // back, and the tokens and cost OpenRouter reports. Pure functions.
 
-// What in the web app asks: chat answers (api/chats.service.ts), and what
-// other books say about a page (api/insights.service.ts)
-export type LlmSource = 'chat' | 'page_insights';
+// What in the web app asks: chat answers (api/chats.service.ts). Earlier rows
+// may say 'page_insights', for the page insights there used to be.
+export type LlmSource = 'chat';
 
 // OpenRouter's usage of a request, as it reports it in the response (or a
 // stream's last chunk) when asked to (USAGE_ACCOUNTING in lib/open_router.ts).

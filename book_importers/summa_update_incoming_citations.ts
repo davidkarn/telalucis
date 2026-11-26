@@ -21,7 +21,7 @@ import {
   isIbid, isSummaCitation, lastPlace, parseSummaCitation, type SummaPlace,
 } from '../core/summa_citations.ts';
 import { findCitationsFromOtherBooks, relinkCitations } from '../model/incoming_citations.ts';
-import { citedCountsByPage } from '../model/page_insights.ts';
+import { PageCitationQueries } from '../model/page_citations.ts';
 import { log } from '../lib/lib.ts';
 
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -87,7 +87,7 @@ const main = async() => {
     }
     else {
       const saved = await relinkCitations(db, SUMMA_BOOK_ID, parsed);
-      const pages = await citedCountsByPage(db, SUMMA_BOOK_ID);
+      const pages = await PageCitationQueries.citedCountsByPage(db, SUMMA_BOOK_ID);
       console.log(`saved ${ saved.citations } citations (${ saved.groups } places); `
         + `${ pages.size } Summa pages are now cited`);
     }

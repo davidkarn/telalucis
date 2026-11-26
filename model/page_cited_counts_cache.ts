@@ -1,4 +1,4 @@
-// The citations of each of a book's pages counted (citedCountsByPage in model/page_insights.ts),
+// The citations of each of a book's pages counted (citedCountsByPage in model/page_citations.ts),
 // cached in page_cited_counts_cache. Any change to what's counted clears the whole cache, which
 // refills a book at a time as its counts are asked for: new or relinked citations, a book's pages
 // or page citation parts saved again, or a copyright status set (withheld books' citations aren't

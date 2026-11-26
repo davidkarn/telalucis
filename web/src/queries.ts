@@ -5,12 +5,11 @@ import {
   fetchAuthor, fetchAuthors, fetchJournal, fetchJournalIssue, fetchJournalIssues, fetchJournals,
   fetchBook, fetchBooks, fetchCitationSourcePage, fetchPage, fetchPageCitations,
   fetchPageOrder,
-  fetchPageInsights, fetchConversations, fetchConversation,
+  fetchConversations, fetchConversation,
 } from './api'
 
 // The app's one QueryClient (see main.tsx). Books and pages don't change while they're open, so
-// data stays fresh for a while and isn't refetched when the window regains focus (page insights
-// cost an OpenRouter request).
+// data stays fresh for a while and isn't refetched when the window regains focus.
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -99,11 +98,6 @@ export const pageCitationsQuery = (bookId: string, pageId: number) => queryOptio
 export const pageQuery = (bookId: string, pageId: number) => queryOptions({
   queryKey: ['book', bookId, 'page', pageId],
   queryFn:  () => fetchPage(bookId, pageId),
-});
-
-export const pageInsightsQuery = (bookId: string, pageId: number) => queryOptions({
-  queryKey: ['book', bookId, 'page', pageId, 'insights'],
-  queryFn:  () => fetchPageInsights(bookId, pageId),
 });
 
 // Fetched when a citation is expanded: a much cited page has hundreds of citations, each on a

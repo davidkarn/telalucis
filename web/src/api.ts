@@ -232,40 +232,6 @@ export const fetchPage = (bookId: string, pageId: number): Promise<BookPage> =>
 export const fetchCitationSourcePage = (citationId: string): Promise<CitationSourcePage> =>
   getJson(`/citations/${encodeURIComponent(citationId)}/sourcePage`);
 
-// GET /books/{bookId}/pages/{pageId}/insights: what other books in the collection say about a page
-export type PageInsights = {
-  bookId: string,
-  pageId: number,
-  printedPageNumber: string,
-  overview: string,  // how the citing sources, taken together, treat the page
-  sources: {
-    bookId: string,
-    title: string,
-    author: string,
-    pageId: number,  // the citing page, a pageId of that book
-    printedPageNumber: string,
-    footnoteIdentifiers: string[],
-    summary: string,  // '' if the model gave none
-  }[],
-};
-
-// null when nothing in the collection cites the page (the endpoint answers 204, with no body).
-// Each call with citations makes an OpenRouter request.
-export const fetchPageInsights = async (bookId: string, pageId: number): Promise<PageInsights | null> => {
-  const path = `/books/${encodeURIComponent(bookId)}/pages/${pageId}/insights`;
-  const res  = await fetch(`/api${path}`);
-
-  if (res.status === 204) {
-    return null;
-  }
-  else if (!res.ok) {
-    throw new Error(`GET ${path} failed: ${res.status} ${res.statusText}`);
-  }
-  else {
-    return res.json();
-  }
-};
-
 // The admin panel (/tl-admin): the AdminSession, QueueStatus and AdminDashboard schemas in
 // ../api.yaml. Signing in sets an HttpOnly session cookie, which the browser sends with these.
 // passwordSignIn and googleSignIn: the ways of signing in that are set up

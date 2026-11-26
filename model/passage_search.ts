@@ -5,7 +5,7 @@ import { sql, type Kysely } from 'kysely';
 import type { Database } from '../api/database.ts';
 import type { Candidate } from '../core/passage_search.ts';
 import { CopyrightStatusCheckSql } from './copyright_status_checks.ts';
-import { citationsOfPage } from './page_insights.ts';
+import { PageCitationQueries } from './page_citations.ts';
 
 type CandidateRow = {
   id: string,
@@ -123,7 +123,7 @@ const findCiting = async(
   db: Kysely<Database>, page: { bookId: string, pageNumber: number, printedPageNumber: string }, limit: number,
 ): Promise<Candidate[]> => {
   const printed   = /^\d+$/.test(page.printedPageNumber) ? Number(page.printedPageNumber) : null;
-  const citations = await citationsOfPage(db, page.bookId, { pageNumber: page.pageNumber, printedNumber: printed })
+  const citations = await PageCitationQueries.citationsOfPage(db, page.bookId, { pageNumber: page.pageNumber, printedNumber: printed })
     .select(['citations.source_book_id', 'citations.source_footnote_page'])
     .where('citations.source_book_id', '!=', page.bookId)
     .execute();
