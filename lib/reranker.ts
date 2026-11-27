@@ -3,7 +3,7 @@
 // From a server with a /rerank endpoint (llama-server, Jina and Cohere style): llama-server
 // running bge-reranker-v2-m3 (multilingual) by default, at RERANK_URL (http://localhost:8082/v1
 // when not set):
-//   llama-server -hf gpustack/bge-reranker-v2-m3-GGUF:Q8_0 --reranking -ub 2048 -b 8192 -c 8192 --port 8082
+//   llama-server -hf gpustack/bge-reranker-v2-m3-GGUF:Q8_0 --reranking -ub 8192 -b 8192 -c 8192 --port 8082
 // RERANK_MODEL names the model (bge-reranker-v2-m3 when not set).
 
 type RerankResponse = {

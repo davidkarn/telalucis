@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import {
-  answeredBatch, batchCitations, batchHtml, FOOTNOTE_BATCH_FORMAT, footnoteBatches, hasCitableFootnotes,
+  answeredBatch, answeredFootnotes, batchCitations, batchHtml, FOOTNOTE_BATCH_FORMAT, footnoteBatches, hasCitableFootnotes,
   MAX_BATCH_CHARS, MAX_BATCH_PAGES, missedPages, retryBatches,
 } from './footnote_batches.ts';
 import { footnotesPrompt, withoutInsights } from './footnote_extraction.ts';
@@ -132,5 +132,48 @@ describe('answeredBatch', () => {
     expect(answer.strays).toBe(1);
     expect(answer.missed.map((p) => p.page)).toEqual([2, 3, 4]);
     expect(answer.retry.map((b) => b.map((p) => p.page))).toEqual([[2, 3], [4]]);
+  });
+});
+
+describe('answeredFootnotes', () => {
+  it("fills in the fields a local model left out, and leaves out what it can't read", () => {
+    const answer = answeredFootnotes({
+      footnotes: [
+        { page:       '5',
+          identifier: 2,
+          citations:  [
+            { author:         'Pohle',
+              raw:            'Pohle, p. 3',
+              locationsCited: [[
+                { type: 'page', values: [3] }, { type: 'folio', values: [1] }, { type: 'page', values: ['x'] },
+              ], 'p. 4'] },
+            { title: null, author: '', raw: '' },
+            'Pohle',
+          ] },
+        { identifier: '3', citations: [] },
+        { page: 6, identifier: '4' },
+        null,
+      ],
+    });
+
+    expect(answer).toEqual({ footnotes: [
+      { page:       5,
+        identifier: '2',
+        citations:  [{
+          author:         'Pohle',
+          title:          '',
+          collection:     null,
+          issue:          null,
+          location:       '',
+          raw:            'Pohle, p. 3',
+          locationsCited: [[{ rawLabel: '', type: 'page', values: [3] }]],
+        }] },
+      { page: 6, identifier: '4', citations: [] },
+    ] });
+  });
+
+  it('is no footnotes for an answer without any', () => {
+    expect(answeredFootnotes(null)).toEqual({ footnotes: [] });
+    expect(answeredFootnotes({ footnotes: 'none' })).toEqual({ footnotes: [] });
   });
 });

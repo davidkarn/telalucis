@@ -53,6 +53,8 @@ services:
   # into the embeddings-models volume. Only the other services reach it (no port published).
   # The search (GET /search) works without it, by words alone. Passages must be embedded with
   # this same model, quantization and pooling as the search terms to be compared with them.
+  # -ub: each passage must fit in one batch, so it's bge-m3's whole context (8192 tokens): a
+  # 500-word passage of Greek or OCR noise can run past 2048.
   embeddings:
     image: ghcr.io/ggml-org/llama.cpp:server-b12199
     restart: unless-stopped
@@ -60,7 +62,7 @@ services:
       LLAMA_CACHE: /models
     command: [
       "-hf", "gpustack/bge-m3-GGUF:Q8_0", "--embedding", "--pooling", "cls",
-      "-ub", "2048", "-b", "8192", "-t", "${EMBEDDINGS_THREADS:--1}",
+      "-ub", "8192", "-b", "8192", "-c", "8192", "-t", "${EMBEDDINGS_THREADS:--1}",
       "--host", "0.0.0.0", "--port", "8081",
     ]
     volumes:

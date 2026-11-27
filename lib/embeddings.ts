@@ -1,7 +1,7 @@
 // Embeddings of passages and questions, from a server with an OpenAI-style /embeddings endpoint:
 // llama-server running bge-m3 (multilingual, for the collection's English, Latin, French and
 // German) by default, at EMBEDDINGS_URL (http://localhost:8081/v1 when not set):
-//   llama-server -hf gpustack/bge-m3-GGUF:Q8_0 --embedding --pooling cls -ub 2048 -b 8192 --port 8081
+//   llama-server -hf gpustack/bge-m3-GGUF:Q8_0 --embedding --pooling cls -ub 8192 -b 8192 -c 8192 --port 8081
 // EMBEDDINGS_MODEL names the model (bge-m3 when not set); passages embedded with another are
 // embedded again (see the index-passages command). Its embeddings must have EMBEDDING_DIMENSIONS
 // numbers (core/passages.ts). EMBEDDINGS_KEY: a key, for a server needing one.

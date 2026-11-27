@@ -9,8 +9,9 @@ import type { ORResponseFormat } from '../lib/open_router.ts';
 import type { Citation, SuryaPage } from '../types.ts';
 import { strip_tags } from './book_pages.ts';
 import {
-  FOOTNOTES_FORMAT, footnoteHtml, type FootnotePage, type PageFootnotes,
+  FOOTNOTES_FORMAT, footnoteHtml, LOCATION_TYPES, type FootnotePage, type PageFootnotes,
 } from './footnote_extraction.ts';
+import type { CitationLocation } from '../types.ts';
 
 // A batch holds pages until their footnotes come to about this many
 // characters, and at most MAX_BATCH_PAGES pages: small enough for the model to
@@ -136,11 +137,89 @@ export const batchCitations = (
   };
 };
 
+type AnsweredCitation = BatchFootnotes['footnotes'][number]['citations'][number];
+
+const isObject   = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
+const text       = (v: unknown): string => (typeof v === 'string' ? v : '');
+const textOrNull = (v: unknown): string | null => (typeof v === 'string' && v.length > 0 ? v : null);
+
+// A location as the model gave it, or null when it isn't one: a type it knows
+// and numbers
+const answeredLocation = (v: unknown): CitationLocation | null => {
+  const type   = isObject(v) ? v['type'] : undefined;
+  const values = isObject(v) && Array.isArray(v['values'])
+    ? v['values'].filter((n): n is number => typeof n === 'number' && Number.isFinite(n))
+    : [];
+
+  if (!isObject(v) || !LOCATION_TYPES.includes(type as CitationLocation['type']) || values.length === 0) {
+    return null;
+  }
+  else {
+    return { rawLabel: text(v['rawLabel']), type: type as CitationLocation['type'], values };
+  }
+};
+
+// A citation as the model gave it, its text fields '' and its locations []
+// where missing or malformed; null when it gives nothing to go on (no author,
+// title or raw text)
+const answeredCitation = (v: unknown): AnsweredCitation | null => {
+  const citation = isObject(v) ? {
+    author:         text(v['author']),
+    title:          text(v['title']),
+    collection:     textOrNull(v['collection']),
+    issue:          textOrNull(v['issue']),
+    location:       text(v['location']),
+    raw:            text(v['raw']),
+    locationsCited: (Array.isArray(v['locationsCited']) ? v['locationsCited'] : [])
+      .map((group) => (Array.isArray(group) ? group : [])
+        .map(answeredLocation)
+        .filter((l): l is CitationLocation => l !== null))
+      .filter((group) => group.length > 0),
+  } : null;
+
+  if (citation === null) {
+    return null;
+  }
+  else if (citation.author.length === 0 && citation.title.length === 0 && citation.raw.length === 0) {
+    return null;
+  }
+  else {
+    return citation;
+  }
+};
+
+// A page number as the model gave it, as a number or as its digits; null for
+// anything else
+const pageNumber = (v: unknown): number | null => (
+  typeof v === 'number' && Number.isInteger(v) ? v
+    : typeof v === 'string' && /^\d+$/.test(v.trim()) ? Number(v.trim())
+      : null
+);
+
+// A batch's answer as the model gave it, made safe to read: OpenRouter's
+// models keep to FOOTNOTE_BATCH_FORMAT, but a local server may not, leaving
+// out fields or giving them the wrong types. A footnote without a page number
+// is left out (its page is then asked again); a citation, as answeredCitation
+// makes it.
+export const answeredFootnotes = (answer: unknown): BatchFootnotes => ({
+  footnotes: (isObject(answer) && Array.isArray(answer['footnotes']) ? answer['footnotes'] : [])
+    .filter((f): f is Record<string, unknown> => isObject(f) && pageNumber(f['page']) !== null)
+    .map((f) => ({
+      page:       pageNumber(f['page'])!,
+      identifier: typeof f['identifier'] === 'number' ? String(f['identifier']) : text(f['identifier']),
+      citations:  (Array.isArray(f['citations']) ? f['citations'] : [])
+        .map(answeredCitation)
+        .filter((c): c is AnsweredCitation => c !== null),
+    })),
+});
+
 // What the model's answer for a batch gives: its citations and strays (see batchCitations), the
 // pages it missed (see missedPages), and the batches to ask again for them (see retryBatches)
-export const answeredBatch = <P extends SuryaPage>(bookId: string, batch: P[], result: BatchFootnotes): {
+// (the answer read by answeredFootnotes)
+export const answeredBatch = <P extends SuryaPage>(bookId: string, batch: P[], answer: unknown): {
   citations: Citation[], strays: number, missed: P[], retry: P[][],
 } => {
+  const result = answeredFootnotes(answer);
   const missed = missedPages(batch, result) as P[];
 
   return {
