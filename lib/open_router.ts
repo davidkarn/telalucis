@@ -20,7 +20,8 @@ export type ORResponseFormat = {
 export type ORResponse = {
   id?: string,
   error?: { message?: string },
-  choices?: { message?: { content?: unknown } }[],
+  // finish_reason "length": the answer was cut off at its token limit
+  choices?: { message?: { content?: unknown }, finish_reason?: string | null }[],
   usage?: LlmUsage,
 };
 
@@ -120,11 +121,19 @@ export const parseJsonResponse = <T>(response: ORResponse): T => {
   }
   else {
     const content = response.choices?.[0]?.message?.content;
+    const cutOff  = response.choices?.[0]?.finish_reason === 'length';
+
     if (typeof content !== 'string') {
       throw new Error('no content in response: ' + JSON.stringify(response));
     }
     else {
-      return JSON.parse(content);
+      try {
+        return JSON.parse(content);
+      }
+      catch (e) {
+        // a SyntaxError still, for callers telling answers that won't parse from failed requests
+        throw cutOff ? new SyntaxError(`the answer was cut off at its token limit: ${ (e as Error).message }`) : e;
+      }
     }
   }
 };

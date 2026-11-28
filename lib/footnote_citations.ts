@@ -9,7 +9,8 @@ import { setTimeout } from 'node:timers/promises';
 import { fillCitationAuthors } from '../core/citation_authors.ts';
 import { batchExamples, examplesPart, type ExampleIndex } from '../core/citation_examples.ts';
 import {
-  answeredBatch, batchFootnotes, batchHtml, FOOTNOTE_BATCH_FORMAT, footnoteBatches, type BatchFootnotes,
+  answeredBatch, batchFootnotes, batchHtml, FOOTNOTE_BATCH_FORMAT, footnoteBatches, retryBatches,
+  type BatchFootnotes,
 } from '../core/footnote_batches.ts';
 import { footnotesPrompt, withoutInsights } from '../core/footnote_extraction.ts';
 import type { ExtractedCitations } from '../core/ocred_book_import.ts';
@@ -67,9 +68,12 @@ export const footnoteBatchRequest = (
 
 // The book's citations, with the batches given asked a request at a time
 // after those answered already (`found`). Pages the model returns nothing for
-// are asked again in smaller batches, then alone (see retryBatches). The pages
-// of a batch whose request fails are returned in failedPages rather than
-// failing the whole book. Authors the model left out are filled in from the
+// are asked again in smaller batches, then alone (see retryBatches); so are
+// those of a batch whose answer isn't JSON (cut off, or malformed: a local
+// model's, its server not keeping it to the schema), a shorter answer being
+// likelier to come out whole. The pages of a batch whose request fails, or of
+// a page alone whose answer isn't JSON, are returned in failedPages rather
+// than failing the whole book. Authors the model left out are filled in from the
 // titles where they can be (see fillCitationAuthors).
 export const askFootnoteBatches = async(
   bookId: string, batches: SuryaPage[][], options: ExtractionOptions = {}, found: Citation[] = [],
@@ -105,7 +109,16 @@ export const askFootnoteBatches = async(
     }
     catch (e) {
       const error = (e as Error).message ?? String(e);
-      failedPages.push(...batch.map((page) => ({ page: page.page, error })));
+      const retry = e instanceof SyntaxError ? retryBatches(batch, batch) : [];
+
+      if (retry.length > 0) {
+        queue.unshift(...retry);
+        console.log(`${ bookId }: request ${ asked }: pages ${ batch.map((p) => p.page).join(', ') }`
+          + ` asked again in ${ retry.length } smaller batches, the answer not being JSON (${ error })`);
+      }
+      else {
+        failedPages.push(...batch.map((page) => ({ page: page.page, error })));
+      }
     }
   }
 
